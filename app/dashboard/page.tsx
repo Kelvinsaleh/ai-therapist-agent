@@ -60,6 +60,7 @@ import {
 import { ActivityLogger } from "@/components/activities/activity-logger";
 import { useSession } from "@/lib/contexts/session-context";
 import { getAllChatSessions } from "@/lib/api/chat";
+import { SubscriptionManager } from "@/components/subscription/subscription-manager";
 
 // Add this type definition
 type ActivityLevel = "none" | "low" | "medium" | "high";
@@ -537,7 +538,7 @@ export default function Dashboard() {
         {/* Main Grid Layout */}
         <div className="space-y-6">
           {/* Top Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Quick Actions Card */}
             <Card className="border-primary/10 relative overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-primary/10 to-transparent" />
@@ -724,6 +725,9 @@ export default function Dashboard() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Subscription Manager */}
+            <SubscriptionManager />
           </div>
 
           {/* Content Grid */}

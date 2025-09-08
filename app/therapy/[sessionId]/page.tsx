@@ -1,6 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+
+// TypeScript declarations for Speech Recognition
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,6 +51,21 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistanceToNow } from "date-fns";
 import { Separator } from "@/components/ui/separator";
+import { VoiceControls } from "@/components/therapy/voice-controls";
+import { useSession } from "@/lib/contexts/session-context";
+import { toast } from "sonner";
+import { getSubscriptionStatus } from "@/lib/api/backend-service";
+
+type SpeechRecognitionEventLike = {
+  results: {
+    [index: number]: {
+      [index: number]: {
+        transcript: string;
+      };
+    };
+  };
+  error?: string;
+};
 
 interface SuggestedQuestion {
   id: string;
@@ -90,6 +113,7 @@ const glowAnimation = {
 const COMPLETION_THRESHOLD = 5;
 
 export default function TherapyPage() {
+  const { user } = useSession();
   const params = useParams();
   const router = useRouter();
   const [message, setMessage] = useState("");
@@ -98,15 +122,24 @@ export default function TherapyPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [mounted, setMounted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [stressPrompt, setStressPrompt] = useState<StressPrompt | null>(null);
   const [showActivity, setShowActivity] = useState(false);
   const [isChatPaused, setIsChatPaused] = useState(false);
   const [showNFTCelebration, setShowNFTCelebration] = useState(false);
+  
+  // Voice controls
+  const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [voiceSupported, setVoiceSupported] = useState(false);
+  const recognitionRef = useRef<any>(null);
   const [isCompletingSession, setIsCompletingSession] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(
     params.sessionId as string
   );
   const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [isPremium, setIsPremium] = useState<boolean>(false);
+  const [isVoiceMode, setIsVoiceMode] = useState<boolean>(false);
 
   const handleNewSession = async () => {
     try {
@@ -188,6 +221,25 @@ export default function TherapyPage() {
     initChat();
   }, [sessionId]);
 
+  // Load subscription status to gate premium features
+  useEffect(() => {
+    const loadSubscription = async () => {
+      try {
+        if (!user?._id) return;
+        const res = await getSubscriptionStatus(user._id as unknown as string);
+        if ((res as any)?.success) {
+          const data = (res as any).data;
+          // Expecting shape like { plan: 'premium' | 'free' }
+          setIsPremium(Boolean(data?.isActive || data?.plan === 'premium'));
+        }
+      } catch (e) {
+        // Default to non-premium on error
+        setIsPremium(false);
+      }
+    };
+    loadSubscription();
+  }, [user?._id]);
+
   // Load all chat sessions
   useEffect(() => {
     const loadSessions = async () => {
@@ -215,6 +267,109 @@ export default function TherapyPage() {
       scrollToBottom();
     }
   }, [messages, isTyping]);
+
+  // Initialize voice recognition
+  useEffect(() => {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      setVoiceSupported(true);
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognitionRef.current = new SpeechRecognition();
+      
+      recognitionRef.current.continuous = false;
+      recognitionRef.current.interimResults = false;
+      recognitionRef.current.lang = 'en-US';
+
+      recognitionRef.current.onresult = (event: SpeechRecognitionEventLike) => {
+        const transcript = event.results[0][0].transcript;
+        setMessage(transcript);
+        setIsListening(false);
+        // Auto-send when in Voice Mode
+        if (isVoiceMode) {
+          setTimeout(() => {
+            const fakeEvent = new Event("submit") as unknown as React.FormEvent;
+            handleSubmit(fakeEvent);
+          }, 0);
+        }
+      };
+
+      recognitionRef.current.onerror = (event: { error: string }) => {
+        console.error('Speech recognition error:', event.error);
+        setIsListening(false);
+      };
+
+      recognitionRef.current.onend = () => {
+        setIsListening(false);
+      };
+    }
+  }, []);
+
+  // Voice control functions
+  const toggleListening = () => {
+    if (!recognitionRef.current) return;
+    if (!isPremium) {
+      toast.error("Voice capture is a Premium feature.");
+      router.push("/pricing");
+      return;
+    }
+    
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      // Interrupt TTS if speaking
+      if (typeof window !== 'undefined' && window.speechSynthesis?.speaking) {
+        window.speechSynthesis.cancel();
+      }
+      recognitionRef.current.start();
+      setIsListening(true);
+    }
+  };
+
+  const speakText = (text: string) => {
+    if (!isPremium) {
+      toast.error("Listening is a Premium feature.");
+      router.push("/pricing");
+      return;
+    }
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.9;
+      utterance.pitch = 1;
+      utterance.volume = 0.8;
+      
+      // Try to use a more natural voice
+      const voices = speechSynthesis.getVoices();
+      const preferredVoice = voices.find(voice => 
+        voice.name.includes('Google') || 
+        voice.name.includes('Microsoft') ||
+        voice.name.includes('Natural')
+      );
+      if (preferredVoice) {
+        utterance.voice = preferredVoice;
+      }
+
+      utterance.onstart = () => {
+        setIsSpeaking(true);
+        // Interrupt listening while speaking
+        if (isListening && recognitionRef.current) {
+          try { recognitionRef.current.stop(); } catch {}
+          setIsListening(false);
+        }
+      };
+      utterance.onend = () => {
+        setIsSpeaking(false);
+        // Resume listening in Voice Mode
+        if (isVoiceMode && recognitionRef.current) {
+          try {
+            recognitionRef.current.start();
+            setIsListening(true);
+          } catch {}
+        }
+      };
+      
+      speechSynthesis.speak(utterance);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -296,6 +451,11 @@ export default function TherapyPage() {
       setMessages((prev) => [...prev, assistantMessage]);
       setIsTyping(false);
       scrollToBottom();
+
+      // In Voice Mode, auto-play assistant reply
+      if (isVoiceMode) {
+        speakText(assistantMessage.content);
+      }
     } catch (error) {
       console.error("Error in chat:", error);
       setMessages((prev) => [
@@ -426,9 +586,32 @@ export default function TherapyPage() {
 
   return (
     <div className="relative max-w-7xl mx-auto px-4">
-      <div className="flex h-[calc(100vh-4rem)] mt-20 gap-6">
+      {/* Mobile bar for sessions toggle */}
+      <div className="md:hidden fixed top-16 left-0 right-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="flex items-center justify-between px-4 py-2">
+          <h2 className="text-sm font-medium text-muted-foreground">Therapy Chat</h2>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsSidebarOpen((p) => !p)}
+            className="gap-2"
+          >
+            <MessageSquare className="w-4 h-4" />
+            {isSidebarOpen ? "Hide Sessions" : "Show Sessions"}
+          </Button>
+        </div>
+      </div>
+
+      <div className="flex h-[calc(100vh-4rem)] mt-20 gap-6 pb-20">
         {/* Sidebar with chat history */}
-        <div className="w-80 flex flex-col border-r bg-muted/30">
+        <div
+          className={cn(
+            "flex flex-col border-r bg-muted/30 md:w-80 md:static md:translate-x-0 transition-transform duration-200",
+            isSidebarOpen
+              ? "fixed inset-y-20 left-0 right-0 z-40 translate-x-0 md:static md:inset-auto"
+              : "fixed inset-y-20 left-0 right-0 z-40 -translate-x-full md:translate-x-0 md:static md:inset-auto"
+          )}
+        >
           <div className="p-4 border-b">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold">Chat Sessions</h2>
@@ -459,6 +642,15 @@ export default function TherapyPage() {
               )}
               New Session
             </Button>
+            <div className="md:hidden mt-3">
+              <Button
+                variant="ghost"
+                className="w-full"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                Close
+              </Button>
+            </div>
           </div>
 
           <ScrollArea className="flex-1 p-4">
@@ -472,7 +664,10 @@ export default function TherapyPage() {
                       ? "bg-primary/10 text-primary"
                       : "bg-secondary/10"
                   )}
-                  onClick={() => handleSessionSelect(session.sessionId)}
+                  onClick={() => {
+                    handleSessionSelect(session.sessionId);
+                    setIsSidebarOpen(false);
+                  }}
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <MessageSquare className="w-4 h-4" />
@@ -524,6 +719,37 @@ export default function TherapyPage() {
                   {messages.length} messages
                 </p>
               </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant={isVoiceMode ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  if (!isPremium) {
+                    toast.error("Voice Mode is a Premium feature.");
+                    router.push("/pricing");
+                    return;
+                  }
+                  const next = !isVoiceMode;
+                  setIsVoiceMode(next);
+                  if (next) {
+                    // Start listening immediately if supported
+                    if (recognitionRef.current && !isListening) {
+                      try { recognitionRef.current.start(); setIsListening(true); } catch {}
+                    }
+                  } else {
+                    if (recognitionRef.current && isListening) {
+                      try { recognitionRef.current.stop(); } catch {}
+                      setIsListening(false);
+                    }
+                    if (typeof window !== 'undefined' && window.speechSynthesis?.speaking) {
+                      window.speechSynthesis.cancel();
+                    }
+                  }
+                }}
+              >
+                {isVoiceMode ? "Voice Mode: On" : "Voice Mode: Off"}
+              </Button>
             </div>
           </div>
 
@@ -633,6 +859,7 @@ export default function TherapyPage() {
                           <div className="prose prose-sm dark:prose-invert leading-relaxed">
                             <ReactMarkdown>{msg.content}</ReactMarkdown>
                           </div>
+                          {msg.role === "assistant" && null}
                           {msg.metadata?.goal && (
                             <p className="text-xs text-muted-foreground mt-2">
                               Goal: {msg.metadata.goal}
@@ -667,7 +894,7 @@ export default function TherapyPage() {
           )}
 
           {/* Input area */}
-          <div className="border-t bg-background/50 backdrop-blur supports-[backdrop-filter]:bg-background/50 p-4">
+          <div className="border-t bg-background/50 backdrop-blur supports-[backdrop-filter]:bg-background/50 p-4 relative z-[60]">
             <form
               onSubmit={handleSubmit}
               className="max-w-3xl mx-auto flex gap-4 items-end relative"
@@ -679,12 +906,15 @@ export default function TherapyPage() {
                   placeholder={
                     isChatPaused
                       ? "Complete the activity to continue..."
-                      : "Ask me anything..."
+                      : isListening 
+                        ? "Listening... Speak now"
+                        : "Type or speak your message..."
                   }
                   className={cn(
                     "w-full resize-none rounded-2xl border bg-background",
-                    "p-3 pr-12 min-h-[48px] max-h-[200px]",
+                    "p-3 pr-20 min-h-[48px] max-h-[200px]",
                     "focus:outline-none focus:ring-2 focus:ring-primary/50",
+                    isListening && "ring-2 ring-red-500/50 bg-red-50 dark:bg-red-950/20",
                     "transition-all duration-200",
                     "placeholder:text-muted-foreground/70",
                     (isTyping || isChatPaused) &&
@@ -699,6 +929,29 @@ export default function TherapyPage() {
                     }
                   }}
                 />
+                
+                {/* Inline Mic Button next to Submit */}
+                <Button
+                  type="button"
+                  size="icon"
+                  variant={isListening ? "destructive" : "outline"}
+                  onClick={toggleListening}
+                  disabled={isTyping || isChatPaused}
+                  className={cn(
+                    "absolute right-12 bottom-3.5 h-[36px] w-[36px]",
+                    "rounded-xl transition-all duration-200",
+                    isListening && "animate-pulse"
+                  )}
+                >
+                  {isListening ? (
+                    <span className="sr-only">Stop</span>
+                  ) : (
+                    <span className="sr-only">Speak</span>
+                  )}
+                  {/* Simple mic glyph with current icon font */}
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 1 3 3v7a3 3 0 1 1-6 0V4a3 3 0 0 1 3-3z"></path><path d="M19 10v1a7 7 0 0 1-14 0v-1"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+                </Button>
+                
                 <Button
                   type="submit"
                   size="icon"
@@ -721,6 +974,7 @@ export default function TherapyPage() {
                 </Button>
               </div>
             </form>
+            {/* Removed external VoiceControls; mic is inline in input */}
             <div className="mt-2 text-xs text-center text-muted-foreground">
               Press <kbd className="px-2 py-0.5 rounded bg-muted">Enter ↵</kbd>{" "}
               to send,

@@ -41,8 +41,9 @@ export interface ApiResponse {
 }
 
 const API_BASE =
+  process.env.NEXT_PUBLIC_BACKEND_API_URL ||
   process.env.BACKEND_API_URL ||
-  "https://ai-therapist-agent-backend.onrender.com";
+  "http://localhost:8000";
 
 // Helper function to get auth headers
 const getAuthHeaders = () => {

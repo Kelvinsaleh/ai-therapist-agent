@@ -23,7 +23,9 @@ export function Header() {
   console.log("Header: Auth state:", { isAuthenticated, user });
   const navItems = [
     { href: "/features", label: "Features" },
-    { href: "/about", label: "About Aura" },
+    { href: "/pricing", label: "Pricing" },
+    { href: "/matching", label: "Find Support" },
+    { href: "/about", label: "About HOPE" },
   ];
 
   return (
@@ -38,7 +40,7 @@ export function Header() {
             <AudioWaveform className="h-7 w-7 text-primary animate-pulse-gentle" />
             <div className="flex flex-col">
               <span className="font-semibold text-lg bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-                Aura3.0
+                HOPE AI
               </span>
               <span className="text-xs dark:text-muted-foreground">
                 Your mental health Companion{" "}
@@ -65,6 +67,11 @@ export function Header() {
 
               {isAuthenticated ? (
                 <>
+                  {user?.email === "knsalee@gmail.com" && (
+                    <Button asChild variant="outline" className="hidden md:flex">
+                      <Link href="/admin/meditations">Admin</Link>
+                    </Button>
+                  )}
                   <Button
                     asChild
                     className="hidden md:flex gap-2 bg-primary/90 hover:bg-primary"
@@ -127,6 +134,15 @@ export function Header() {
                     <span>Start Chat</span>
                   </Link>
                 </Button>
+              )}
+              {isAuthenticated && user?.email === "knsalee@gmail.com" && (
+                <Link
+                  href="/admin/meditations"
+                  className="px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-primary/5 rounded-md transition-colors"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Admin
+                </Link>
               )}
             </nav>
           </div>

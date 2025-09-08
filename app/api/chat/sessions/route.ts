@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND_API_URL =
-  process.env.BACKEND_API_URL ||
-  "https://ai-therapist-agent-backend.onrender.com";
+const BACKEND_API_URL = process.env.BACKEND_API_URL;
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,6 +11,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: "Authorization header is required" },
         { status: 401 }
+      );
+    }
+
+    if (!BACKEND_API_URL) {
+      return NextResponse.json(
+        { error: "BACKEND_API_URL is not configured" },
+        { status: 500 }
       );
     }
 

@@ -8,12 +8,11 @@ const nextConfig = {
   },
 
   experimental: {
-    appDir: true,
-    suppressHydrationWarning: true,
-    skipTypeChecking: true,
-    skipMiddlewareUrlNormalize: true,
     missingSuspenseWithCSRBailout: false,
   },
+  
+  // Move deprecated options out of experimental
+  skipMiddlewareUrlNormalize: true,
 
   reactStrictMode: false,
 
@@ -35,6 +34,14 @@ const nextConfig = {
       sharp$: false,
       canvas$: false,
     };
+
+    // Speed up development builds
+    if (dev) {
+      config.watchOptions = {
+        poll: 1000,
+        aggregateTimeout: 300,
+      };
+    }
 
     return config;
   },

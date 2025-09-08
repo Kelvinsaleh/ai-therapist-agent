@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND_API_URL =
-  process.env.BACKEND_API_URL ||
-  "https://ai-therapist-agent-backend.onrender.com";
+const BACKEND_API_URL = process.env.BACKEND_API_URL;
 
 export async function GET(
   req: NextRequest,
@@ -10,9 +8,13 @@ export async function GET(
 ) {
   try {
     const { sessionId } = params;
-    const response = await fetch(
-      `${BACKEND_API_URL}/chat/sessions/${sessionId}/history`
-    );
+    if (!BACKEND_API_URL) {
+      return NextResponse.json(
+        { error: "BACKEND_API_URL is not configured" },
+        { status: 500 }
+      );
+    }
+    const response = await fetch(`${BACKEND_API_URL}/chat/sessions/${sessionId}/history`);
 
     if (!response.ok) {
       throw new Error(`HTTP error! Status: ${response.status}`);
@@ -44,16 +46,13 @@ export async function POST(
       );
     }
 
-    const response = await fetch(
-      `${BACKEND_API_URL}/chat/sessions/${sessionId}/messages`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ message }),
-      }
-    );
+    const response = await fetch(`${BACKEND_API_URL}/chat/sessions/${sessionId}/messages`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ message }),
+    });
 
     if (!response.ok) {
       throw new Error(`HTTP error! Status: ${response.status}`);

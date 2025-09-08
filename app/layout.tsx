@@ -14,8 +14,61 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "AI Therapy Agent",
-  description: "Your personal AI therapy companion",
+  title: {
+    default: "HOPE - AI Mental Health Companion",
+    template: "%s | HOPE"
+  },
+  description: "Your personal AI companion for mental health support. Get 24/7 access to empathetic AI therapy, journaling, meditation, and crisis support.",
+  keywords: ["AI therapy", "mental health", "therapy chatbot", "journaling", "meditation", "crisis support", "mental wellness"],
+  authors: [{ name: "HOPE Team" }],
+  creator: "HOPE",
+  publisher: "HOPE",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "/",
+    title: "HOPE - AI Mental Health Companion",
+    description: "Your personal AI companion for mental health support. Get 24/7 access to empathetic AI therapy, journaling, meditation, and crisis support.",
+    siteName: "HOPE",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "HOPE - AI Mental Health Companion",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "HOPE - AI Mental Health Companion",
+    description: "Your personal AI companion for mental health support.",
+    images: ["/og-image.png"],
+    creator: "@hope_ai",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  verification: {
+    google: process.env.GOOGLE_SITE_VERIFICATION,
+  },
 };
 
 export default function RootLayout({

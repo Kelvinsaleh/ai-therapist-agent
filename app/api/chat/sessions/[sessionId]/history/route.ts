@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND_API_URL =
-  process.env.BACKEND_API_URL ||
-  "https://ai-therapist-agent-backend.onrender.com";
+const BACKEND_API_URL = process.env.BACKEND_API_URL;
 
 export async function GET(
   req: NextRequest,
@@ -12,15 +10,19 @@ export async function GET(
     const { sessionId } = params;
     console.log(`Getting chat history for session ${sessionId}`);
 
-    const response = await fetch(
-      `${BACKEND_API_URL}/chat/sessions/${sessionId}/history`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    if (!BACKEND_API_URL) {
+      return NextResponse.json(
+        { error: "BACKEND_API_URL is not configured" },
+        { status: 500 }
+      );
+    }
+
+    const response = await fetch(`${BACKEND_API_URL}/chat/sessions/${sessionId}/history`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
 
     if (!response.ok) {
       const error = await response.json();
