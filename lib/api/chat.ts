@@ -40,10 +40,7 @@ export interface ApiResponse {
   };
 }
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_BACKEND_API_URL ||
-  process.env.BACKEND_API_URL ||
-  "http://localhost:8000";
+const API_BASE = "https://hope-backend-2.onrender.com";
 
 // Helper function to get auth headers
 const getAuthHeaders = () => {
