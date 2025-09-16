@@ -211,7 +211,7 @@ class BackendService {
   async sendMemoryEnhancedMessage(
     request: MemoryEnhancedRequest
   ): Promise<ApiResponse<MemoryEnhancedResponse>> {
-    return this.makeRequest<MemoryEnhancedResponse>('/chat/memory-enhanced', {
+    return this.makeRequest<MemoryEnhancedResponse>('/chat/', {
       method: 'POST',
       body: JSON.stringify(request),
     });
