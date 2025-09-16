@@ -3,9 +3,19 @@
 import Link from "next/link";
 import { MessageCircle, Headphones, NotebookPen, Users } from "lucide-react";
 import { useSession } from "@/lib/contexts/session-context";
+import { usePathname } from "next/navigation";
 
 export function Footer() {
   const { user } = useSession();
+  const pathname = usePathname();
+  
+  // Hide footer on pages where it interferes with input areas
+  const hideFooter = pathname?.includes('/therapy/') || 
+                    pathname?.includes('/matching/chat/') ||
+                    pathname?.includes('/journaling');
+  
+  if (hideFooter) return null;
+  
   return (
     <footer className="w-full py-3 px-4 border-t bg-background flex justify-center gap-8 fixed bottom-0 left-0 z-50 shadow">
       <Link href="/therapy/memory-enhanced" className="flex flex-col items-center group">

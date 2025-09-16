@@ -6,6 +6,7 @@ import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { Toaster } from "@/components/ui/toaster";
 import { Providers } from "@/components/providers";
+import { Analytics } from "@vercel/analytics/react";
 
 // Initialize the fonts
 const inter = Inter({
@@ -85,6 +86,7 @@ export default function RootLayout({
           <Footer />
           <Toaster />
         </Providers>
+        <Analytics />
       </body>
     </html>
   );
