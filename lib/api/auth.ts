@@ -3,27 +3,19 @@ export async function registerUser(
   email: string,
   password: string
 ) {
-  const res = await fetch("/api/auth/register", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, email, password }),
-  });
-  if (!res.ok) {
-    const error = await res.json();
-    throw new Error(error.message || "Registration failed");
+  const { backendService } = await import("@/lib/api/backend-service");
+  const res = await backendService.register({ name, email, password });
+  if (!res.success || !res.data) {
+    throw new Error(res.error || "Registration failed");
   }
-  return res.json();
+  return res.data;
 }
 
 export async function loginUser(email: string, password: string) {
-  const res = await fetch("/api/auth/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
-  if (!res.ok) {
-    const error = await res.json();
-    throw new Error(error.message || "Login failed");
+  const { backendService } = await import("@/lib/api/backend-service");
+  const res = await backendService.login(email, password);
+  if (!res.success || !res.data) {
+    throw new Error(res.error || "Login failed");
   }
-  return res.json();
+  return { token: res.data.token, user: res.data.user };
 }
