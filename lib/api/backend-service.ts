@@ -85,7 +85,12 @@ class BackendService {
 
   private loadAuthToken(): void {
     if (typeof window !== 'undefined') {
-      this.authToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+      const persistedToken =
+        localStorage.getItem('token') ||
+        localStorage.getItem('authToken') ||
+        sessionStorage.getItem('authToken') ||
+        null;
+      this.authToken = persistedToken;
     }
   }
 
@@ -94,8 +99,19 @@ class BackendService {
       'Content-Type': 'application/json',
     };
 
-    if (this.authToken) {
-      headers['Authorization'] = `Bearer ${this.authToken}`;
+    // Always try to read the freshest token from storage in the browser
+    let token = this.authToken;
+    if (typeof window !== 'undefined') {
+      token =
+        token ||
+        localStorage.getItem('token') ||
+        localStorage.getItem('authToken') ||
+        sessionStorage.getItem('authToken') ||
+        null;
+    }
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
 
     return headers;
@@ -147,6 +163,8 @@ class BackendService {
     if (response.success && response.data?.token) {
       this.authToken = response.data.token;
       if (typeof window !== 'undefined') {
+        // Standardize: store under both keys for compatibility
+        localStorage.setItem('token', response.data.token);
         localStorage.setItem('authToken', response.data.token);
       }
     }
@@ -163,6 +181,8 @@ class BackendService {
     if (response.success && response.data?.token) {
       this.authToken = response.data.token;
       if (typeof window !== 'undefined') {
+        // Standardize: store under both keys for compatibility
+        localStorage.setItem('token', response.data.token);
         localStorage.setItem('authToken', response.data.token);
       }
     }
@@ -173,6 +193,7 @@ class BackendService {
   async logout(): Promise<void> {
     this.authToken = null;
     if (typeof window !== 'undefined') {
+      localStorage.removeItem('token');
       localStorage.removeItem('authToken');
       sessionStorage.removeItem('authToken');
     }

@@ -44,7 +44,12 @@ const API_BASE = "https://hope-backend-2.onrender.com";
 
 // Helper function to get auth headers
 const getAuthHeaders = () => {
-  const token = localStorage.getItem("token");
+  let token: string | null = null;
+  try {
+    token =
+      localStorage.getItem("token") ||
+      localStorage.getItem("authToken");
+  } catch {}
   return {
     "Content-Type": "application/json",
     Authorization: token ? `Bearer ${token}` : "",
