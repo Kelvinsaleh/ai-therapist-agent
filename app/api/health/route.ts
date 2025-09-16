@@ -1,30 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
-  try {
-    const healthCheck = {
-      status: "healthy",
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      environment: process.env.NODE_ENV || "development",
-      version: "1.0.0",
-      services: {
-        database: "connected", // This would be checked against your actual database
-        backend: "connected", // This would be checked against your backend
-        memory: "operational", // This would be checked against your memory system
-      },
-    };
+  const backendUrl = "https://hope-backend-2.onrender.com";
 
-    return NextResponse.json(healthCheck, { status: 200 });
+  try {
+    const res = await fetch(`${backendUrl}/health`, { cache: "no-store" });
+    const data = await res.json();
+    return NextResponse.json(data, { status: res.status });
   } catch (error) {
-    console.error("Health check failed:", error);
-    
     return NextResponse.json(
-      {
-        status: "unhealthy",
-        timestamp: new Date().toISOString(),
-        error: "Health check failed",
-      },
+      { error: "Backend health check failed" },
       { status: 500 }
     );
   }

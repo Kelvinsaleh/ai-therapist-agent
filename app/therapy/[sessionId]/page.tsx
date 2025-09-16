@@ -272,57 +272,82 @@ export default function TherapyPage() {
 
   // Initialize voice recognition
   useEffect(() => {
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      setVoiceSupported(true);
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      recognitionRef.current = new SpeechRecognition();
-      
-      recognitionRef.current.continuous = false;
-      recognitionRef.current.interimResults = false;
-      recognitionRef.current.lang = 'en-US';
+    try {
+      if (typeof window === 'undefined') return;
+      const SR: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SR) {
+        setVoiceSupported(true);
+        recognitionRef.current = new SR();
+        recognitionRef.current.continuous = false;
+        recognitionRef.current.interimResults = false;
+        recognitionRef.current.lang = 'en-US';
 
-      recognitionRef.current.onresult = (event: SpeechRecognitionEventLike) => {
-        const transcript = event.results[0][0].transcript;
-        setMessage(transcript);
-        setIsListening(false);
-        // Auto-send when in Voice Mode
-        if (isVoiceMode) {
-          setTimeout(() => {
-            const fakeEvent = new Event("submit") as unknown as React.FormEvent;
-            handleSubmit(fakeEvent);
-          }, 0);
-        }
-      };
+        recognitionRef.current.onresult = (event: SpeechRecognitionEventLike) => {
+          const transcript = event.results[0][0].transcript;
+          setMessage(transcript);
+          setIsListening(false);
+          // Auto-send when in Voice Mode
+          if (isVoiceMode) {
+            setTimeout(() => {
+              const fakeEvent = { preventDefault: () => {} } as unknown as React.FormEvent;
+              handleSubmit(fakeEvent);
+            }, 50);
+          }
+        };
 
-      recognitionRef.current.onerror = (event: { error: string }) => {
-        console.error('Speech recognition error:', event.error);
-        setIsListening(false);
-      };
-
-      recognitionRef.current.onend = () => {
-        setIsListening(false);
-      };
+        recognitionRef.current.onend = () => {
+          setIsListening(false);
+        };
+      } else {
+        setVoiceSupported(false);
+      }
+    } catch {
+      setVoiceSupported(false);
     }
   }, []);
 
   // Voice control functions
   const toggleListening = () => {
-    if (!recognitionRef.current) return;
-    if (!isPremium) {
-      toast.error("Voice capture is a Premium feature.");
-      router.push("/pricing");
+    if (typeof window === 'undefined') return;
+
+    // Lazy init if missing
+    if (!recognitionRef.current) {
+      const SR: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SR) {
+        recognitionRef.current = new SR();
+        recognitionRef.current.continuous = false;
+        recognitionRef.current.interimResults = false;
+        recognitionRef.current.lang = 'en-US';
+        recognitionRef.current.onresult = (event: SpeechRecognitionEventLike) => {
+          const transcript = event.results[0][0].transcript;
+          setMessage(transcript);
+          setIsListening(false);
+          if (isVoiceMode) {
+            setTimeout(() => {
+              const fakeEvent = { preventDefault: () => {} } as unknown as React.FormEvent;
+              handleSubmit(fakeEvent);
+            }, 50);
+          }
+        };
+        recognitionRef.current.onend = () => setIsListening(false);
+        setVoiceSupported(true);
+      }
+    }
+
+    if (!voiceSupported || !recognitionRef.current) {
+      toast.error("Voice input not supported on this device.");
       return;
     }
-    
+
     if (isListening) {
-      recognitionRef.current.stop();
+      try { recognitionRef.current.stop(); } catch {}
       setIsListening(false);
     } else {
       // Interrupt TTS if speaking
-      if (typeof window !== 'undefined' && window.speechSynthesis?.speaking) {
-        window.speechSynthesis.cancel();
+      if (typeof window !== 'undefined' && (window as any).speechSynthesis?.speaking) {
+        (window as any).speechSynthesis.cancel();
       }
-      recognitionRef.current.start();
+      try { recognitionRef.current.start(); } catch {}
       setIsListening(true);
     }
   };
@@ -817,7 +842,7 @@ export default function TherapyPage() {
             </div>
           ) : (
             // Chat messages
-            <div className="flex-1 overflow-y-auto scroll-smooth">
+            <div className="flex-1 overflow-y-auto scroll-smooth pb-28 overscroll-contain">
               <div className="max-w-3xl mx-auto">
                 <AnimatePresence initial={false}>
                   {messages.map((msg) => (
@@ -896,7 +921,7 @@ export default function TherapyPage() {
           )}
 
           {/* Input area */}
-          <div className="border-t bg-background/50 backdrop-blur supports-[backdrop-filter]:bg-background/50 p-4 relative z-[60]">
+          <div className="border-t bg-background/50 backdrop-blur supports-[backdrop-filter]:bg-background/50 p-4 relative z-[60] sticky bottom-0 left-0 right-0 pb-[env(safe-area-inset-bottom)]">
             <form
               onSubmit={handleSubmit}
               className="max-w-3xl mx-auto flex gap-4 items-end relative"
@@ -905,6 +930,9 @@ export default function TherapyPage() {
                 <textarea
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
+                  onFocus={() => {
+                    try { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); } catch {}
+                  }}
                   placeholder={
                     isChatPaused
                       ? "Complete the activity to continue..."
@@ -932,29 +960,33 @@ export default function TherapyPage() {
                   }}
                 />
                 
-                {/* Inline Mic Button next to Submit - only show if voice is supported */}
-                {voiceSupported && (
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant={isListening ? "destructive" : "outline"}
-                    onClick={toggleListening}
-                    disabled={isTyping || isChatPaused}
-                    className={cn(
-                      "absolute right-12 bottom-3.5 h-[36px] w-[36px]",
-                      "rounded-xl transition-all duration-200",
-                      "z-10 bg-background border",
-                      isListening && "animate-pulse"
-                    )}
-                    title={isListening ? "Stop listening" : "Start voice input"}
-                  >
-                    {isListening ? (
-                      <MicOff className="w-4 h-4" />
-                    ) : (
-                      <Mic className="w-4 h-4" />
-                    )}
-                  </Button>
-                )}
+                {/* Inline Mic Button next to Submit - always visible; disabled if unsupported */}
+                <Button
+                  type="button"
+                  size="icon"
+                  variant={isListening ? "destructive" : "outline"}
+                  onClick={toggleListening}
+                  disabled={isTyping || isChatPaused || !voiceSupported}
+                  className={cn(
+                    "absolute right-12 bottom-3.5 h-[36px] w-[36px]",
+                    "rounded-xl transition-all duration-200",
+                    "z-10 bg-background border",
+                    isListening && "animate-pulse"
+                  )}
+                  title={
+                    !voiceSupported
+                      ? "Voice input not supported on this device"
+                      : isListening
+                        ? "Stop listening"
+                        : "Start voice input"
+                  }
+                >
+                  {isListening ? (
+                    <MicOff className="w-4 h-4" />
+                  ) : (
+                    <Mic className="w-4 h-4" />
+                  )}
+                </Button>
                 
                 <Button
                   type="submit"

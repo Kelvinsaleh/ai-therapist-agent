@@ -1,33 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND_API_URL = process.env.BACKEND_API_URL;
+const BACKEND_API_URL = "https://hope-backend-2.onrender.com";
 
 export async function GET(
   req: NextRequest,
   { params }: { params: { sessionId: string } }
 ) {
+  const { sessionId } = params;
   try {
-    const { sessionId } = params;
-    if (!BACKEND_API_URL) {
-      return NextResponse.json(
-        { error: "BACKEND_API_URL is not configured" },
-        { status: 500 }
-      );
-    }
-    const response = await fetch(`${BACKEND_API_URL}/chat/sessions/${sessionId}/history`);
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return NextResponse.json(data);
+    const res = await fetch(`${BACKEND_API_URL}/chat/sessions/${sessionId}`, { cache: "no-store" });
+    const data = await res.json();
+    return NextResponse.json(data, { status: res.status });
   } catch (error) {
-    console.error("Error in chat history API:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch chat history" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to fetch chat session" }, { status: 500 });
   }
 }
 
