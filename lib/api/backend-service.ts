@@ -413,3 +413,9 @@ export const {
   healthCheck,
   testConnection,
 } = backendService;
+// Add these to the export list at the bottom of the file
+export const {
+  // ... existing exports ...
+  getMatchedChatHistory,
+  sendMatchedChatMessage,
+} = backendService;
