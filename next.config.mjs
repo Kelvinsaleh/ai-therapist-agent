@@ -1,7 +1,5 @@
-/** @type {import(" next\).NextConfig} */
+/** @type {import("next").NextConfig} */
 const nextConfig = {
-  output: "export",
-  trailingSlash: true,
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -40,5 +38,3 @@ const nextConfig = {
 };
 
 export default nextConfig;
-
-/** @type {import(" next\).NextConfig} */
