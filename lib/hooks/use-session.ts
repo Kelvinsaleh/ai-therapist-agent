@@ -19,7 +19,9 @@ export function useSession() {
 
   const checkSession = async () => {
     try {
-      const token = localStorage.getItem("token");
+      const token =
+        localStorage.getItem("token") ||
+        localStorage.getItem("authToken");
       console.log(
         "useSession: Token from localStorage:",
         token ? "exists" : "not found"
@@ -63,19 +65,12 @@ export function useSession() {
 
   const logout = async () => {
     try {
-      const token = localStorage.getItem("token");
-      if (token) {
-        await fetch("/api/auth/logout", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-      }
+      // Best-effort: clear local tokens locally to avoid 404 on missing route
     } catch (error) {
       console.error("Logout error:", error);
     } finally {
       localStorage.removeItem("token");
+      localStorage.removeItem("authToken");
       setUser(null);
       router.push("/");
     }

@@ -26,7 +26,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   const checkSession = async () => {
     try {
-      const token = localStorage.getItem("token");
+      const token =
+        localStorage.getItem("token") ||
+        localStorage.getItem("authToken");
       console.log(
         "SessionContext: Token from localStorage:",
         token ? "exists" : "not found"
@@ -70,19 +72,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      const token = localStorage.getItem("token");
-      if (token) {
-        await fetch("/api/auth/logout", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-      }
+      // Best-effort: clear local tokens locally to avoid 404 on missing route
     } catch (error) {
       console.error("Logout error:", error);
     } finally {
       localStorage.removeItem("token");
+      localStorage.removeItem("authToken");
       setUser(null);
       router.push("/");
     }
