@@ -8,6 +8,8 @@ interface User {
   email: string;
 }
 
+const upload = multer({ dest: 'uploads/' });
+
 export function useSession() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
