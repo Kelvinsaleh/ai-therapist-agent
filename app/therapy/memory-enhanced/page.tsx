@@ -21,24 +21,27 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MemoryEnhancedChat } from "@/components/therapy/memory-enhanced-chat";
 import { userMemoryManager, UserMemory } from "@/lib/memory/user-memory";
 import { format } from "date-fns";
+import { useSession } from "@/lib/contexts/session-context";
 
 export default function MemoryEnhancedTherapyPage() {
   const params = useParams();
   const router = useRouter();
+  const { user, loading: authLoading, isAuthenticated } = useSession();
   const [userMemory, setUserMemory] = useState<UserMemory | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showMemoryStats, setShowMemoryStats] = useState(false);
 
-  // Mock user ID - in real app, this would come from authentication
-  const userId = "user_123";
+  // Use authenticated user id
+  const userId = user?._id || "";
 
   useEffect(() => {
     loadUserMemory();
-  }, []);
+  }, [userId]);
 
   const loadUserMemory = async () => {
     try {
       setIsLoading(true);
+      if (!userId) return;
       const memory = await userMemoryManager.loadUserMemory(userId);
       setUserMemory(memory);
     } catch (error) {
@@ -67,12 +70,23 @@ export default function MemoryEnhancedTherapyPage() {
     return userMemory.insights.slice(-3);
   };
 
-  if (isLoading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-muted-foreground">Loading your mental health context...</p>
+          <p className="text-muted-foreground">Checking your session...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated || !userId) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <p className="text-muted-foreground">Please sign in to start a memory‑enhanced session.</p>
+          <Button variant="outline" onClick={() => router.push("/login")}>Go to Sign In</Button>
         </div>
       </div>
     );
@@ -242,7 +256,7 @@ export default function MemoryEnhancedTherapyPage() {
               </CardHeader>
               <CardContent className="p-0 h-full">
                 <MemoryEnhancedChat 
-                  sessionId={params.sessionId as string || "memory-enhanced"} 
+                  sessionId={(params as any).sessionId as string || "memory-enhanced"} 
                   userId={userId}
                 />
               </CardContent>
