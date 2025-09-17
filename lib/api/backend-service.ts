@@ -134,9 +134,13 @@ class BackendService {
       const data = await response.json();
 
       if (!response.ok) {
+        const errorText =
+          typeof (data?.error) === 'string'
+            ? data.error
+            : (typeof (data?.message) === 'string' ? data.message : `HTTP ${response.status}`);
         return {
           success: false,
-          error: data.error || data.message || `HTTP ${response.status}`,
+          error: errorText,
         };
       }
 
