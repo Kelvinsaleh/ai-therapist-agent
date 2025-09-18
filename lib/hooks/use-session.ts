@@ -1,15 +1,11 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import multer from 'multer';
-import { put } from '@vercel/blob';
 
 interface User {
   _id: string;
   name: string;
   email: string;
 }
-
-const upload = multer({ dest: 'uploads/' });
 
 export function useSession() {
   const [user, setUser] = useState<User | null>(null);
