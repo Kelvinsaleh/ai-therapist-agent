@@ -123,36 +123,61 @@ class BackendService {
   ): Promise<ApiResponse<T>> {
     try {
       const url = `${this.baseURL}${endpoint}`;
+      console.log(`Making request to: ${url}`);
+      
       const response = await fetch(url, {
         ...options,
         headers: {
           ...this.getHeaders(),
           ...options.headers,
         },
+        // Add timeout
+        signal: AbortSignal.timeout(10000), // 10 second timeout
       });
 
-      const data = await response.json();
+      console.log(`Response status: ${response.status}`);
 
       if (!response.ok) {
-        const errorText =
-          typeof (data?.error) === 'string'
+        let errorText = `HTTP ${response.status}`;
+        try {
+          const data = await response.json();
+          errorText = typeof (data?.error) === 'string'
             ? data.error
-            : (typeof (data?.message) === 'string' ? data.message : `HTTP ${response.status}`);
+            : (typeof (data?.message) === 'string' ? data.message : errorText);
+        } catch (e) {
+          // If response is not JSON, use status text
+          errorText = response.statusText || errorText;
+        }
+        
         return {
           success: false,
           error: errorText,
         };
       }
 
+      const data = await response.json();
       return {
         success: true,
         data,
       };
     } catch (error) {
       console.error(`API request failed for ${endpoint}:`, error);
+      
+      // Provide more specific error messages
+      let errorMessage = 'Network error';
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          errorMessage = 'Request timeout - server is not responding';
+        } else if (error.message.includes('fetch')) {
+          errorMessage = 'Cannot connect to server - check your internet connection';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Network error',
+        error: errorMessage,
       };
     }
   }

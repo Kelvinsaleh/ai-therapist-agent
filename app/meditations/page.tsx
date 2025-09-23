@@ -4,62 +4,43 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { 
   Headphones, 
   Play, 
   Pause, 
   Volume2, 
   Clock,
-  Heart,
-  Brain,
-  Waves,
-  Leaf,
-  Moon,
-  Sun,
-  CheckCircle,
-  History
+  Crown,
+  Search,
+  Loader2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSession } from "@/lib/hooks/use-session";
 import { toast } from "sonner";
-import { getFeatureLimits, checkMeditationLimit } from "@/lib/session-limits";
-// Remove static import - we'll fetch from backend instead
+
+interface Meditation {
+  id: string;
+  title: string;
+  description: string;
+  duration: number; // in minutes
+  audioUrl: string;
+  category: string;
+  isPremium: boolean;
+  tags: string[];
+  createdAt: string;
+}
 
 export default function MeditationsPage() {
   const { user, isAuthenticated } = useSession();
   const [currentTrack, setCurrentTrack] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [sessionHistory, setSessionHistory] = useState<any[]>([]);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [meditations, setMeditations] = useState<Meditation[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterPremium, setFilterPremium] = useState<boolean | null>(null);
   const [userTier, setUserTier] = useState<"free" | "premium">("free");
-  const [tracks, setTracks] = useState<any[]>([]);
-  const [isLoadingTracks, setIsLoadingTracks] = useState(true);
-
-  // Helper function to get icons for categories
-  function getIconForCategory(category: string) {
-    switch (category) {
-      case 'breathing': return Heart;
-      case 'relaxation': return Brain;
-      case 'sleep': return Moon;
-      case 'anxiety': return Waves;
-      case 'focus': return Sun;
-      default: return Headphones;
-    }
-  }
-
-  // Helper function to get colors for categories
-  function getColorForCategory(category: string) {
-    switch (category) {
-      case 'breathing': return "from-rose-500/20 to-pink-500/20";
-      case 'relaxation': return "from-blue-500/20 to-cyan-500/20";
-      case 'sleep': return "from-purple-500/20 to-indigo-500/20";
-      case 'anxiety': return "from-teal-500/20 to-blue-500/20";
-      case 'focus': return "from-amber-500/20 to-orange-500/20";
-      default: return "from-gray-500/20 to-slate-500/20";
-    }
-  }
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -67,412 +48,248 @@ export default function MeditationsPage() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Fetch meditation tracks from backend
-  const loadMeditationTracks = async () => {
-    setIsLoadingTracks(true);
+  // Fetch meditations from database
+  const loadMeditations = async () => {
+    setIsLoading(true);
     try {
-      const response = await fetch('/api/meditations');
+      const params = new URLSearchParams();
+      if (searchQuery) params.append("search", searchQuery);
+      if (filterPremium !== null) params.append("isPremium", filterPremium.toString());
+      
+      const response = await fetch(`/api/meditations/search?${params}`);
       const result = await response.json();
       
       if (response.ok && result.success) {
-        // Transform backend data to frontend format
-        const transformedTracks = result.meditations.map((track: any) => ({
-          id: track.id,
-          title: track.title,
-          duration: track.duration,
-          description: track.description,
-          icon: getIconForCategory(track.category),
-          color: getColorForCategory(track.category),
-          category: track.category,
-          isPremium: track.isPremium,
-          url: track.url
-        }));
-        setTracks(transformedTracks);
+        setMeditations(result.meditations);
       } else {
-        toast.error('Failed to load meditation tracks');
-        // Fallback to empty array
-        setTracks([]);
+        toast.error('Failed to load meditations');
+        setMeditations([]);
       }
     } catch (error) {
-      console.error('Error loading meditation tracks:', error);
-      toast.error('Failed to load meditation tracks');
-      // Fallback to empty array
-      setTracks([]);
+      console.error('Error loading meditations:', error);
+      toast.error('Failed to load meditations');
+      setMeditations([]);
     } finally {
-      setIsLoadingTracks(false);
+      setIsLoading(false);
     }
   };
 
-  // Load meditation session history from backend
-  const loadSessionHistory = async () => {
-    if (!isAuthenticated) return;
-    
-    setIsLoadingHistory(true);
-    try {
-      const { backendService } = await import("@/lib/api/backend-service");
-      const response = await backendService.getMeditationSessions();
-      if (response.success) {
-        setSessionHistory(response.data || []);
-      }
-    } catch (error) {
-      console.error("Failed to load meditation history:", error);
-      toast.error("Failed to load meditation history");
-    } finally {
-      setIsLoadingHistory(false);
-    }
-  };
-
-  // Complete meditation session
-  const completeSession = async (sessionId: string, completionRate: number, moodAfter: number) => {
-    try {
-      const { backendService } = await import("@/lib/api/backend-service");
-      await backendService.updateMeditationSession(sessionId, {
-        completionRate,
-        moodAfter,
-        effectiveness: completionRate > 0.8 ? 0.9 : completionRate > 0.5 ? 0.7 : 0.5,
-        completedAt: new Date()
-      });
-      
-      // Reload history to show updated session
-      await loadSessionHistory();
-      toast.success("Meditation session completed!");
-    } catch (error) {
-      console.error("Failed to complete meditation session:", error);
-      toast.error("Failed to save meditation completion");
-    }
-  };
-
-  // Load history on component mount
+  // Load meditations on component mount and when search changes
   useEffect(() => {
-    loadMeditationTracks();
-    loadSessionHistory();
-  }, [isAuthenticated]);
+    loadMeditations();
+  }, [searchQuery, filterPremium]);
 
-  const handlePlay = async (trackId: string) => {
-    // Check meditation limits for free users
-    if (userTier === "free") {
-      const currentSessionsThisWeek = sessionHistory.filter(session => {
-        const sessionDate = new Date(session.timestamp);
-        const weekAgo = new Date();
-        weekAgo.setDate(weekAgo.getDate() - 7);
-        return sessionDate >= weekAgo;
-      }).length;
-      
-      const limitCheck = checkMeditationLimit(userTier, currentSessionsThisWeek);
-      
-      if (!limitCheck.canStart) {
-        toast.error(limitCheck.reason);
-        return;
-      }
-    }
-
-    // Check if track is premium-only
-    const track = tracks.find(t => t.id === trackId);
-    const featureLimits = getFeatureLimits(userTier);
+  const handlePlay = async (meditationId: string) => {
+    const meditation = meditations.find(m => m.id === meditationId);
     
-    if (track && track.isPremium && userTier === "free") {
+    // Check if meditation is premium-only
+    if (meditation && meditation.isPremium && userTier === "free") {
       toast.error("This meditation is a premium feature. Upgrade to access advanced meditations.");
       return;
     }
 
-    if (currentTrack === trackId) {
+    if (currentTrack === meditationId) {
       setIsPlaying(!isPlaying);
     } else {
-      setCurrentTrack(trackId);
+      setCurrentTrack(meditationId);
       setIsPlaying(true);
       setCurrentTime(0);
-      
-      if (isAuthenticated) {
-        // Add meditation session to memory system
-        try {
-          const { userMemoryManager } = await import("@/lib/memory/user-memory");
-          const track = tracks.find(t => t.id === trackId);
-          if (track) {
-            await userMemoryManager.addMeditationSession({
-              date: new Date(),
-              type: track.title,
-              duration: track.duration,
-              completionRate: 0, // Will be updated when session ends
-              moodBefore: 3, // Default mood, could be enhanced with actual mood tracking
-              moodAfter: 3,
-              effectiveness: 0.7 // Default effectiveness
-            });
-          }
-        } catch (error) {
-          console.error("Failed to add meditation session to memory:", error);
-        }
-
-        // Save meditation session to backend
-        try {
-          const { backendService } = await import("@/lib/api/backend-service");
-          const track = tracks.find(t => t.id === trackId);
-          if (track) {
-            const response = await backendService.createMeditationSession({
-              type: track.title,
-              duration: track.duration,
-              startedAt: new Date(),
-              completionRate: 0,
-              moodBefore: 3,
-              moodAfter: 3,
-              effectiveness: 0.7,
-              userId: user?._id
-            });
-            
-            if (response.success && response.data?.id) {
-              setCurrentSessionId(response.data.id);
-            }
-          }
-        } catch (error) {
-          console.error("Failed to save meditation session to backend:", error);
-          toast.error("Failed to start meditation session");
-        }
-      }
     }
   };
 
-  const handleCompleteSession = async () => {
-    if (!currentSessionId || !selectedTrack) return;
-    
-    const completionRate = currentTime / selectedTrack.duration;
-    const moodAfter = 4; // Could be enhanced with actual mood tracking
-    
-    await completeSession(currentSessionId, completionRate, moodAfter);
-    
-    // Reset session state
-    setCurrentTrack(null);
-    setIsPlaying(false);
-    setCurrentTime(0);
-    setCurrentSessionId(null);
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    loadMeditations();
   };
 
-  const selectedTrack = tracks.find(t => t.id === currentTrack);
-
   return (
-    <div className="container mx-auto px-4 py-20">
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-          Guided Meditations
-        </h1>
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-          Find peace and clarity through our collection of guided meditation sessions
-        </p>
-      </div>
-
-      {/* Current Playing Track */}
-      <AnimatePresence>
-        {selectedTrack && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="mb-8"
-          >
-            <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-16 h-16 rounded-full bg-gradient-to-r ${selectedTrack.color} flex items-center justify-center`}>
-                      <selectedTrack.icon className="w-8 h-8 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-semibold">{selectedTrack.title}</h3>
-                      <p className="text-muted-foreground">{selectedTrack.description}</p>
-                      <div className="flex items-center gap-4 mt-2">
-                        <span className="text-sm text-muted-foreground">
-                          {formatTime(currentTime)} / {formatTime(selectedTrack.duration)}
-                        </span>
-                        <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded-full">
-                          {selectedTrack.category}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handlePlay(selectedTrack.id)}
-                      className="w-12 h-12 rounded-full"
-                    >
-                      {isPlaying ? (
-                        <Pause className="w-6 h-6" />
-                      ) : (
-                        <Play className="w-6 h-6" />
-                      )}
-                    </Button>
-                    {currentSessionId && (
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={handleCompleteSession}
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Complete
-                      </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setCurrentTrack(null);
-                        setCurrentSessionId(null);
-                        setIsPlaying(false);
-                        setCurrentTime(0);
-                      }}
-                    >
-                      <Volume2 className="w-5 h-5" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Meditation Library */}
-      {isLoadingTracks ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[...Array(6)].map((_, index) => (
-            <div key={index} className="animate-pulse">
-              <div className="bg-gray-200 dark:bg-gray-700 rounded-lg h-48"></div>
-            </div>
-          ))}
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            Meditation Library
+          </h1>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            Discover guided meditations to help you find peace, reduce stress, and improve your well-being.
+          </p>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {tracks.map((track, index) => (
-          <motion.div
-            key={track.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer group">
-              <CardHeader>
-                <div className="flex items-center justify-between mb-2">
-                  <div className={`w-12 h-12 rounded-full bg-gradient-to-r ${track.color} flex items-center justify-center`}>
-                    <track.icon className="w-6 h-6 text-primary" />
-                  </div>
-                  {/* Premium Badge */}
-                  {track.isPremium && userTier === "free" && (
-                    <Badge variant="secondary" className="text-xs">
-                      Premium
-                    </Badge>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handlePlay(track.id)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    {currentTrack === track.id && isPlaying ? (
-                      <Pause className="w-5 h-5" />
-                    ) : (
-                      <Play className="w-5 h-5" />
-                    )}
-                  </Button>
-                </div>
-                <CardTitle className="text-lg">{track.title}</CardTitle>
-                <p className="text-sm text-muted-foreground">{track.description}</p>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Clock className="w-4 h-4" />
-                    {formatTime(track.duration)}
-                  </div>
-                  <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded-full">
-                    {track.category}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
-        </div>
-      )}
 
-      {/* Categories */}
-      <div className="mt-16">
-        <h2 className="text-2xl font-semibold mb-6 text-center">Browse by Category</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {["Relaxation", "Mindfulness", "Compassion", "Nature", "Sleep"].map((category) => (
-            <Button
-              key={category}
-              variant="outline"
-              className="h-16 flex flex-col gap-1 hover:bg-primary/10"
-            >
-              <span className="text-sm font-medium">{category}</span>
-              <span className="text-xs text-muted-foreground">
-                {isLoadingTracks ? '...' : tracks.filter(t => t.category === category).length} sessions
-              </span>
-            </Button>
-          ))}
-        </div>
-      </div>
+        {/* Search and Filter */}
+        <Card className="mb-8">
+          <CardContent className="p-6">
+            <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  placeholder="Search meditations by title, description, or tags..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={filterPremium === null ? "default" : "outline"}
+                  onClick={() => setFilterPremium(null)}
+                >
+                  All
+                </Button>
+                <Button
+                  type="button"
+                  variant={filterPremium === false ? "default" : "outline"}
+                  onClick={() => setFilterPremium(false)}
+                >
+                  Free
+                </Button>
+                <Button
+                  type="button"
+                  variant={filterPremium === true ? "default" : "outline"}
+                  onClick={() => setFilterPremium(true)}
+                >
+                  Premium
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
 
-      {/* Session History */}
-      {isAuthenticated && (
-        <div className="mt-16">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-semibold flex items-center gap-2">
-              <History className="w-6 h-6" />
-              Your Meditation History
-            </h2>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={loadSessionHistory}
-              disabled={isLoadingHistory}
-            >
-              {isLoadingHistory ? "Loading..." : "Refresh"}
-            </Button>
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex justify-center items-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <span className="ml-2 text-gray-600">Loading meditations...</span>
           </div>
-          
-          {sessionHistory.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {sessionHistory.slice(0, 6).map((session, index) => (
+        )}
+
+        {/* Meditations Grid */}
+        {!isLoading && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <AnimatePresence>
+              {meditations.map((meditation) => (
                 <motion.div
-                  key={session.id || index}
+                  key={meditation.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
                 >
-                  <Card className="hover:shadow-lg transition-all duration-300">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="font-semibold text-sm">{session.type}</h3>
-                        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                          {Math.round((session.completionRate || 0) * 100)}% complete
-                        </span>
+                  <Card className="h-full hover:shadow-lg transition-shadow duration-300">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-2">
+                          <Headphones className="w-5 h-5 text-primary" />
+                          <CardTitle className="text-lg">{meditation.title}</CardTitle>
+                        </div>
+                        {meditation.isPremium && (
+                          <Crown className="w-5 h-5 text-amber-500" />
+                        )}
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-                        <Clock className="w-3 h-3" />
-                        {formatTime(session.duration || 0)}
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-gray-600 text-sm line-clamp-2">
+                        {meditation.description}
+                      </p>
+                      
+                      <div className="flex items-center gap-4 text-sm text-gray-500">
+                        <div className="flex items-center gap-1">
+                          <Clock className="w-4 h-4" />
+                          {meditation.duration} min
+                        </div>
+                        <Badge variant="secondary" className="text-xs">
+                          {meditation.category}
+                        </Badge>
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>Mood: {session.moodAfter || session.moodBefore || 'N/A'}</span>
-                        <span>•</span>
-                        <span>{new Date(session.startedAt || session.createdAt).toLocaleDateString()}</span>
-                      </div>
+
+                      {meditation.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {meditation.tags.slice(0, 3).map((tag, index) => (
+                            <Badge key={index} variant="outline" className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))}
+                          {meditation.tags.length > 3 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{meditation.tags.length - 3}
+                            </Badge>
+                          )}
+                        </div>
+                      )}
+
+                      <Button
+                        onClick={() => handlePlay(meditation.id)}
+                        className="w-full"
+                        disabled={meditation.isPremium && userTier === "free"}
+                      >
+                        {currentTrack === meditation.id ? (
+                          isPlaying ? (
+                            <>
+                              <Pause className="w-4 h-4 mr-2" />
+                              Pause
+                            </>
+                          ) : (
+                            <>
+                              <Play className="w-4 h-4 mr-2" />
+                              Resume
+                            </>
+                          )
+                        ) : (
+                          <>
+                            <Play className="w-4 h-4 mr-2" />
+                            Play
+                          </>
+                        )}
+                      </Button>
                     </CardContent>
                   </Card>
                 </motion.div>
               ))}
-            </div>
-          ) : (
-            <Card className="p-8 text-center">
-              <History className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-semibold mb-2">No meditation sessions yet</h3>
-              <p className="text-muted-foreground">
-                Start your first meditation session to see your progress here.
-              </p>
-            </Card>
-          )}
-        </div>
-      )}
+            </AnimatePresence>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!isLoading && meditations.length === 0 && (
+          <div className="text-center py-12">
+            <Headphones className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-600 mb-2">
+              No meditations found
+            </h3>
+            <p className="text-gray-500">
+              {searchQuery || filterPremium !== null
+                ? "Try adjusting your search or filters"
+                : "No meditations have been uploaded yet"}
+            </p>
+          </div>
+        )}
+
+        {/* Audio Player */}
+        {currentTrack && (
+          <Card className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <Button
+                  size="sm"
+                  onClick={() => setIsPlaying(!isPlaying)}
+                  className="flex-shrink-0"
+                >
+                  {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                </Button>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate">
+                    {meditations.find(m => m.id === currentTrack)?.title}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {formatTime(currentTime)} / {meditations.find(m => m.id === currentTrack)?.duration}:00
+                  </p>
+                </div>
+                <Volume2 className="w-4 h-4 text-gray-400" />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }

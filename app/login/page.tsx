@@ -24,10 +24,13 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
     try {
+      console.log("Attempting login...");
       const response = await loginUser(email, password);
+      console.log("Login response:", response);
 
       // Store the token in localStorage
       localStorage.setItem("token", response.token);
+      localStorage.setItem("authToken", response.token);
 
       // Update session state
       await checkSession();
@@ -36,11 +39,17 @@ export default function LoginPage() {
       await new Promise((resolve) => setTimeout(resolve, 100));
       router.push("/dashboard");
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Invalid email or password. Please try again."
-      );
+      console.error("Login error:", err);
+      const errorMessage = err instanceof Error ? err.message : "Login failed";
+      
+      // Provide more helpful error messages
+      if (errorMessage.includes('timeout') || errorMessage.includes('Cannot connect')) {
+        setError("Server is currently unavailable. Please try again in a few minutes.");
+      } else if (errorMessage.includes('Invalid email or password')) {
+        setError("Invalid email or password. Please check your credentials.");
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
