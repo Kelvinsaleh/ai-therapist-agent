@@ -10,10 +10,12 @@ import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Lock, Mail } from "lucide-react";
 import { useSession } from "@/lib/contexts/session-context";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { checkSession } = useSession();
+  const { login } = useSession();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -23,33 +25,38 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
+    
     try {
       console.log("Attempting login...");
-      const response = await loginUser(email, password);
-      console.log("Login response:", response);
-
-      // Store the token in localStorage
-      localStorage.setItem("token", response.token);
-      localStorage.setItem("authToken", response.token);
-
-      // Update session state
-      await checkSession();
-
-      // Wait for state to update before redirecting
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      router.push("/dashboard");
+      
+      // Use the session context login method
+      const success = await login(email, password);
+      
+      if (success) {
+        toast.success("Welcome back! Redirecting to AI Chat...");
+        
+        // Wait a moment for state to update, then redirect to AI chat
+        setTimeout(() => {
+          router.push("/therapy/memory-enhanced");
+        }, 1000);
+      } else {
+        setError("Invalid email or password. Please check your credentials.");
+        toast.error("Login failed. Please check your credentials.");
+      }
     } catch (err) {
       console.error("Login error:", err);
       const errorMessage = err instanceof Error ? err.message : "Login failed";
       
       // Provide more helpful error messages
-      if (errorMessage.includes('timeout') || errorMessage.includes('Cannot connect')) {
+      if (errorMessage.includes("timeout") || errorMessage.includes("Cannot connect")) {
         setError("Server is currently unavailable. Please try again in a few minutes.");
-      } else if (errorMessage.includes('Invalid email or password')) {
+      } else if (errorMessage.includes("Invalid email or password")) {
         setError("Invalid email or password. Please check your credentials.");
       } else {
         setError(errorMessage);
       }
+      
+      toast.error("Login failed. Please try again.");
     } finally {
       setLoading(false);
     }

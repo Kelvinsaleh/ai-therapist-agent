@@ -134,7 +134,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           setUserTier("free");
         }
         
-        return true;
+        // Add small delay to ensure state is updated\n        await new Promise(resolve => setTimeout(resolve, 100));\n        return true;
       }
       
       return false;
@@ -153,7 +153,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         setIsAuthenticated(true);
         setUserTier("free"); // New users start with free tier
         
-        return true;
+        // Add small delay to ensure state is updated\n        await new Promise(resolve => setTimeout(resolve, 100));\n        return true;
       }
       
       return false;
