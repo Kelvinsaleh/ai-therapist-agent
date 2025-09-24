@@ -1,103 +1,198 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { backendService } from "@/lib/api/backend-service";
 
 interface User {
-  _id: string;
+  id: string;
+  _id?: string; // Add MongoDB _id field
   name: string;
   email: string;
+  createdAt: string;
+  updatedAt: string;
+  token?: string;
+  matchingPreferences?: {
+    challenges: string[];
+    goals: string[];
+    experienceLevel: "beginner" | "intermediate" | "experienced";
+    ageRange: [number, number];
+    timezone: string;
+    communicationStyle: "gentle" | "direct" | "supportive";
+    preferredCheckInFrequency: "daily" | "weekly" | "as-needed";
+    allowVideoCalls: boolean;
+  };
 }
 
 interface SessionContextType {
   user: User | null;
-  loading: boolean;
   isAuthenticated: boolean;
-  logout: () => Promise<void>;
-  checkSession: () => Promise<void>;
+  userTier: "free" | "premium";
+  isLoading: boolean;
+  loading: boolean; // Add loading alias
+  checkSession: () => Promise<void>; // Add checkSession method
+  login: (email: string, password: string) => Promise<boolean>;
+  register: (userData: { name: string; email: string; password: string }) => Promise<boolean>;
+  logout: () => void;
+  refreshUser: () => Promise<void>;
 }
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const router = useRouter();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userTier, setUserTier] = useState<"free" | "premium">("free");
+  const [isLoading, setIsLoading] = useState(true);
 
-  const checkSession = async () => {
+  const checkAuthStatus = async () => {
     try {
-      const token =
-        localStorage.getItem("token") ||
-        localStorage.getItem("authToken");
-      console.log(
-        "SessionContext: Token from localStorage:",
-        token ? "exists" : "not found"
-      );
-
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      
       if (!token) {
+        setIsAuthenticated(false);
         setUser(null);
-        setLoading(false);
+        setUserTier("free");
+        setIsLoading(false);
         return;
       }
 
-      console.log("SessionContext: Fetching user data...");
-      const response = await fetch("/api/auth/me", {
+      // Check if user is authenticated
+      const response = await fetch('/api/auth/session', {
         headers: {
-          Authorization: `Bearer ${token}`,
+          'Authorization': `Bearer ${token}`,
         },
       });
 
-      console.log("SessionContext: Response status:", response.status);
-
       if (response.ok) {
         const data = await response.json();
-        console.log("SessionContext: User data received:", data);
-        const userData = data.user;
-        const { password, ...safeUserData } = userData;
-        setUser(safeUserData);
-        console.log("SessionContext: User state updated:", safeUserData);
+        if (data.isAuthenticated && data.user) {
+          setUser(data.user);
+          setIsAuthenticated(true);
+          
+          // Get user tier/subscription status
+          try {
+            const tierResponse = await fetch('https://hope-backend-2.onrender.com/subscription/status', {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+              },
+            });
+            
+            if (tierResponse.ok) {
+              const tierData = await tierResponse.json();
+              setUserTier(tierData.userTier || "free");
+            } else {
+              setUserTier("free");
+            }
+          } catch (error) {
+            console.error("Error fetching user tier:", error);
+            setUserTier("free");
+          }
+        } else {
+          setIsAuthenticated(false);
+          setUser(null);
+          setUserTier("free");
+        }
       } else {
-        console.log("SessionContext: Failed to get user data");
+        setIsAuthenticated(false);
         setUser(null);
-        localStorage.removeItem("token");
+        setUserTier("free");
       }
     } catch (error) {
-      console.error("SessionContext: Error checking session:", error);
+      console.error("Error checking auth status:", error);
+      setIsAuthenticated(false);
       setUser(null);
-      localStorage.removeItem("token");
+      setUserTier("free");
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const logout = async () => {
+  const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      // Best-effort: clear local tokens locally to avoid 404 on missing route
+      const response = await backendService.login(email, password);
+      
+      if (response.success && response.data) {
+        setUser(response.data.user);
+        setIsAuthenticated(true);
+        
+        // Get user tier after login
+        try {
+          const tierResponse = await fetch('https://hope-backend-2.onrender.com/subscription/status', {
+            headers: {
+              'Authorization': `Bearer ${response.data.token}`,
+            },
+          });
+          
+          if (tierResponse.ok) {
+            const tierData = await tierResponse.json();
+            setUserTier(tierData.userTier || "free");
+          } else {
+            setUserTier("free");
+          }
+        } catch (error) {
+          console.error("Error fetching user tier:", error);
+          setUserTier("free");
+        }
+        
+        return true;
+      }
+      
+      return false;
     } catch (error) {
-      console.error("Logout error:", error);
-    } finally {
-      localStorage.removeItem("token");
-      localStorage.removeItem("authToken");
-      setUser(null);
-      router.push("/");
+      console.error("Login error:", error);
+      return false;
     }
+  };
+
+  const register = async (userData: { name: string; email: string; password: string }): Promise<boolean> => {
+    try {
+      const response = await backendService.register(userData);
+      
+      if (response.success && response.data) {
+        setUser(response.data.user);
+        setIsAuthenticated(true);
+        setUserTier("free"); // New users start with free tier
+        
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error("Registration error:", error);
+      return false;
+    }
+  };
+
+  const logout = () => {
+    backendService.logout();
+    setUser(null);
+    setIsAuthenticated(false);
+    setUserTier("free");
+  };
+
+  const refreshUser = async () => {
+    await checkAuthStatus();
   };
 
   useEffect(() => {
-    console.log("SessionContext: Initial check");
-    checkSession();
+    checkAuthStatus();
   }, []);
 
+  const value: SessionContextType = {
+    user,
+    isAuthenticated,
+    userTier,
+    isLoading,
+    loading: isLoading, // Add loading alias
+    checkSession: checkAuthStatus, // Add checkSession method
+    login,
+    register,
+    logout,
+    refreshUser,
+  };
+
   return (
-    <SessionContext.Provider
-      value={{
-        user,
-        loading,
-        isAuthenticated: !!user,
-        logout,
-        checkSession,
-      }}
-    >
+    <SessionContext.Provider value={value}>
       {children}
     </SessionContext.Provider>
   );

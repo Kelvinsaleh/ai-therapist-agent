@@ -79,6 +79,31 @@ export default function MeditationsPage() {
     loadMeditations();
   }, [searchQuery, filterPremium]);
 
+  // Add this useEffect to detect user tier
+  useEffect(() => {
+    const checkUserTier = async () => {
+      if (isAuthenticated && user) {
+        try {
+          const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+          const response = await fetch('/api/user/tier', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            setUserTier(data.tier || 'free');
+          }
+        } catch (error) {
+          console.error('Error checking user tier:', error);
+          setUserTier('free');
+        }
+      }
+    };
+    
+    checkUserTier();
+  }, [isAuthenticated, user]);
+
   const handlePlay = async (meditationId: string) => {
     const meditation = meditations.find(m => m.id === meditationId);
     

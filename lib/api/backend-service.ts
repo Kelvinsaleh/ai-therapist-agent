@@ -12,10 +12,12 @@ export interface ApiResponse<T = any> {
 
 export interface User {
   id: string;
+  _id?: string; // Add MongoDB _id field
   name: string;
   email: string;
   createdAt: string;
   updatedAt: string;
+  token?: string;
   matchingPreferences?: {
     challenges: string[];
     goals: string[];
@@ -72,6 +74,7 @@ export interface MemoryEnhancedResponse {
     triggers: string[];
   };
   personalizedSuggestions: string[];
+  isFailover?: boolean;
 }
 
 class BackendService {
@@ -268,12 +271,14 @@ class BackendService {
   }
 
   // User profile methods
-  async getUserProfile(): Promise<ApiResponse<User>> {
-    return this.makeRequest<User>('/user/profile');
+  async getUserProfile(): Promise<ApiResponse<any>> {
+    return this.makeRequest<any>('/rescue-pairs/profile', {
+      method: 'GET',
+    });
   }
 
-  async updateUserProfile(profileData: Partial<User>): Promise<ApiResponse<User>> {
-    return this.makeRequest<User>('/user/profile', {
+  async updateUserProfile(profileData: any): Promise<ApiResponse<any>> {
+    return this.makeRequest<any>('/rescue-pairs/profile', {
       method: 'PUT',
       body: JSON.stringify(profileData),
     });
@@ -365,20 +370,20 @@ class BackendService {
   }
 
   async findMatches(preferences: any): Promise<ApiResponse<any[]>> {
-    return this.makeRequest<any[]>('/matching/find', {
+    return this.makeRequest<any[]>('/rescue-pairs/matches', {
       method: 'POST',
       body: JSON.stringify(preferences),
     });
   }
 
   async acceptMatch(matchId: string): Promise<ApiResponse<any>> {
-    return this.makeRequest<any>(`/matching/accept/${matchId}`, {
+    return this.makeRequest<any>(`/rescue-pairs/accept/${matchId}`, {
       method: 'POST',
     });
   }
 
   async rejectMatch(matchId: string): Promise<ApiResponse<void>> {
-    return this.makeRequest<void>(`/matching/reject/${matchId}`, {
+    return this.makeRequest<void>(`/rescue-pairs/reject/${matchId}`, {
       method: 'POST',
     });
   }
@@ -406,6 +411,43 @@ class BackendService {
   // Subscription status
   async getSubscriptionStatus(userId: string): Promise<ApiResponse<any>> {
     return this.makeRequest<any>(`/subscription/status/${userId}`);
+  }
+
+  // Mood methods
+  async getMoodEntries(): Promise<ApiResponse<any[]>> {
+    return this.makeRequest<any[]>('/mood/entries');
+  }
+
+  async createMoodEntry(moodData: any): Promise<ApiResponse<any>> {
+    return this.makeRequest<any>('/mood/entries', {
+      method: 'POST',
+      body: JSON.stringify(moodData),
+    });
+  }
+
+  // Activity methods
+  async getActivities(): Promise<ApiResponse<any[]>> {
+    return this.makeRequest<any[]>('/activity/entries');
+  }
+
+  async createActivity(activityData: any): Promise<ApiResponse<any>> {
+    return this.makeRequest<any>('/activity/entries', {
+      method: 'POST',
+      body: JSON.stringify(activityData),
+    });
+  }
+
+  async updateActivity(activityId: string, activityData: any): Promise<ApiResponse<any>> {
+    return this.makeRequest<any>(`/activity/entries/${activityId}`, {
+      method: 'PUT',
+      body: JSON.stringify(activityData),
+    });
+  }
+
+  async deleteActivity(activityId: string): Promise<ApiResponse<void>> {
+    return this.makeRequest<void>(`/activity/entries/${activityId}`, {
+      method: 'DELETE',
+    });
   }
 
   // Health check
@@ -462,6 +504,12 @@ export const {
   getMatchedChatHistory,
   sendMatchedChatMessage,
   getSubscriptionStatus,
+  getMoodEntries,
+  createMoodEntry,
+  getActivities,
+  createActivity,
+  updateActivity,
+  deleteActivity,
   healthCheck,
   testConnection,
 } = backendService;

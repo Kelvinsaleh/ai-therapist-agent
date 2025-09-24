@@ -15,7 +15,8 @@ import {
   TrendingUp,
   Calendar,
   BookOpen,
-  Activity
+  Activity,
+  AlertCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
@@ -34,6 +35,9 @@ interface ChatMessage {
     mood?: number;
     themes?: string[];
     insights?: string[];
+    isRateLimit?: boolean;
+    isFailover?: boolean;
+    isError?: boolean;
   };
 }
 
@@ -110,6 +114,19 @@ export function MemoryEnhancedChat({ sessionId, userId }: MemoryEnhancedChatProp
       const response = await backendService.sendMemoryEnhancedMessage(memoryRequest);
       
       if (!response.success) {
+        // Handle rate limiting specifically
+        if (response.error?.includes('Rate limit exceeded')) {
+          const assistantMessage: ChatMessage = {
+            role: "assistant",
+            content: "I understand you'd like to continue our conversation. To ensure quality responses, please wait a moment before sending your next message. In the meantime, take a deep breath and know that I'm here to support you.",
+            timestamp: new Date(),
+            context: {
+              isRateLimit: true
+            }
+          };
+          setMessages(prev => [...prev, assistantMessage]);
+          return;
+        }
         throw new Error(response.error || 'Failed to get AI response');
       }
 
@@ -120,33 +137,45 @@ export function MemoryEnhancedChat({ sessionId, userId }: MemoryEnhancedChatProp
         content: aiResponse.response,
         timestamp: new Date(),
         context: {
-          insights: aiResponse.insights
+          insights: aiResponse.insights,
+          isFailover: aiResponse.isFailover || false
         }
       };
 
       setMessages(prev => [...prev, assistantMessage]);
 
-      // Update user memory with this therapy session
-      await userMemoryManager.addTherapySession({
-        date: new Date(),
-        topics: extractThemes(inputMessage),
-        techniques: aiResponse.techniques || [],
-        breakthroughs: aiResponse.breakthroughs || [],
-        concerns: extractConcerns(inputMessage),
-        goals: [],
-        mood: userMessage.context?.mood || 3,
-        summary: `Discussed: ${extractThemes(inputMessage).join(', ')}`
-      });
+      // Update user memory with this therapy session (only if not a failover response)
+      if (!aiResponse.isFailover) {
+        await userMemoryManager.addTherapySession({
+          date: new Date(),
+          topics: extractThemes(inputMessage),
+          techniques: aiResponse.techniques || [],
+          breakthroughs: aiResponse.breakthroughs || [],
+          concerns: extractConcerns(inputMessage),
+          goals: [],
+          mood: userMessage.context?.mood || 3,
+          summary: `Discussed: ${extractThemes(inputMessage).join(', ')}`
+        });
 
-      // Reload memory to get updated insights
-      await loadUserMemory();
+        // Reload memory to get updated insights
+        await loadUserMemory();
+      }
 
     } catch (error) {
       console.error("Error sending message:", error);
+      
+      // Provide context-aware error message
+      const errorMessage = error instanceof Error && error.message.includes('Rate limit') 
+        ? "I'm receiving a lot of requests right now. Please wait a moment before trying again. Your mental health is important, and I want to give you my full attention."
+        : "I'm experiencing some technical difficulties right now, but I want you to know that I'm here to support you. Your thoughts and feelings are important. Please try again in a moment, and if the issue persists, consider reaching out to a mental health professional for immediate support.";
+
       setMessages(prev => [...prev, {
         role: "assistant",
-        content: "I apologize, but I'm having trouble processing your message right now. Please try again.",
-        timestamp: new Date()
+        content: errorMessage,
+        timestamp: new Date(),
+        context: {
+          isError: true
+        }
       }]);
     } finally {
       setIsTyping(false);
@@ -319,6 +348,24 @@ export function MemoryEnhancedChat({ sessionId, userId }: MemoryEnhancedChatProp
                           {insight}
                         </Badge>
                       ))}
+                      {message.context.isRateLimit && (
+                        <Badge variant="secondary" className="text-xs">
+                          <TrendingUp className="w-3 h-3 mr-1" />
+                          Rate Limited
+                        </Badge>
+                      )}
+                      {message.context.isFailover && (
+                        <Badge variant="secondary" className="text-xs">
+                          <BookOpen className="w-3 h-3 mr-1" />
+                          Fallback Response
+                        </Badge>
+                      )}
+                      {message.context.isError && (
+                        <Badge variant="destructive" className="text-xs">
+                          <AlertCircle className="w-3 h-3 mr-1" />
+                          Error
+                        </Badge>
+                      )}
                     </div>
                   )}
                 </div>

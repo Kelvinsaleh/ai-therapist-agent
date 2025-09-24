@@ -1,13 +1,51 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Mic, MicOff, Volume2, VolumeX, Play, Pause } from "lucide-react";
-import { toast } from "sonner";
+import { Mic, MicOff, Volume2, VolumeX } from "lucide-react";
+
+// Web Speech API types
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start(): void;
+  stop(): void;
+  abort(): void;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+  onend: (() => void) | null;
+}
+
+interface SpeechRecognitionEvent extends Event {
+  resultIndex: number;
+  results: SpeechRecognitionResultList;
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  error: string;
+  message: string;
+}
+
+interface SpeechRecognitionResultList {
+  length: number;
+  item(index: number): SpeechRecognitionResult;
+  [index: number]: SpeechRecognitionResult;
+}
+
+interface SpeechRecognitionResult {
+  length: number;
+  item(index: number): SpeechRecognitionAlternative;
+  [index: number]: SpeechRecognitionAlternative;
+  isFinal: boolean;
+}
+
+interface SpeechRecognitionAlternative {
+  transcript: string;
+  confidence: number;
+}
 
 interface VoiceControlsProps {
-  onUserSpeech: (text: string) => void;
-  onPlayResponse: (text: string) => void;
   isListening: boolean;
   isPlaying: boolean;
   onToggleListening: () => void;
@@ -15,8 +53,6 @@ interface VoiceControlsProps {
 }
 
 export function VoiceControls({
-  onUserSpeech,
-  onPlayResponse,
   isListening,
   isPlaying,
   onToggleListening,
@@ -28,87 +64,125 @@ export function VoiceControls({
 
   useEffect(() => {
     // Check for browser support
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      setIsSupported(true);
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      recognitionRef.current = new SpeechRecognition();
+    if (typeof window !== "undefined") {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const SpeechSynthesis = window.speechSynthesis;
       
-      recognitionRef.current.continuous = false;
-      recognitionRef.current.interimResults = false;
-      recognitionRef.current.lang = 'en-US';
-
-      recognitionRef.current.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        onUserSpeech(transcript);
-      };
-
-      recognitionRef.current.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
-        toast.error('Speech recognition failed. Please try again.');
-      };
+      if (SpeechRecognition && SpeechSynthesis) {
+      setIsSupported(true);
+        
+        // Initialize speech recognition
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = "en-US";
+        
+        recognition.onresult = (event: SpeechRecognitionEvent) => {
+          const transcript = Array.from(event.results)
+            .map(result => result[0])
+            .map(result => result.transcript)
+            .join("");
+          
+          if (transcript.trim()) {
+            // You can emit this transcript to parent component
+            console.log("Speech recognized:", transcript);
+          }
+        };
+        
+        recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+          console.error("Speech recognition error:", event.error);
+        };
+        
+        recognition.onend = () => {
+          console.log("Speech recognition ended");
+        };
+        
+        recognitionRef.current = recognition;
+      }
     }
-  }, [onUserSpeech]);
+  }, []);
 
-  const speakText = (text: string) => {
-    if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(text);
+  const handleToggleListening = () => {
+    if (!recognitionRef.current) return;
+    
+    if (isListening) {
+      recognitionRef.current.stop();
+    } else {
+      recognitionRef.current.start();
+    }
+    
+    onToggleListening();
+  };
+
+  const handleTogglePlaying = () => {
+    if (!window.speechSynthesis) return;
+    
+    if (isPlaying) {
+      window.speechSynthesis.cancel();
+    } else {
+      // Example: speak a welcome message
+      const utterance = new SpeechSynthesisUtterance("Hello! I'm here to help you with your mental health journey.");
       utterance.rate = 0.9;
       utterance.pitch = 1;
       utterance.volume = 0.8;
       
-      // Try to use a more natural voice
-      const voices = speechSynthesis.getVoices();
-      const preferredVoice = voices.find(voice => 
-        voice.name.includes('Google') || 
-        voice.name.includes('Microsoft') ||
-        voice.name.includes('Natural')
-      );
-      if (preferredVoice) {
-        utterance.voice = preferredVoice;
-      }
-
-      synthesisRef.current = utterance;
-      speechSynthesis.speak(utterance);
-      onPlayResponse(text);
+      utterance.onend = () => {
+        onTogglePlaying();
+      };
+      
+      window.speechSynthesis.speak(utterance);
     }
+    
+    onTogglePlaying();
   };
 
-  const stopSpeaking = () => {
-    if (speechSynthesis.speaking) {
-      speechSynthesis.cancel();
-    }
-  };
+  if (!isSupported) {
+    return (
+      <div className="text-center text-sm text-muted-foreground">
+        Voice controls not supported in this browser
+      </div>
+    );
+  }
 
   return (
-    <div className="flex items-center gap-2 p-4 bg-muted/50 rounded-lg">
-      {/* Speech Recognition */}
+    <div className="flex items-center gap-2">
       <Button
-        variant={isListening ? "destructive" : "outline"}
+        variant={isListening ? "default" : "outline"}
         size="sm"
-        onClick={onToggleListening}
-        disabled={!isSupported}
+        onClick={handleToggleListening}
         className="flex items-center gap-2"
       >
-        {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-        {isListening ? "Stop" : "Speak"}
+        {isListening ? (
+          <>
+            <MicOff className="w-4 h-4" />
+            Stop Listening
+          </>
+        ) : (
+          <>
+            <Mic className="w-4 h-4" />
+            Start Listening
+          </>
+        )}
       </Button>
 
-      {/* Text-to-Speech */}
       <Button
-        variant={isPlaying ? "destructive" : "outline"}
+        variant={isPlaying ? "default" : "outline"}
         size="sm"
-        onClick={onTogglePlaying}
+        onClick={handleTogglePlaying}
         className="flex items-center gap-2"
       >
-        {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-        {isPlaying ? "Stop" : "Listen"}
+        {isPlaying ? (
+          <>
+            <VolumeX className="w-4 h-4" />
+            Stop Speaking
+          </>
+        ) : (
+          <>
+            <Volume2 className="w-4 h-4" />
+            Start Speaking
+          </>
+        )}
       </Button>
-
-      {!isSupported && (
-        <span className="text-xs text-muted-foreground">
-          Voice features require Chrome/Edge
-        </span>
-      )}
     </div>
   );
 }

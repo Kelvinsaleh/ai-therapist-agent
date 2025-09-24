@@ -93,7 +93,7 @@ export class VercelBlobStorage {
         duration: 0, // Would need to be stored in database
         url: blob.url,
         size: blob.size,
-        contentType: blob.contentType || 'audio/mpeg',
+        contentType: (blob as any).contentType || 'audio/mpeg',
         isPremium: false, // Would need to be stored in database
         createdAt: new Date(blob.uploadedAt),
         updatedAt: new Date(blob.uploadedAt),
