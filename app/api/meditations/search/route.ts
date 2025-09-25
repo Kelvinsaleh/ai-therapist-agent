@@ -42,29 +42,26 @@ export async function GET(request: NextRequest) {
         meditations: transformedMeditations,
       });
     } else {
-      // Fallback to static data if backend fails
-      const { MEDITATION_TRACKS } = await import('@/lib/meditations/static-meditations');
+      // Return empty array if backend fails - no static fallback
+      console.error('Backend meditation fetch failed:', response.status, response.statusText);
       return NextResponse.json({
-        success: true,
-        meditations: MEDITATION_TRACKS,
-      });
+        success: false,
+        error: 'Failed to fetch meditations from database',
+        meditations: []
+      }, { status: response.status });
     }
 
   } catch (error) {
     console.error('Error fetching meditations:', error);
     
-    // Fallback to static data
-    try {
-      const { MEDITATION_TRACKS } = await import('@/lib/meditations/static-meditations');
-      return NextResponse.json({
-        success: true,
-        meditations: MEDITATION_TRACKS,
-      });
-    } catch (fallbackError) {
-      return NextResponse.json(
-        { success: false, error: 'Failed to fetch meditations' },
-        { status: 500 }
-      );
-    }
+    // Return error response - no static fallback
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: 'Failed to connect to meditation database',
+        meditations: []
+      },
+      { status: 500 }
+    );
   }
 } 
