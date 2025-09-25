@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,20 +36,70 @@ export default function MeditationsPage() {
   const [currentTrack, setCurrentTrack] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const [meditations, setMeditations] = useState<Meditation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterPremium, setFilterPremium] = useState<boolean | null>(null);
   const [userTier, setUserTier] = useState<"free" | "premium">("free");
+  
+  // Audio element ref
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
+    const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Fetch meditations from database
-  const loadMeditations = async () => {
+  // Audio event handlers
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
+    const handleDurationChange = () => setDuration(audio.duration);
+    const handleEnded = () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+    };
+    const handleError = (e: any) => {
+      console.error('Audio error:', e);
+      toast.error('Failed to load audio file');
+      setIsPlaying(false);
+    };
+
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('durationchange', handleDurationChange);
+    audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('error', handleError);
+
+    return () => {
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('durationchange', handleDurationChange);
+      audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('error', handleError);
+    };
+  }, []);
+
+  // Handle play/pause
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (isPlaying) {
+      audio.play().catch((error) => {
+        console.error('Play failed:', error);
+        toast.error('Failed to play audio');
+        setIsPlaying(false);
+      });
+    } else {
+      audio.pause();
+    }
+  }, [isPlaying]);
+
+  // Fetch meditations from database - memoized with useCallback
+  const loadMeditations = useCallback(async () => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
@@ -72,12 +122,12 @@ export default function MeditationsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [searchQuery, filterPremium]);
 
   // Load meditations on component mount and when search changes
   useEffect(() => {
     loadMeditations();
-  }, [searchQuery, filterPremium]);
+  }, [loadMeditations]);
 
   // Add this useEffect to detect user tier
   useEffect(() => {
@@ -107,19 +157,46 @@ export default function MeditationsPage() {
   const handlePlay = async (meditationId: string) => {
     const meditation = meditations.find(m => m.id === meditationId);
     
+    if (!meditation) {
+      toast.error('Meditation not found');
+      return;
+    }
+
     // Check if meditation is premium-only
-    if (meditation && meditation.isPremium && userTier === "free") {
+    if (meditation.isPremium && userTier === "free") {
       toast.error("This meditation is a premium feature. Upgrade to access advanced meditations.");
       return;
     }
 
+    // Check if audio URL is valid
+    if (!meditation.audioUrl) {
+      toast.error('Audio file not available');
+      return;
+    }
+
+    const audio = audioRef.current;
+    if (!audio) return;
+
     if (currentTrack === meditationId) {
+      // Same track - toggle play/pause
       setIsPlaying(!isPlaying);
     } else {
+      // New track - load and play
       setCurrentTrack(meditationId);
+      audio.src = meditation.audioUrl;
+      audio.load();
       setIsPlaying(true);
       setCurrentTime(0);
     }
+  };
+
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    
+    const newTime = parseFloat(e.target.value);
+    audio.currentTime = newTime;
+    setCurrentTime(newTime);
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -129,6 +206,9 @@ export default function MeditationsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
+      {/* Hidden audio element */}
+      <audio ref={audioRef} preload="metadata" />
+      
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
@@ -289,27 +369,49 @@ export default function MeditationsPage() {
           </div>
         )}
 
-        {/* Audio Player */}
+        {/* Enhanced Audio Player */}
         {currentTrack && (
-          <Card className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96">
+          <Card className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 z-50">
             <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <Button
-                  size="sm"
-                  onClick={() => setIsPlaying(!isPlaying)}
-                  className="flex-shrink-0"
-                >
-                  {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                </Button>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate">
-                    {meditations.find(m => m.id === currentTrack)?.title}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {formatTime(currentTime)} / {meditations.find(m => m.id === currentTrack)?.duration}:00
-                  </p>
+              <div className="space-y-3">
+                {/* Track Info */}
+                <div className="flex items-center gap-3">
+                  <Button
+                    size="sm"
+                    onClick={() => setIsPlaying(!isPlaying)}
+                    className="flex-shrink-0"
+                  >
+                    {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                  </Button>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">
+                      {meditations.find(m => m.id === currentTrack)?.title}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {meditations.find(m => m.id === currentTrack)?.category}
+                    </p>
+                  </div>
+                  <Volume2 className="w-4 h-4 text-gray-400" />
                 </div>
-                <Volume2 className="w-4 h-4 text-gray-400" />
+                
+                {/* Progress Bar */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs text-gray-500">
+                    <span>{formatTime(currentTime)}</span>
+                    <span>{formatTime(duration)}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max={duration || 0}
+                    value={currentTime}
+                    onChange={handleSeek}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                    style={{
+                      background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${(currentTime / duration) * 100}%, #e5e7eb ${(currentTime / duration) * 100}%, #e5e7eb 100%)`
+                    }}
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>

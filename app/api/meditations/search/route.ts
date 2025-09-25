@@ -12,7 +12,8 @@ export async function GET(request: NextRequest) {
     if (search) params.append('search', search);
     if (isPremium) params.append('isPremium', isPremium);
 
-    const response = await fetch(`${backendUrl}/meditation/sessions?${params}`, {
+    // Fix: Call /meditation instead of /meditation/sessions to get meditation library
+    const response = await fetch(`${backendUrl}/meditation?${params}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -21,9 +22,24 @@ export async function GET(request: NextRequest) {
 
     if (response.ok) {
       const data = await response.json();
+      const meditations = data.meditations || data.data || [];
+      
+      // Transform the data to match frontend expectations
+      const transformedMeditations = meditations.map((meditation: any) => ({
+        id: meditation._id || meditation.id,
+        title: meditation.title,
+        description: meditation.description,
+        duration: meditation.duration,
+        audioUrl: meditation.audioUrl,
+        category: meditation.category,
+        isPremium: meditation.isPremium || false,
+        tags: meditation.tags || [],
+        createdAt: meditation.createdAt
+      }));
+      
       return NextResponse.json({
         success: true,
-        meditations: data.data || [],
+        meditations: transformedMeditations,
       });
     } else {
       // Fallback to static data if backend fails

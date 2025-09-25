@@ -161,39 +161,53 @@ export default function AdminMeditationsPage() {
     setUploadLoading(true);
 
     try {
-      let audioUrl = formData.audioUrl;
-
-      // Upload file if new file selected
-      if (formData.audioFile) {
-        toast.info("Uploading audio file to Vercel Blob...");
-        const uploadResponse = await backendService.uploadMeditationFile(formData.audioFile);
-        
-        if (!uploadResponse.success) {
-          throw new Error(uploadResponse.error || "Failed to upload audio file");
-        }
-        
-        audioUrl = uploadResponse.data.url;
-        toast.success("Audio file uploaded successfully!");
-      }
-
-      // Create or update meditation metadata
-      const meditationData = {
-        title: formData.title,
-        description: formData.description,
-        duration: formData.duration,
-        audioUrl,
-        category: formData.category,
-        isPremium: formData.isPremium,
-        tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag)
-      };
-
       let response;
+      
       if (editingMeditation) {
+        // For editing existing meditation
+        let audioUrl = formData.audioUrl;
+
+        // Upload new file if selected
+        if (formData.audioFile) {
+          toast.info("Uploading new audio file...");
+          const uploadResponse = await backendService.uploadMeditationFile(formData.audioFile);
+          
+          if (!uploadResponse.success) {
+            throw new Error(uploadResponse.error || "Failed to upload audio file");
+          }
+          
+          audioUrl = uploadResponse.data.url;
+          toast.success("Audio file uploaded successfully!");
+        }
+
+        // Update meditation metadata
+        const meditationData = {
+          title: formData.title,
+          description: formData.description,
+          duration: formData.duration,
+          audioUrl,
+          category: formData.category,
+          isPremium: formData.isPremium,
+          tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag)
+        };
+
         response = await backendService.updateMeditation(editingMeditation._id, meditationData);
         toast.success("Meditation updated successfully!");
       } else {
-        response = await backendService.createMeditation(meditationData);
-        toast.success("Meditation created successfully!");
+        // For creating new meditation - upload file and metadata together
+        toast.info("Uploading meditation with metadata...");
+        
+        const metadata = {
+          title: formData.title,
+          description: formData.description,
+          duration: formData.duration,
+          category: formData.category,
+          isPremium: formData.isPremium,
+          tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag)
+        };
+
+        response = await backendService.uploadMeditationWithMetadata(formData.audioFile!, metadata);
+        toast.success("Meditation uploaded successfully!");
       }
 
       if (response.success) {

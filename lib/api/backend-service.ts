@@ -350,6 +350,41 @@ class BackendService {
     });
   }
 
+  async uploadMeditationWithMetadata(file: File, metadata: {
+    title: string;
+    description: string;
+    duration: number;
+    category: string;
+    isPremium: boolean;
+    tags: string[];
+  }): Promise<ApiResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('title', metadata.title);
+    formData.append('description', metadata.description);
+    formData.append('duration', metadata.duration.toString());
+    formData.append('category', metadata.category);
+    formData.append('isPremium', metadata.isPremium.toString());
+    formData.append('tags', JSON.stringify(metadata.tags));
+
+    // Get auth token directly
+    let token = this.authToken;
+    if (typeof window !== 'undefined') {
+      token = token || localStorage.getItem('token') || localStorage.getItem('authToken') || null;
+    }
+
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    return this.makeRequest('/meditations/upload', {
+      method: 'POST',
+      body: formData,
+      headers,
+    });
+  }
+
   async deleteMeditation(meditationId: string): Promise<ApiResponse> {
     return this.makeRequest(`/meditations/${meditationId}`, {
       method: 'DELETE',
