@@ -1,0 +1,371 @@
+﻿// Backend Service Layer for Hope Backend Integration
+// This service handles all communication with your backend API
+
+const BACKEND_BASE_URL = "https://hope-backend-2.onrender.com";
+
+export interface ApiResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
+}
+
+export interface User {
+  _id: string;
+  id?: string;
+  name: string;
+  email: string;
+  tier?: 'free' | 'premium';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ChatSession {
+  _id: string;
+  id?: string;
+  userId: string;
+  type: 'text' | 'audio' | 'video';
+  status: 'active' | 'ended' | 'paused';
+  createdAt: string;
+  updatedAt?: string;
+  messages?: ChatMessage[];
+}
+
+export interface ChatMessage {
+  _id: string;
+  sessionId: string;
+  content: string;
+  role: 'user' | 'assistant';
+  timestamp: string;
+  metadata?: any;
+}
+
+export interface JournalEntry {
+  _id: string;
+  userId: string;
+  title: string;
+  content: string;
+  mood: number;
+  tags: string[];
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface MoodEntry {
+  _id: string;
+  userId: string;
+  mood: number;
+  notes?: string;
+  activities: string[];
+  createdAt: string;
+}
+
+export interface MeditationSession {
+  _id: string;
+  userId: string;
+  duration: number;
+  type: string;
+  completed: boolean;
+  createdAt: string;
+}
+
+export interface RescuePair {
+  _id: string;
+  user1Id: User;
+  user2Id: User;
+  status: 'pending' | 'active' | 'rejected' | 'ended';
+  compatibilityScore?: number;
+  createdAt: string;
+  acceptedAt?: string;
+}
+
+export interface Match {
+  _id: string;
+  userId: string;
+  matchedUserId: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  compatibilityScore: number;
+  createdAt: string;
+}
+
+export interface SubscriptionStatus {
+  isActive: boolean;
+  plan: 'free' | 'premium';
+  expiresAt?: string;
+  features: string[];
+}
+
+class BackendService {
+  private baseURL: string;
+  private authToken: string | null = null;
+
+  constructor() {
+    this.baseURL = BACKEND_BASE_URL;
+    this.loadAuthToken();
+  }
+
+  private loadAuthToken(): void {
+    if (typeof window !== 'undefined') {
+      const persistedToken =
+        localStorage.getItem('token') ||
+        localStorage.getItem('authToken') ||
+        sessionStorage.getItem('authToken') ||
+        null;
+      this.authToken = persistedToken;
+    }
+  }
+
+  private getHeaders(): HeadersInit {
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+
+    // Always try to read the freshest token from storage in the browser
+    let token = this.authToken;
+    if (typeof window !== 'undefined') {
+      token =
+        token ||
+        localStorage.getItem('token') ||
+        localStorage.getItem('authToken') ||
+        sessionStorage.getItem('authToken') ||
+        null;
+    }
+
+    if (token) {
+      headers['Authorization'] = Bearer ;
+    }
+
+    return headers;
+  }
+
+  private async makeRequest<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<ApiResponse<T>> {
+    try {
+      const url = ${this.baseURL};
+      console.log(Making request to: );
+      
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          ...this.getHeaders(),
+          ...options.headers,
+        },
+        // Add timeout
+        signal: AbortSignal.timeout(10000), // 10 second timeout
+      });
+
+      console.log(Response status: );
+
+      if (!response.ok) {
+        let errorText = HTTP ;
+        try {
+          const data = await response.json();
+          errorText = typeof (data?.error) === 'string'
+            ? data.error
+            : (typeof (data?.message) === 'string' ? data.message : errorText);
+        } catch (e) {
+          // If response is not JSON, use status text
+          errorText = response.statusText || errorText;
+        }
+        
+        return {
+          success: false,
+          error: errorText,
+        };
+      }
+
+      const data = await response.json();
+      return {
+        success: true,
+        data,
+      };
+    } catch (error) {
+      console.error(API request failed for :, error);
+      
+      // Provide more specific error messages
+      let errorMessage = 'Network error';
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          errorMessage = 'Request timeout - server is not responding';
+        } else if (error.message.includes('fetch')) {
+          errorMessage = 'Cannot connect to server - check your internet connection';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      return {
+        success: false,
+        error: errorMessage,
+      };
+    }
+  }
+
+  // Authentication methods
+  async login(email: string, password: string): Promise<ApiResponse<{ user: User; token: string }>> {
+    return this.makeRequest('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+  }
+
+  async register(userData: { name: string; email: string; password: string }): Promise<ApiResponse<{ user: User; token: string }>> {
+    return this.makeRequest('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+  }
+
+  async logout(): Promise<ApiResponse> {
+    return this.makeRequest('/auth/logout', {
+      method: 'POST',
+    });
+  }
+
+  // Health check
+  async healthCheck(): Promise<ApiResponse> {
+    return this.makeRequest('/health');
+  }
+
+  // Test connection
+  async testConnection(): Promise<boolean> {
+    try {
+      const response = await this.healthCheck();
+      return response.success;
+    } catch (error) {
+      console.error('Backend connection test failed:', error);
+      return false;
+    }
+  }
+
+  // Chat session methods
+  async getChatSessions(): Promise<ApiResponse<ChatSession[]>> {
+    return this.makeRequest('/chat/sessions');
+  }
+
+  async createChatSession(type: 'text' | 'audio' | 'video' = 'text'): Promise<ApiResponse<ChatSession>> {
+    return this.makeRequest('/chat/sessions', {
+      method: 'POST',
+      body: JSON.stringify({ type }),
+    });
+  }
+
+  async sendChatMessage(sessionId: string, message: string): Promise<ApiResponse<ChatMessage>> {
+    return this.makeRequest(/chat/sessions//messages, {
+      method: 'POST',
+      body: JSON.stringify({ content: message }),
+    });
+  }
+
+  async sendMemoryEnhancedMessage(request: any): Promise<ApiResponse> {
+    return this.makeRequest('/chat/memory-enhanced', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  }
+
+  // Journal methods
+  async getJournalEntries(): Promise<ApiResponse<JournalEntry[]>> {
+    return this.makeRequest('/journal/entries');
+  }
+
+  async createJournalEntry(entry: { title: string; content: string; mood: number; tags: string[] }): Promise<ApiResponse<JournalEntry>> {
+    return this.makeRequest('/journal/entries', {
+      method: 'POST',
+      body: JSON.stringify(entry),
+    });
+  }
+
+  // Mood tracking methods
+  async getMoodEntries(): Promise<ApiResponse<MoodEntry[]>> {
+    return this.makeRequest('/mood/entries');
+  }
+
+  async createMoodEntry(entry: { mood: number; notes?: string; activities: string[] }): Promise<ApiResponse<MoodEntry>> {
+    return this.makeRequest('/mood/entries', {
+      method: 'POST',
+      body: JSON.stringify(entry),
+    });
+  }
+
+  // Meditation methods
+  async getMeditationSessions(): Promise<ApiResponse<MeditationSession[]>> {
+    return this.makeRequest('/meditation/sessions');
+  }
+
+  async createMeditationSession(session: { duration: number; type: string }): Promise<ApiResponse<MeditationSession>> {
+    return this.makeRequest('/meditation/sessions', {
+      method: 'POST',
+      body: JSON.stringify(session),
+    });
+  }
+
+  // User profile methods
+  async getUserProfile(): Promise<ApiResponse<User>> {
+    return this.makeRequest('/user/profile');
+  }
+
+  async updateUserProfile(profile: Partial<User>): Promise<ApiResponse<User>> {
+    return this.makeRequest('/user/profile', {
+      method: 'PUT',
+      body: JSON.stringify(profile),
+    });
+  }
+
+  // Subscription methods
+  async getSubscriptionStatus(userId: string): Promise<ApiResponse<SubscriptionStatus>> {
+    return this.makeRequest(/subscription/status/);
+  }
+
+  // Matching methods
+  async getActiveMatches(): Promise<ApiResponse<Match[]>> {
+    return this.makeRequest('/matching/active');
+  }
+
+  async findMatches(preferences: any): Promise<ApiResponse<{ matches: Match[] }>> {
+    return this.makeRequest('/matching/find', {
+      method: 'POST',
+      body: JSON.stringify(preferences),
+    });
+  }
+
+  async acceptMatch(matchId: string): Promise<ApiResponse> {
+    return this.makeRequest(/matching//accept, {
+      method: 'POST',
+    });
+  }
+
+  async rejectMatch(matchId: string): Promise<ApiResponse> {
+    return this.makeRequest(/matching//reject, {
+      method: 'POST',
+    });
+  }
+
+  async updateMatchingPreferences(preferences: any): Promise<ApiResponse> {
+    return this.makeRequest('/matching/preferences', {
+      method: 'PUT',
+      body: JSON.stringify(preferences),
+    });
+  }
+
+  // Rescue pairs methods
+  async getRescuePairList(): Promise<ApiResponse<RescuePair[]>> {
+    return this.makeRequest('/rescue-pairs');
+  }
+
+  // Activity methods
+  async createActivity(activity: any): Promise<ApiResponse> {
+    return this.makeRequest('/activities', {
+      method: 'POST',
+      body: JSON.stringify(activity),
+    });
+  }
+}
+
+// Export singleton instance
+export const backendService = new BackendService();
+
+// Export individual functions for backward compatibility
+export const getSubscriptionStatus = (userId: string) => backendService.getSubscriptionStatus(userId);

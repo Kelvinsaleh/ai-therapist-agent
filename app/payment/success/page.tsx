@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { CheckCircle, XCircle, Loader2, Crown } from "lucide-react";
 import { toast } from "sonner";
+import { useSession } from "@/lib/contexts/session-context";
 
 export default function PaymentSuccessPage() {
-  const searchParams = useSearchParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { refreshUserTier } = useSession();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('');
 
@@ -45,9 +47,12 @@ export default function PaymentSuccessPage() {
           setMessage('Payment verified successfully! Your premium subscription is now active.');
           toast.success('Welcome to Premium!');
           
-          // Redirect to dashboard after 3 seconds
+          // Refresh user tier to reflect premium status
+          await refreshUserTier();
+          
+          // Redirect to rescue pairs after 3 seconds to show premium features
           setTimeout(() => {
-            router.push('/dashboard');
+            router.push('/rescue-pairs');
           }, 3000);
         } else {
           setStatus('error');
@@ -63,7 +68,7 @@ export default function PaymentSuccessPage() {
     };
 
     verifyPayment();
-  }, [searchParams, router]);
+  }, [searchParams, router, refreshUserTier]);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">

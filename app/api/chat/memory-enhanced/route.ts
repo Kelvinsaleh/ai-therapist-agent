@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Message is required" }, { status: 400 });
     }
 
-    const res = await fetch(`${BACKEND_API_URL}/chat/`, {
+    const res = await fetch(`${BACKEND_API_URL}/memory-enhanced-chat`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -12,69 +12,22 @@ export interface ApiResponse<T = any> {
 
 export interface User {
   id: string;
-  _id?: string; // Add MongoDB _id field
+  _id?: string;
   name: string;
   email: string;
   createdAt: string;
   updatedAt: string;
   token?: string;
-  matchingPreferences?: {
-    challenges: string[];
-    goals: string[];
-    experienceLevel: "beginner" | "intermediate" | "experienced";
-    ageRange: [number, number];
-    timezone: string;
-    communicationStyle: "gentle" | "direct" | "supportive";
-    preferredCheckInFrequency: "daily" | "weekly" | "as-needed";
-    allowVideoCalls: boolean;
-  };
 }
 
-export interface ChatSession {
-  id: string;
-  userId: string;
-  title?: string;
-  messages: ChatMessage[];
-  createdAt: string;
-  updatedAt: string;
+export interface LoginResponse {
+  user: User;
+  token: string;
 }
 
-export interface ChatMessage {
-  id: string;
-  sessionId: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: string;
-  metadata?: any;
-}
-
-export interface MemoryEnhancedRequest {
-  message: string;
-  sessionId: string;
-  userId: string;
-  context: string;
-  suggestions: string[];
-  userMemory: {
-    journalEntries: any[];
-    meditationHistory: any[];
-    moodPatterns: any[];
-    insights: any[];
-    profile: any;
-  };
-}
-
-export interface MemoryEnhancedResponse {
-  response: string;
-  insights: string[];
-  techniques: string[];
-  breakthroughs: string[];
-  moodAnalysis?: {
-    current: number;
-    trend: string;
-    triggers: string[];
-  };
-  personalizedSuggestions: string[];
-  isFailover?: boolean;
+export interface RegisterResponse {
+  user: User;
+  token: string;
 }
 
 class BackendService {
@@ -102,7 +55,6 @@ class BackendService {
       'Content-Type': 'application/json',
     };
 
-    // Always try to read the freshest token from storage in the browser
     let token = this.authToken;
     if (typeof window !== 'undefined') {
       token =
@@ -134,8 +86,7 @@ class BackendService {
           ...this.getHeaders(),
           ...options.headers,
         },
-        // Add timeout
-        signal: AbortSignal.timeout(10000), // 10 second timeout
+        signal: AbortSignal.timeout(10000),
       });
 
       console.log(`Response status: ${response.status}`);
@@ -148,7 +99,6 @@ class BackendService {
             ? data.error
             : (typeof (data?.message) === 'string' ? data.message : errorText);
         } catch (e) {
-          // If response is not JSON, use status text
           errorText = response.statusText || errorText;
         }
         
@@ -166,7 +116,6 @@ class BackendService {
     } catch (error) {
       console.error(`API request failed for ${endpoint}:`, error);
       
-      // Provide more specific error messages
       let errorMessage = 'Network error';
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
@@ -186,276 +135,155 @@ class BackendService {
   }
 
   // Authentication methods
-  async login(email: string, password: string): Promise<ApiResponse<{ user: User; token: string }>> {
-    const response = await this.makeRequest<{ user: User; token: string }>('/auth/login', {
+  async login(email: string, password: string): Promise<ApiResponse<LoginResponse>> {
+    const response = await this.makeRequest<LoginResponse>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
 
-    if (response.success && response.data?.token) {
-      this.authToken = response.data.token;
+    if (response.success && response.data) {
       if (typeof window !== 'undefined') {
-        // Standardize: store under both keys for compatibility
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('authToken', response.data.token);
+        this.authToken = response.data.token;
       }
     }
 
     return response;
   }
 
-  async register(userData: { name: string; email: string; password: string }): Promise<ApiResponse<{ user: User; token: string }>> {
-    const response = await this.makeRequest<{ user: User; token: string }>('/auth/register', {
+  async register(userData: { name: string; email: string; password: string }): Promise<ApiResponse<RegisterResponse>> {
+    const response = await this.makeRequest<RegisterResponse>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(userData),
     });
 
-    if (response.success && response.data?.token) {
-      this.authToken = response.data.token;
+    if (response.success && response.data) {
       if (typeof window !== 'undefined') {
-        // Standardize: store under both keys for compatibility
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('authToken', response.data.token);
+        this.authToken = response.data.token;
       }
     }
 
     return response;
   }
 
-  async logout(): Promise<void> {
-    this.authToken = null;
+  async logout(): Promise<ApiResponse> {
+    const response = await this.makeRequest('/auth/logout', {
+      method: 'POST',
+    });
+
     if (typeof window !== 'undefined') {
       localStorage.removeItem('token');
       localStorage.removeItem('authToken');
       sessionStorage.removeItem('authToken');
+      this.authToken = null;
     }
+
+    return response;
   }
 
-  // Chat session methods
-  async createChatSession(): Promise<ApiResponse<ChatSession>> {
-    return this.makeRequest<ChatSession>('/chat/sessions', {
+  async getCurrentUser(): Promise<ApiResponse<User>> {
+    return this.makeRequest<User>('/auth/me');
+  }
+
+  // Journal methods (needed for memory-enhanced chat integration)
+  async createJournalEntry(entryData: any): Promise<ApiResponse> {
+    return this.makeRequest('/journal', {
       method: 'POST',
+      body: JSON.stringify(entryData),
     });
   }
 
-  async getChatSessions(): Promise<ApiResponse<ChatSession[]>> {
-    return this.makeRequest<ChatSession[]>('/chat/sessions');
+  async getJournalEntries(): Promise<ApiResponse> {
+    return this.makeRequest('/journal');
   }
 
-  async getChatSession(sessionId: string): Promise<ApiResponse<ChatSession>> {
-    return this.makeRequest<ChatSession>(`/chat/sessions/${sessionId}`);
+  async updateJournalEntry(entryId: string, entryData: any): Promise<ApiResponse> {
+    return this.makeRequest(`/journal/${entryId}`, {
+      method: 'PUT',
+      body: JSON.stringify(entryData),
+    });
   }
 
-  async getChatHistory(sessionId: string): Promise<ApiResponse<ChatMessage[]>> {
-    return this.makeRequest<ChatMessage[]>(`/chat/sessions/${sessionId}/messages`);
+  async deleteJournalEntry(entryId: string): Promise<ApiResponse> {
+    return this.makeRequest(`/journal/${entryId}`, {
+      method: 'DELETE',
+    });
   }
 
-  async sendChatMessage(
-    sessionId: string,
-    message: string
-  ): Promise<ApiResponse<ChatMessage>> {
-    return this.makeRequest<ChatMessage>(`/chat/sessions/${sessionId}/messages`, {
+  // Memory-enhanced chat method
+  async sendMemoryEnhancedMessage(messageData: any): Promise<ApiResponse> {
+    return this.makeRequest('/memory-enhanced-chat', {
       method: 'POST',
-      body: JSON.stringify({ message }),
+      body: JSON.stringify(messageData),
     });
   }
 
-  // Memory-enhanced chat
-  async sendMemoryEnhancedMessage(
-    request: MemoryEnhancedRequest
-  ): Promise<ApiResponse<MemoryEnhancedResponse>> {
-    return this.makeRequest<MemoryEnhancedResponse>('/chat/', {
+  // User Profile methods (needed for rescue pair matching)
+  async createUserProfile(profileData: any): Promise<ApiResponse> {
+    return this.makeRequest('/user/profile', {
       method: 'POST',
-      body: JSON.stringify(request),
+      body: JSON.stringify(profileData),
     });
   }
 
-  // User profile methods
-  async getUserProfile(): Promise<ApiResponse<any>> {
-    return this.makeRequest<any>('/rescue-pairs/profile', {
-      method: 'GET',
-    });
+  async getUserProfile(): Promise<ApiResponse> {
+    return this.makeRequest('/user/profile');
   }
 
-  async updateUserProfile(profileData: any): Promise<ApiResponse<any>> {
-    return this.makeRequest<any>('/rescue-pairs/profile', {
+  async updateUserProfile(profileData: any): Promise<ApiResponse> {
+    return this.makeRequest('/user/profile', {
       method: 'PUT',
       body: JSON.stringify(profileData),
     });
   }
 
-  // Journal methods
-  async getJournalEntries(): Promise<ApiResponse<any[]>> {
-    return this.makeRequest<any[]>('/journal/entries');
+  // Rescue Pair methods - Updated to match backend API
+  async getRescuePairList(): Promise<ApiResponse> {
+    return this.makeRequest('/rescue-pairs');
   }
 
-  async createJournalEntry(entry: any): Promise<ApiResponse<any>> {
-    return this.makeRequest<any>('/journal/entries', {
+  async findMatches(preferences?: any): Promise<ApiResponse> {
+    return this.makeRequest('/rescue-pairs/matches');
+  }
+
+  async acceptMatch(pairId: string): Promise<ApiResponse> {
+    return this.makeRequest(`/rescue-pairs/${pairId}/accept`, {
       method: 'POST',
-      body: JSON.stringify(entry),
     });
   }
 
-  async updateJournalEntry(entryId: string, entry: any): Promise<ApiResponse<any>> {
-    return this.makeRequest<any>(`/journal/entries/${entryId}`, {
+  async rejectMatch(pairId: string): Promise<ApiResponse> {
+    return this.makeRequest(`/rescue-pairs/${pairId}/reject`, {
+      method: 'POST',
+    });
+  }
+
+  async createRescuePair(data: { targetUserId: string; preferences?: any }): Promise<ApiResponse> {
+    return this.makeRequest('/rescue-pairs', {
+      method: 'POST',
+      body: JSON.stringify({ targetUserId: data.targetUserId }),
+    });
+  }
+
+  async getRescuePairDetails(pairId: string): Promise<ApiResponse> {
+    return this.makeRequest(`/rescue-pairs/${pairId}`);
+  }
+
+  async updateRescuePairStatus(pairId: string, status: string): Promise<ApiResponse> {
+    return this.makeRequest(`/rescue-pairs/${pairId}/status`, {
       method: 'PUT',
-      body: JSON.stringify(entry),
-    });
-  }
-
-  async deleteJournalEntry(entryId: string): Promise<ApiResponse<void>> {
-    return this.makeRequest<void>(`/journal/entries/${entryId}`, {
-      method: 'DELETE',
-    });
-  }
-
-  // Meditation methods
-  async getMeditationSessions(): Promise<ApiResponse<any[]>> {
-    return this.makeRequest<any[]>('/meditation/sessions');
-  }
-
-  async createMeditationSession(session: any): Promise<ApiResponse<any>> {
-    return this.makeRequest<any>('/meditation/sessions', {
-      method: 'POST',
-      body: JSON.stringify(session),
-    });
-  }
-
-  async updateMeditationSession(sessionId: string, session: any): Promise<ApiResponse<any>> {
-    return this.makeRequest<any>(`/meditation/sessions/${sessionId}`, {
-      method: 'PUT',
-      body: JSON.stringify(session),
-    });
-  }
-
-  // Rescue pairs methods
-  async getRescuePairs(): Promise<ApiResponse<any[]>> {
-    return this.makeRequest<any[]>('/rescue-pairs');
-  }
-
-  async createRescuePair(pairData: any): Promise<ApiResponse<any>> {
-    return this.makeRequest<any>('/rescue-pairs', {
-      method: 'POST',
-      body: JSON.stringify(pairData),
-    });
-  }
-
-  async updateRescuePair(pairId: string, pairData: any): Promise<ApiResponse<any>> {
-    return this.makeRequest<any>(`/rescue-pairs/${pairId}`, {
-      method: 'PUT',
-      body: JSON.stringify(pairData),
-    });
-  }
-
-  async deleteRescuePair(pairId: string): Promise<ApiResponse<void>> {
-    return this.makeRequest<void>(`/rescue-pairs/${pairId}`, {
-      method: 'DELETE',
-    });
-  }
-
-  // Payment verification
-  async verifyPayment(reference: string): Promise<ApiResponse<any>> {
-    return this.makeRequest<any>('/payments/verify', {
-      method: 'POST',
-      body: JSON.stringify({ reference }),
-    });
-  }
-
-  // User matching methods
-  async updateMatchingPreferences(preferences: any): Promise<ApiResponse<any>> {
-    return this.makeRequest<any>('/matching/preferences', {
-      method: 'PUT',
-      body: JSON.stringify(preferences),
-    });
-  }
-
-  async findMatches(preferences: any): Promise<ApiResponse<any[]>> {
-    return this.makeRequest<any[]>('/rescue-pairs/matches', {
-      method: 'POST',
-      body: JSON.stringify(preferences),
-    });
-  }
-
-  async acceptMatch(matchId: string): Promise<ApiResponse<any>> {
-    return this.makeRequest<any>(`/rescue-pairs/accept/${matchId}`, {
-      method: 'POST',
-    });
-  }
-
-  async rejectMatch(matchId: string): Promise<ApiResponse<void>> {
-    return this.makeRequest<void>(`/rescue-pairs/reject/${matchId}`, {
-      method: 'POST',
-    });
-  }
-
-  async getActiveMatches(): Promise<ApiResponse<any[]>> {
-    return this.makeRequest<any[]>('/matching/active');
-  }
-
-  async getMatchHistory(): Promise<ApiResponse<any[]>> {
-    return this.makeRequest<any[]>('/matching/history');
-  }
-
-  // Matched chat methods
-  async getMatchedChatHistory(matchId: string): Promise<ApiResponse<any[]>> {
-    return this.makeRequest<any[]>(`/matching/${matchId}/messages`);
-  }
-
-  async sendMatchedChatMessage(matchId: string, message: string): Promise<ApiResponse<any>> {
-    return this.makeRequest<any>(`/matching/${matchId}/messages`, {
-      method: 'POST',
-      body: JSON.stringify({ message }),
-    });
-  }
-
-  // Subscription status
-  async getSubscriptionStatus(userId: string): Promise<ApiResponse<any>> {
-    return this.makeRequest<any>(`/subscription/status/${userId}`);
-  }
-
-  // Mood methods
-  async getMoodEntries(): Promise<ApiResponse<any[]>> {
-    return this.makeRequest<any[]>('/mood/entries');
-  }
-
-  async createMoodEntry(moodData: any): Promise<ApiResponse<any>> {
-    return this.makeRequest<any>('/mood/entries', {
-      method: 'POST',
-      body: JSON.stringify(moodData),
-    });
-  }
-
-  // Activity methods
-  async getActivities(): Promise<ApiResponse<any[]>> {
-    return this.makeRequest<any[]>('/activity/entries');
-  }
-
-  async createActivity(activityData: any): Promise<ApiResponse<any>> {
-    return this.makeRequest<any>('/activity/entries', {
-      method: 'POST',
-      body: JSON.stringify(activityData),
-    });
-  }
-
-  async updateActivity(activityId: string, activityData: any): Promise<ApiResponse<any>> {
-    return this.makeRequest<any>(`/activity/entries/${activityId}`, {
-      method: 'PUT',
-      body: JSON.stringify(activityData),
-    });
-  }
-
-  async deleteActivity(activityId: string): Promise<ApiResponse<void>> {
-    return this.makeRequest<void>(`/activity/entries/${activityId}`, {
-      method: 'DELETE',
+      body: JSON.stringify({ status }),
     });
   }
 
   // Health check
-  async healthCheck(): Promise<ApiResponse<{ status: string; timestamp: string }>> {
-    return this.makeRequest<{ status: string; timestamp: string }>('/health');
+  async healthCheck(): Promise<ApiResponse> {
+    return this.makeRequest('/health');
   }
 
-  // Test connection
   async testConnection(): Promise<boolean> {
     try {
       const response = await this.healthCheck();
@@ -465,51 +293,82 @@ class BackendService {
       return false;
     }
   }
+
+  // Meditation methods (for admin and user access)
+  async getMeditations(params?: { search?: string; category?: string; isPremium?: boolean; limit?: number; page?: number }): Promise<ApiResponse> {
+    const queryParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined) {
+          queryParams.append(key, value.toString());
+        }
+      });
+    }
+    
+    const endpoint = `/meditations${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+    return this.makeRequest(endpoint);
+  }
+
+  async getMeditation(meditationId: string): Promise<ApiResponse> {
+    return this.makeRequest(`/meditations/${meditationId}`);
+  }
+
+  async createMeditation(meditationData: {
+    title: string;
+    description: string;
+    duration: number;
+    audioUrl: string;
+    category: string;
+    isPremium: boolean;
+    tags: string[];
+  }): Promise<ApiResponse> {
+    return this.makeRequest('/meditations', {
+      method: 'POST',
+      body: JSON.stringify(meditationData),
+    });
+  }
+
+  async uploadMeditationFile(file: File): Promise<ApiResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // Get auth token directly
+    let token = this.authToken;
+    if (typeof window !== 'undefined') {
+      token = token || localStorage.getItem('token') || localStorage.getItem('authToken') || null;
+    }
+
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    return this.makeRequest('/meditations/upload', {
+      method: 'POST',
+      body: formData,
+      headers,
+    });
+  }
+
+  async deleteMeditation(meditationId: string): Promise<ApiResponse> {
+    return this.makeRequest(`/meditations/${meditationId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async updateMeditation(meditationId: string, meditationData: Partial<{
+    title: string;
+    description: string;
+    duration: number;
+    category: string;
+    isPremium: boolean;
+    tags: string[];
+  }>): Promise<ApiResponse> {
+    return this.makeRequest(`/meditations/${meditationId}`, {
+      method: 'PUT',
+      body: JSON.stringify(meditationData),
+    });
+  }
 }
 
-// Export singleton instance
 export const backendService = new BackendService();
-
-// Export individual methods for convenience
-export const {
-  login,
-  register,
-  logout,
-  createChatSession,
-  getChatSessions,
-  getChatSession,
-  getChatHistory,
-  sendChatMessage,
-  sendMemoryEnhancedMessage,
-  getUserProfile,
-  updateUserProfile,
-  getJournalEntries,
-  createJournalEntry,
-  updateJournalEntry,
-  deleteJournalEntry,
-  getMeditationSessions,
-  createMeditationSession,
-  updateMeditationSession,
-  getRescuePairs,
-  createRescuePair,
-  updateRescuePair,
-  deleteRescuePair,
-  verifyPayment,
-  updateMatchingPreferences,
-  findMatches,
-  acceptMatch,
-  rejectMatch,
-  getActiveMatches,
-  getMatchHistory,
-  getMatchedChatHistory,
-  sendMatchedChatMessage,
-  getSubscriptionStatus,
-  getMoodEntries,
-  createMoodEntry,
-  getActivities,
-  createActivity,
-  updateActivity,
-  deleteActivity,
-  healthCheck,
-  testConnection,
-} = backendService;

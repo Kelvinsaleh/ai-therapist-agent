@@ -147,7 +147,7 @@ export default function TherapyPage() {
     try {
       setIsLoading(true);
       const newSessionId = await createChatSession();
-      console.log("New session created:", newSessionId);
+      console.log("New session created", { sessionId: newSessionId });
 
       // Update sessions list immediately
       const newSession: ChatSession = {
@@ -168,7 +168,7 @@ export default function TherapyPage() {
       // Force a re-render of the chat area
       setIsLoading(false);
     } catch (error) {
-      console.error("Failed to create new session:", error);
+      console.error("Failed to create new session", { error });
       setIsLoading(false);
     }
   };
@@ -179,34 +179,34 @@ export default function TherapyPage() {
       try {
         setIsLoading(true);
         if (!sessionId || sessionId === "new") {
-          console.log("Creating new chat session...");
+          console.log("Creating new chat session");
           const newSessionId = await createChatSession();
-          console.log("New session created:", newSessionId);
+          console.log("New session created", { sessionId: newSessionId });
           setSessionId(newSessionId);
           window.history.pushState({}, "", `/therapy/${newSessionId}`);
         } else {
-          console.log("Loading existing chat session:", sessionId);
+          console.log("Loading existing chat session", { sessionId });
           try {
             const history = await getChatHistory(sessionId);
-            console.log("Loaded chat history:", history);
+            console.log("Loaded chat history", { history });
             if (Array.isArray(history)) {
               const formattedHistory = history.map((msg) => ({
                 ...msg,
                 timestamp: new Date(msg.timestamp),
               }));
-              console.log("Formatted history:", formattedHistory);
+              console.log("Formatted history", { formattedHistory });
               setMessages(formattedHistory);
             } else {
-              console.error("History is not an array:", history);
+              console.error("History is not an array", { history });
               setMessages([]);
             }
           } catch (historyError) {
-            console.error("Error loading chat history:", historyError);
+            console.error("Error loading chat history", { historyError });
             setMessages([]);
           }
         }
       } catch (error) {
-        console.error("Failed to initialize chat:", error);
+        console.error("Failed to initialize chat", { error });
         setMessages([
           {
             role: "assistant",
@@ -249,7 +249,7 @@ export default function TherapyPage() {
         const allSessions = await getAllChatSessions();
         setSessions(allSessions);
       } catch (error) {
-        console.error("Failed to load sessions:", error);
+        console.error("Failed to load sessions", { error });
       }
     };
 
@@ -403,12 +403,12 @@ export default function TherapyPage() {
     console.log("Form submitted");
     const currentMessage = message.trim();
     console.log("Current message:", currentMessage);
-    console.log("Session ID:", sessionId);
-    console.log("Is typing:", isTyping);
-    console.log("Is chat paused:", isChatPaused);
+    console.log("Session ID", { sessionId });
+    console.log("Is typing", { isTyping });
+    console.log("Is chat paused", { isChatPaused });
 
     if (!currentMessage || isTyping || isChatPaused || !sessionId) {
-      console.log("Submission blocked:", {
+      console.warn("Submission blocked", {
         noMessage: !currentMessage,
         isTyping,
         isChatPaused,
@@ -437,15 +437,15 @@ export default function TherapyPage() {
         return;
       }
 
-      console.log("Sending message to API...");
+      console.log("Sending message to API");
       // Send message to API
       const response = await sendChatMessage(sessionId, currentMessage);
-      console.log("Raw API response:", response);
+      console.log("Raw API response", { response });
 
       // Parse the response if it's a string
       const aiResponse =
         typeof response === "string" ? JSON.parse(response) : response;
-      console.log("Parsed AI response:", aiResponse);
+      console.log("Parsed AI response", { aiResponse });
 
       // Add AI response with metadata
       const assistantMessage: ChatMessage = {
@@ -472,7 +472,7 @@ export default function TherapyPage() {
         },
       };
 
-      console.log("Created assistant message:", assistantMessage);
+      console.log("Created assistant message", { assistantMessage });
 
       // Add the message immediately
       setMessages((prev) => [...prev, assistantMessage]);
@@ -484,7 +484,7 @@ export default function TherapyPage() {
         speakText(assistantMessage.content);
       }
     } catch (error) {
-      console.error("Error in chat:", error);
+      console.error("Error in chat", { error });
       setMessages((prev) => [
         ...prev,
         {
@@ -583,7 +583,7 @@ export default function TherapyPage() {
     try {
       setShowNFTCelebration(true);
     } catch (error) {
-      console.error("Error completing session:", error);
+      console.error("Error completing session", { error });
     } finally {
       setIsCompletingSession(false);
     }
@@ -605,7 +605,7 @@ export default function TherapyPage() {
         window.history.pushState({}, "", `/therapy/${selectedSessionId}`);
       }
     } catch (error) {
-      console.error("Failed to load session:", error);
+      console.error("Failed to load session", { error });
     } finally {
       setIsLoading(false);
     }

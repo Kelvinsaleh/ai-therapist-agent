@@ -16,7 +16,8 @@ import {
   Search,
   Plus,
   Edit,
-  Trash2
+  Trash2,
+  Crown
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -48,6 +49,7 @@ export default function JournalingPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterMood, setFilterMood] = useState<number | null>(null);
   const [userTier, setUserTier] = useState<"free" | "premium">("free");
+  const [backendConnected, setBackendConnected] = useState<boolean | null>(null);
 
   const moodLabels = [
     "😔 Very Low", "😟 Low", "😐 Neutral", "😊 Good", "😄 Great", "🤩 Excellent"
@@ -56,15 +58,54 @@ export default function JournalingPage() {
   const commonTags = ["gratitude", "anxiety", "work", "relationships", "health", "goals", "reflection"];
 
   useEffect(() => {
-    // Load entries from localStorage
-    const savedEntries = localStorage.getItem("journalEntries");
-    if (savedEntries) {
-      setEntries(JSON.parse(savedEntries).map((entry: any) => ({
-        ...entry,
-        createdAt: new Date(entry.createdAt)
-      })));
-    }
-  }, []);
+    const loadJournalEntries = async () => {
+      try {
+        // First load from localStorage for immediate display
+        const savedEntries = localStorage.getItem("journalEntries");
+        if (savedEntries) {
+          const localEntries = JSON.parse(savedEntries).map((entry: any) => ({
+            ...entry,
+            createdAt: new Date(entry.createdAt)
+          }));
+          setEntries(localEntries);
+        }
+
+        // Then load from backend if authenticated
+        if (isAuthenticated) {
+          const { backendService } = await import("@/lib/api/backend-service");
+          const response = await backendService.getJournalEntries();
+          
+          if (response.success && response.data) {
+            setBackendConnected(true);
+            const backendEntries = response.data.map((entry: any) => ({
+              id: entry._id,
+              title: entry.title,
+              content: entry.content,
+              mood: entry.mood,
+              tags: entry.tags || [],
+              createdAt: new Date(entry.createdAt),
+              insights: entry.insights || []
+            }));
+            
+            // Merge with local entries (backend takes precedence)
+            const mergedEntries = [...backendEntries];
+            setEntries(mergedEntries);
+            
+            // Update localStorage with backend data
+            localStorage.setItem("journalEntries", JSON.stringify(mergedEntries));
+          } else {
+            setBackendConnected(false);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load journal entries:", error);
+        setBackendConnected(false);
+        // Continue with localStorage data if backend fails
+      }
+    };
+
+    loadJournalEntries();
+  }, [isAuthenticated]);
 
   const saveEntries = (newEntries: JournalEntry[]) => {
     setEntries(newEntries);
@@ -202,9 +243,24 @@ export default function JournalingPage() {
   return (
     <div className="container mx-auto px-4 py-20">
       <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-          AI Journal
-        </h1>
+        <div className="flex items-center justify-center gap-4 mb-4">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+            AI Journal
+          </h1>
+          {/* Backend Connection Status */}
+          {backendConnected !== null && (
+            <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm ${
+              backendConnected 
+                ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
+            }`}>
+              <div className={`w-2 h-2 rounded-full ${
+                backendConnected ? 'bg-green-500' : 'bg-yellow-500'
+              }`} />
+              {backendConnected ? 'Cloud Sync' : 'Local Only'}
+            </div>
+          )}
+        </div>
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
           Write freely, reflect deeply, and discover insights about your mental well-being
         </p>

@@ -5,7 +5,7 @@ import { backendService } from "@/lib/api/backend-service";
 
 interface User {
   id: string;
-  _id?: string; // Add MongoDB _id field
+  _id?: string;
   name: string;
   email: string;
   createdAt: string;
@@ -28,12 +28,13 @@ interface SessionContextType {
   isAuthenticated: boolean;
   userTier: "free" | "premium";
   isLoading: boolean;
-  loading: boolean; // Add loading alias
-  checkSession: () => Promise<void>; // Add checkSession method
+  loading: boolean;
+  checkSession: () => Promise<void>;
   login: (email: string, password: string) => Promise<boolean>;
   register: (userData: { name: string; email: string; password: string }) => Promise<boolean>;
   logout: () => void;
   refreshUser: () => Promise<void>;
+  refreshUserTier: () => Promise<void>;
 }
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
@@ -134,7 +135,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           setUserTier("free");
         }
         
-        // Add small delay to ensure state is updated\n        await new Promise(resolve => setTimeout(resolve, 100));\n        return true;
+        // Add small delay to ensure state is updated
+        await new Promise(resolve => setTimeout(resolve, 100));
+        return true;
       }
       
       return false;
@@ -151,9 +154,11 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       if (response.success && response.data) {
         setUser(response.data.user);
         setIsAuthenticated(true);
-        setUserTier("free"); // New users start with free tier
+        setUserTier("free");
         
-        // Add small delay to ensure state is updated\n        await new Promise(resolve => setTimeout(resolve, 100));\n        return true;
+        // Add small delay to ensure state is updated
+        await new Promise(resolve => setTimeout(resolve, 100));
+        return true;
       }
       
       return false;
@@ -170,6 +175,26 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     setUserTier("free");
   };
 
+  const refreshUserTier = async () => {
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      if (!token) return;
+
+      const tierResponse = await fetch('https://hope-backend-2.onrender.com/subscription/status', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (tierResponse.ok) {
+        const tierData = await tierResponse.json();
+        setUserTier(tierData.userTier || "free");
+      }
+    } catch (error) {
+      console.error("Error refreshing user tier:", error);
+    }
+  };
+
   const refreshUser = async () => {
     await checkAuthStatus();
   };
@@ -183,12 +208,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     isAuthenticated,
     userTier,
     isLoading,
-    loading: isLoading, // Add loading alias
-    checkSession: checkAuthStatus, // Add checkSession method
+    loading: isLoading,
+    checkSession: checkAuthStatus,
     login,
     register,
     logout,
     refreshUser,
+    refreshUserTier,
   };
 
   return (

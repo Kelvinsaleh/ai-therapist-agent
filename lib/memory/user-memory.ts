@@ -79,43 +79,90 @@ export interface UserInsight {
 class UserMemoryManager {
   private memory: UserMemory | null = null;
 
-  // Initialize or load user memory
+  // Load user memory (with backend sync)
   async loadUserMemory(userId: string): Promise<UserMemory> {
-    try {
-      // In a real app, this would fetch from your backend
-      const stored = localStorage.getItem(`userMemory_${userId}`);
-      if (stored) {
-        this.memory = JSON.parse(stored);
-        return this.memory!;
-      }
-      
-      // Create new memory if none exists
-      this.memory = {
-        userId,
-        profile: {
-          name: '',
-          preferences: {
-            communicationStyle: 'supportive',
-            topicsToAvoid: [],
-            preferredTechniques: []
-          },
-          goals: [],
-          challenges: []
-        },
-        journalEntries: [],
-        meditationHistory: [],
-        therapySessions: [],
-        moodPatterns: [],
-        insights: [],
-        lastUpdated: new Date()
-      };
-      
-      await this.saveUserMemory();
+    if (this.memory && this.memory.userId === userId) {
       return this.memory;
-    } catch (error) {
-      console.error('Error loading user memory:', error);
-      throw error;
     }
+
+    // Try to load from backend first
+    try {
+      if (typeof window !== 'undefined') {
+        const { backendService } = await import("@/lib/api/backend-service");
+        const journalResponse = await backendService.getJournalEntries();
+        
+        if (journalResponse.success && journalResponse.data) {
+          // Create memory from backend data
+          this.memory = {
+            userId,
+            profile: {
+              name: "User",
+              preferences: {
+                communicationStyle: 'supportive',
+                topicsToAvoid: [],
+                preferredTechniques: [],
+              },
+              goals: [],
+              challenges: [],
+            },
+            journalEntries: journalResponse.data.map((entry: any) => ({
+              id: entry._id,
+              date: new Date(entry.createdAt),
+              mood: entry.mood,
+              content: entry.content,
+              tags: entry.tags || [],
+              keyThemes: this.extractKeyThemes(entry.content),
+              emotionalState: this.analyzeEmotionalState(entry.content, entry.mood),
+              concerns: this.extractConcerns(entry.content),
+              achievements: this.extractAchievements(entry.content),
+              insights: entry.insights || []
+            })),
+            meditationHistory: [],
+            therapySessions: [],
+            moodPatterns: [],
+            insights: [],
+            lastUpdated: new Date(),
+          };
+          
+          await this.saveUserMemory();
+          return this.memory;
+        }
+      }
+    } catch (error) {
+      console.log("Backend sync failed, using local storage:", error);
+    }
+
+    // Fallback to localStorage
+    const stored = localStorage.getItem(`userMemory_${userId}`);
+    if (stored) {
+      this.memory = JSON.parse(stored);
+      this.memory!.lastUpdated = new Date(this.memory!.lastUpdated);
+      return this.memory!;
+    }
+
+    // Create new memory
+    this.memory = {
+      userId,
+      profile: {
+        name: "User",
+        preferences: {
+          communicationStyle: 'supportive',
+          topicsToAvoid: [],
+          preferredTechniques: [],
+        },
+        goals: [],
+        challenges: [],
+      },
+      journalEntries: [],
+      meditationHistory: [],
+      therapySessions: [],
+      moodPatterns: [],
+      insights: [],
+      lastUpdated: new Date(),
+    };
+
+    await this.saveUserMemory();
+    return this.memory;
   }
 
   // Save user memory
@@ -148,6 +195,24 @@ class UserMemoryManager {
     // Generate new insights
     await this.generateUserInsights();
     await this.saveUserMemory();
+
+    // Sync with backend if available
+    try {
+      if (typeof window !== 'undefined') {
+        const { backendService } = await import("@/lib/api/backend-service");
+        await backendService.createJournalEntry({
+          title: `Entry ${entry.date.toLocaleDateString()}`,
+          content: entry.content,
+          mood: entry.mood,
+          tags: entry.tags,
+          createdAt: entry.date,
+          insights: journalMemory.insights
+        });
+      }
+    } catch (error) {
+      console.log("Failed to sync journal entry with backend:", error);
+      // Continue anyway - local storage is sufficient
+    }
   }
 
   // Add meditation session to memory

@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
   try {
-    // Get the authorization header
     const authHeader = req.headers.get('authorization');
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -12,9 +11,8 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+    const token = authHeader.substring(7);
 
-    // Call the backend to verify the token
     const backendResponse = await fetch('https://hope-backend-2.onrender.com/auth/me', {
       method: 'GET',
       headers: {
@@ -32,13 +30,15 @@ export async function GET(req: NextRequest) {
 
     const userData = await backendResponse.json();
     
-    if (userData.success && userData.data) {
+    if (userData.success && userData.user) {
       return NextResponse.json({
         isAuthenticated: true,
         user: {
-          id: userData.data._id || userData.data.id,
-          name: userData.data.name,
-          email: userData.data.email,
+          id: userData.user._id || userData.user.id,
+          name: userData.user.name,
+          email: userData.user.email,
+          createdAt: userData.user.createdAt,
+          updatedAt: userData.user.updatedAt,
         },
       });
     }
