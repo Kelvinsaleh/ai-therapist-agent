@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Settings, Database, Wifi, Key, Globe } from "lucide-react";
-import BackendConnectionTest from "@/components/backend-connection-test";
 
 export default function ConfigPage() {
   const [backendUrl, setBackendUrl] = useState(
@@ -86,11 +85,16 @@ export default function ConfigPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Wifi className="w-5 h-5" />
-                Connection Test
+                Backend Status
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <BackendConnectionTest />
+              <div className="text-center py-4">
+                <Badge variant="secondary">Backend connection testing removed</Badge>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Backend connectivity is handled automatically
+                </p>
+              </div>
             </CardContent>
           </Card>
         </div>
