@@ -2,8 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
   try {
-    // Call the backend to get real meditation data
-    const response = await fetch('https://hope-backend-2.onrender.com/meditation/sessions', {
+    const { searchParams } = new URL(request.url);
+    const search = searchParams.get('search');
+    const isPremium = searchParams.get('isPremium');
+
+    // Call the backend to get meditation data from database
+    const backendUrl = 'https://hope-backend-2.onrender.com';
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+    if (isPremium) params.append('isPremium', isPremium);
+
+    const response = await fetch(`${backendUrl}/meditation?${params}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -12,34 +21,44 @@ export async function GET(request: NextRequest) {
 
     if (response.ok) {
       const data = await response.json();
+      const meditations = data.meditations || data.data || [];
+      
+      // Transform the data to match frontend expectations
+      const transformedMeditations = meditations.map((meditation: any) => ({
+        id: meditation._id || meditation.id,
+        title: meditation.title,
+        description: meditation.description,
+        duration: meditation.duration,
+        audioUrl: meditation.audioUrl,
+        category: meditation.category,
+        isPremium: meditation.isPremium || false,
+        tags: meditation.tags || [],
+        createdAt: meditation.createdAt
+      }));
+      
       return NextResponse.json({
         success: true,
-        meditations: data.data || [],
+        meditations: transformedMeditations,
       });
     } else {
-      // Fallback to static data if backend fails
-      const { MEDITATION_TRACKS } = await import('@/lib/meditations/static-meditations');
+      console.error('Backend meditation fetch failed:', response.status, response.statusText);
       return NextResponse.json({
-        success: true,
-        meditations: MEDITATION_TRACKS,
-      });
+        success: false,
+        error: 'Failed to fetch meditations from database',
+        meditations: []
+      }, { status: response.status });
     }
 
   } catch (error) {
     console.error('Error fetching meditations:', error);
     
-    // Fallback to static data
-    try {
-      const { MEDITATION_TRACKS } = await import('@/lib/meditations/static-meditations');
-      return NextResponse.json({
-        success: true,
-        meditations: MEDITATION_TRACKS,
-      });
-    } catch (fallbackError) {
-      return NextResponse.json(
-        { error: 'Failed to fetch meditations' },
-        { status: 500 }
-      );
-    }
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: 'Failed to connect to meditation database',
+        meditations: []
+      },
+      { status: 500 }
+    );
   }
 }
