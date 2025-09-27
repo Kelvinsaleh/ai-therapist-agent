@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { meditationStorage } from '@/lib/meditations/meditation-storage';
 
 export async function GET(request: NextRequest) {
   try {
@@ -6,13 +7,14 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
     const isPremium = searchParams.get('isPremium');
 
-    // Call the backend to get meditation data
+    // Call the backend to get meditation data from MongoDB
     const backendUrl = 'https://hope-backend-2.onrender.com';
     const params = new URLSearchParams();
     if (search) params.append('search', search);
     if (isPremium) params.append('isPremium', isPremium);
 
-    // Fix: Call /meditation instead of /meditation/sessions to get meditation library
+    console.log(`Fetching meditations from backend: ${backendUrl}/meditation?${params}`);
+
     const response = await fetch(`${backendUrl}/meditation?${params}`, {
       method: 'GET',
       headers: {
@@ -22,6 +24,8 @@ export async function GET(request: NextRequest) {
 
     if (response.ok) {
       const data = await response.json();
+      console.log('Backend response:', data);
+      
       const meditations = data.meditations || data.data || [];
       
       // Transform the data to match frontend expectations
@@ -37,16 +41,19 @@ export async function GET(request: NextRequest) {
         createdAt: meditation.createdAt
       }));
       
+      console.log(`Found ${transformedMeditations.length} meditations`);
+      
       return NextResponse.json({
         success: true,
         meditations: transformedMeditations,
       });
     } else {
-      // Return empty array if backend fails - no static fallback
-      console.error('Backend meditation fetch failed:', response.status, response.statusText);
+      const errorText = await response.text();
+      console.error('Backend meditation fetch failed:', response.status, errorText);
+      
       return NextResponse.json({
         success: false,
-        error: 'Failed to fetch meditations from database',
+        error: `Backend error: ${response.status} - ${errorText}`,
         meditations: []
       }, { status: response.status });
     }
@@ -54,7 +61,6 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching meditations:', error);
     
-    // Return error response - no static fallback
     return NextResponse.json(
       { 
         success: false, 

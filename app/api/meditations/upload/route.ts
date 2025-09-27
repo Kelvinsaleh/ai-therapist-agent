@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
+import { meditationStorage } from '@/lib/meditations/meditation-storage';
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
       contentType: file.type,
     });
 
-    // Step 2: Save metadata to backend database
+    // Step 2: Save metadata to MongoDB backend
     const backendUrl = 'https://hope-backend-2.onrender.com';
     const meditationData = {
       title,
@@ -49,6 +50,8 @@ export async function POST(request: NextRequest) {
       tags
     };
 
+    console.log('Saving meditation metadata to backend:', meditationData);
+
     const backendResponse = await fetch(`${backendUrl}/meditation`, {
       method: 'POST',
       headers: {
@@ -58,15 +61,20 @@ export async function POST(request: NextRequest) {
     });
 
     if (!backendResponse.ok) {
-      console.error('Backend save failed:', backendResponse.status, backendResponse.statusText);
-      // File is already uploaded to Vercel Blob, but metadata save failed
+      const errorText = await backendResponse.text();
+      console.error('Backend save failed:', backendResponse.status, errorText);
+      
+      // File is uploaded to Vercel Blob, but metadata save failed
       return NextResponse.json({
         success: false,
-        error: 'File uploaded but failed to save meditation metadata'
+        error: `Failed to save meditation metadata: ${errorText}`,
+        fileUploaded: true,
+        fileUrl: blob.url
       }, { status: 500 });
     }
 
     const savedMeditation = await backendResponse.json();
+    console.log('Meditation saved successfully:', savedMeditation);
 
     return NextResponse.json({
       success: true,

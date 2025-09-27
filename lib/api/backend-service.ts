@@ -358,31 +358,42 @@ class BackendService {
     isPremium: boolean;
     tags: string[];
   }): Promise<ApiResponse> {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('title', metadata.title);
-    formData.append('description', metadata.description);
-    formData.append('duration', metadata.duration.toString());
-    formData.append('category', metadata.category);
-    formData.append('isPremium', metadata.isPremium.toString());
-    formData.append('tags', JSON.stringify(metadata.tags));
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('title', metadata.title);
+      formData.append('description', metadata.description);
+      formData.append('duration', metadata.duration.toString());
+      formData.append('category', metadata.category);
+      formData.append('isPremium', metadata.isPremium.toString());
+      formData.append('tags', JSON.stringify(metadata.tags));
 
-    // Get auth token directly
-    let token = this.authToken;
-    if (typeof window !== 'undefined') {
-      token = token || localStorage.getItem('token') || localStorage.getItem('authToken') || null;
+      // Call our local API route directly
+      const response = await fetch('/api/meditations/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        return {
+          success: true,
+          data: result.data
+        };
+      } else {
+        return {
+          success: false,
+          error: result.error || 'Upload failed'
+        };
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      return {
+        success: false,
+        error: 'Failed to upload meditation'
+      };
     }
-
-    const headers: Record<string, string> = {};
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    return this.makeRequest('/meditations/upload', {
-      method: 'POST',
-      body: formData,
-      headers,
-    });
   }
 
   async deleteMeditation(meditationId: string): Promise<ApiResponse> {

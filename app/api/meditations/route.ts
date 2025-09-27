@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { meditationStorage } from '@/lib/meditations/meditation-storage';
 
 export async function GET(request: NextRequest) {
   try {
@@ -6,7 +7,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
     const isPremium = searchParams.get('isPremium');
 
-    // Call the backend to get meditation data from database
+    // Call the backend to get meditation data from MongoDB
     const backendUrl = 'https://hope-backend-2.onrender.com';
     const params = new URLSearchParams();
     if (search) params.append('search', search);
@@ -41,10 +42,12 @@ export async function GET(request: NextRequest) {
         meditations: transformedMeditations,
       });
     } else {
-      console.error('Backend meditation fetch failed:', response.status, response.statusText);
+      const errorText = await response.text();
+      console.error('Backend meditation fetch failed:', response.status, errorText);
+      
       return NextResponse.json({
         success: false,
-        error: 'Failed to fetch meditations from database',
+        error: `Backend error: ${response.status} - ${errorText}`,
         meditations: []
       }, { status: response.status });
     }
