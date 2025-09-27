@@ -34,9 +34,6 @@ export interface FeatureLimits {
   canAccessMoodTracking: boolean;
   maxMoodEntriesPerWeek: number;
   canAccessBreathingExercises: boolean;
-  canAccessZenGarden: boolean;
-  canAccessForestGame: boolean;
-  canAccessOceanWaves: boolean;
 }
 
 export const FREE_FEATURE_LIMITS: FeatureLimits = {
@@ -49,9 +46,6 @@ export const FREE_FEATURE_LIMITS: FeatureLimits = {
   canAccessMoodTracking: true,
   maxMoodEntriesPerWeek: 7, // One per day
   canAccessBreathingExercises: true,
-  canAccessZenGarden: false,
-  canAccessForestGame: false,
-  canAccessOceanWaves: false,
 };
 
 export const PREMIUM_FEATURE_LIMITS: FeatureLimits = {
@@ -64,9 +58,6 @@ export const PREMIUM_FEATURE_LIMITS: FeatureLimits = {
   canAccessMoodTracking: true,
   maxMoodEntriesPerWeek: 999, // Unlimited
   canAccessBreathingExercises: true,
-  canAccessZenGarden: true,
-  canAccessForestGame: true,
-  canAccessOceanWaves: true,
 };
 
 export const PREMIUM_TIER_LIMITS: SessionLimits = {

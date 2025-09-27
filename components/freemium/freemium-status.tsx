@@ -97,21 +97,7 @@ export function FreemiumStatus({ userTier, usage }: FreemiumStatusProps) {
       available: featureLimits.canAccessProgressAnalytics,
       icon: TrendingUp
     },
-    {
-      name: "Zen Garden",
-      available: featureLimits.canAccessZenGarden,
-      icon: Heart
-    },
-    {
-      name: "Forest Game",
-      available: featureLimits.canAccessForestGame,
-      icon: Heart
-    },
-    {
-      name: "Ocean Waves",
-      available: featureLimits.canAccessOceanWaves,
-      icon: Heart
-    }
+
   ];
 
   return (

@@ -8,6 +8,8 @@ import {
   AudioWaveform,
   LogOut,
   LogIn,
+  Menu,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "./theme-toggle";
@@ -32,7 +34,7 @@ export function Header() {
   ];
 
   return (
-    <div className="w-full fixed top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <div className="w-full fixed top-0 z-[100] bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="absolute inset-0 border-b border-primary/10" />
       <header className="relative max-w-6xl mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
@@ -67,6 +69,16 @@ export function Header() {
 
             <div className="flex items-center gap-3">
               <ThemeToggle />
+
+              {/* Mobile menu button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="md:hidden"
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+              >
+                {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </Button>
 
               {isAuthenticated ? (
                 <>
@@ -104,8 +116,16 @@ export function Header() {
 
         {/* Mobile menu */}
         {isMenuOpen && (
-          <div className="md:hidden border-t border-primary/10">
-            <nav className="flex flex-col space-y-1 py-4">
+          <>
+            {/* Overlay */}
+            <div 
+              className="fixed inset-0 top-16 bg-black/20 backdrop-blur-sm md:hidden z-[90]"
+              onClick={() => setIsMenuOpen(false)}
+            />
+            
+            {/* Menu content */}
+            <div className="md:hidden border-t border-primary/10 bg-background/98 backdrop-blur-sm relative z-[95]">
+              <nav className="flex flex-col space-y-1 py-4">
               {navItems.map((item) => (
                 <Link
                   key={item.href}
@@ -117,27 +137,46 @@ export function Header() {
                 </Link>
               ))}
               {isAuthenticated && (
-                <Button
-                  asChild
-                  className="mt-2 mx-4 gap-2 bg-primary/90 hover:bg-primary"
-                >
-                  <Link href="/therapy/memory-enhanced">
-                    <MessageCircle className="w-4 h-4" />
-                    <span>Start Chat</span>
-                  </Link>
-                </Button>
+                <>
+                  <Button
+                    asChild
+                    className="mt-2 mx-4 gap-2 bg-primary/90 hover:bg-primary"
+                  >
+                    <Link href="/therapy/memory-enhanced" onClick={() => setIsMenuOpen(false)}>
+                      <MessageCircle className="w-4 h-4" />
+                      <span>Start Chat</span>
+                    </Link>
+                  </Button>
+                  {user?.email === "knsalee@gmail.com" && (
+                    <Link
+                      href="/admin/meditations"
+                      className="px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-primary/5 rounded-md transition-colors"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Admin
+                    </Link>
+                  )}
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      logout();
+                      setIsMenuOpen(false);
+                    }}
+                    className="mt-2 mx-4 text-muted-foreground hover:text-foreground"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sign out
+                  </Button>
+                </>
               )}
-              {isAuthenticated && user?.email === "knsalee@gmail.com" && (
-                <Link
-                  href="/admin/meditations"
-                  className="px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-primary/5 rounded-md transition-colors"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Admin
-                </Link>
+              {!isAuthenticated && (
+                <div className="px-4 py-2">
+                  <SignInButton />
+                </div>
               )}
             </nav>
           </div>
+          </>
         )}
       </header>
     </div>

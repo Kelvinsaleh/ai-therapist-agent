@@ -81,6 +81,7 @@
   
   body {
     @apply bg-background text-foreground;
+    padding-top: 4rem; /* Add padding to prevent header from hiding content */
   }
 }
 
@@ -112,6 +113,17 @@
 
   .animate-pulse-gentle {
     animation: pulse-gentle 2s ease-in-out infinite;
+  }
+
+  /* Header and mobile menu styles */
+  .mobile-menu-overlay {
+    position: fixed;
+    top: 4rem;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 90;
   }
 
   /* Custom audio slider styles */

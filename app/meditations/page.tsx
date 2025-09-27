@@ -371,7 +371,7 @@ export default function MeditationsPage() {
 
         {/* Enhanced Audio Player */}
         {currentTrack && (
-          <Card className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 z-50">
+          <Card className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 z-40">
             <CardContent className="p-4">
               <div className="space-y-3">
                 {/* Track Info */}
