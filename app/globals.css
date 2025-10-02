@@ -232,3 +232,12 @@
     opacity: 0.7;
   }
 }
+
+@keyframes bounce {
+  0%, 80%, 100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
+}

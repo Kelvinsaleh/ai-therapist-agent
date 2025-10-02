@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useRef, useEffect, ReactNode, useCallback } from 'react';
 import { toast } from 'sonner';
 import { playlistAPI } from '@/lib/api/playlist';
+import { GlobalAudioPlayer } from "@/components/audio/global-audio-player";
 
 interface Meditation {
   _id: string;
@@ -362,6 +363,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       }}
     >
       {children}
+      <GlobalAudioPlayer />
     </AudioPlayerContext.Provider>
   );
 }

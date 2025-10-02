@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle, Loader2, Crown } from "lucide-react";
 import { toast } from "sonner";
 import { useSession } from "@/lib/contexts/session-context";
+import { LoadingDots } from "@/components/ui/loading-dots";
 
 export default function PaymentSuccessPage() {
   const router = useRouter();
