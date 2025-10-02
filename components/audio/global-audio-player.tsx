@@ -62,7 +62,7 @@ export function GlobalAudioPlayer() {
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
-          className="fixed bottom-0 left-0 right-0 z-50 p-4"
+          className="fixed bottom-16 left-0 right-0 z-50 p-4"
         >
           <Card className="max-w-4xl mx-auto bg-background/95 backdrop-blur-lg border-primary/20 shadow-2xl">
             <div className="p-4 space-y-3">
