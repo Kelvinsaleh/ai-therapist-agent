@@ -5,6 +5,8 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { SessionProvider } from "@/lib/contexts/session-context";
 import { AudioPlayerProvider } from "@/lib/contexts/audio-player-context";
+import { Header } from "@/components/header";
+import { Footer } from "@/components/footer";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -24,7 +26,11 @@ export default function RootLayout({
         <ThemeProvider>
           <SessionProvider>
             <AudioPlayerProvider>
-              {children}
+              <Header />
+              <main className="pt-16 pb-16">
+                {children}
+              </main>
+              <Footer />
               <Toaster />
             </AudioPlayerProvider>
           </SessionProvider>
