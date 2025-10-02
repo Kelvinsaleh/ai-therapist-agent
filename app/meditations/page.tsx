@@ -64,27 +64,47 @@ export default function MeditationsPage() {
   const loadMeditations = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/meditations/search', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          query: searchQuery,
-          filterPremium: filterPremium
-        })
-      });
 
-      if (response.ok) {
-        const data = await response.json();
-        setMeditations(data.meditations || []);
-      } else {
-        console.error('Failed to load meditations');
+      const params = new URLSearchParams();
+      if (searchQuery) params.append("search", searchQuery);
+      if (filterPremium !== null) params.append("isPremium", String(filterPremium));
+      params.append("limit", "50");
+
+      // Use the GET route (works on server), not POST
+      const res = await fetch(`/api/meditations?${params.toString()}`, { cache: "no-store" });
+
+      if (!res.ok) {
+        console.error("Meditations fetch failed:", res.status);
         setMeditations([]);
+        return;
       }
-    } catch (error) {
-      console.error('Error loading meditations:', error);
+
+      const data = await res.json();
+
+      // Accept various shapes just in case
+      const list = Array.isArray(data.meditations)
+        ? data.meditations
+        : Array.isArray(data.results)
+        ? data.results
+        : Array.isArray(data.items)
+        ? data.items
+        : [];
+
+      const normalized = list.map((m: any) => ({
+        id: m.id || m._id || "",
+        title: m.title || m.name || "",
+        description: m.description || "",
+        duration: m.duration || 0,
+        audioUrl: m.audioUrl || m.audioURL || m.audio || "",
+        category: m.category || m.type || "",
+        isPremium: Boolean(m.isPremium),
+        tags: Array.isArray(m.tags) ? m.tags : [],
+        createdAt: m.createdAt || "",
+      }));
+
+      setMeditations(normalized);
+    } catch (e) {
+      console.error("Error loading meditations:", e);
       setMeditations([]);
     } finally {
       setIsLoading(false);
