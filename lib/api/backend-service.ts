@@ -72,7 +72,7 @@ class BackendService {
     return headers;
   }
 
-  private async makeRequest<T>(
+  public async makeRequest<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {

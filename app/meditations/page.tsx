@@ -13,11 +13,14 @@ import {
   Clock,
   Crown,
   Search,
-  Loader2
+  Loader2,
+  ListPlus,
+  PlayCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSession } from "@/lib/hooks/use-session";
 import { toast } from "sonner";
+import { useAudioPlayer } from "@/lib/contexts/audio-player-context";
 
 interface Meditation {
   id: string;
@@ -204,6 +207,8 @@ export default function MeditationsPage() {
     loadMeditations();
   };
 
+  const { play, pause, currentTrack: globalCurrentTrack, isPlaying: globalIsPlaying, addToPlaylist, playPlaylist } = useAudioPlayer();
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
       {/* Hidden audio element */}
@@ -345,6 +350,23 @@ export default function MeditationsPage() {
                             Play
                           </>
                         )}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          addToPlaylist({
+                            _id: meditation.id,
+                            title: meditation.title,
+                            audioUrl: meditation.audioUrl,
+                            category: meditation.category
+                          });
+                        }}
+                        className="gap-2"
+                      >
+                        <ListPlus className="w-4 h-4" />
+                        Add
                       </Button>
                     </CardContent>
                   </Card>
