@@ -368,9 +368,15 @@ class BackendService {
       formData.append('isPremium', metadata.isPremium.toString());
       formData.append('tags', JSON.stringify(metadata.tags));
 
-      // Call our local API route directly
+      // Call our local API route directly with auth token
+      const token = this.authToken || 
+        (typeof window !== 'undefined' ? localStorage.getItem('token') || localStorage.getItem('authToken') : null);
+
       const response = await fetch('/api/meditations/upload', {
         method: 'POST',
+        headers: {
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        },
         body: formData,
       });
 

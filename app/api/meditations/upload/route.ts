@@ -39,6 +39,10 @@ export async function POST(request: NextRequest) {
 
     // Step 2: Save metadata to MongoDB backend
     const backendUrl = 'https://hope-backend-2.onrender.com';
+
+    // Get auth token from Next.js request
+    const authHeader = request.headers.get('authorization');
+
     const meditationData = {
       title,
       description,
@@ -55,18 +59,20 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...(authHeader && { 'Authorization': authHeader })
       },
       body: JSON.stringify(meditationData)
     });
 
     if (!backendResponse.ok) {
-      const errorText = await backendResponse.text();
-      console.error('Backend save failed:', backendResponse.status, errorText);
+      const errorData = await backendResponse.json().catch(() => ({}));
+      console.error('Backend save failed:', backendResponse.status, errorData);
       
       // File is uploaded to Vercel Blob, but metadata save failed
       return NextResponse.json({
         success: false,
-        error: `Failed to save meditation metadata: ${errorText}`,
+        error: `Failed to save meditation metadata: ${errorData.error || backendResponse.statusText}`,
+        details: errorData.details,
         fileUploaded: true,
         fileUrl: blob.url
       }, { status: 500 });
@@ -77,15 +83,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: {
-        meditation: savedMeditation,
-        fileInfo: {
-          url: blob.url,
-          filename: filename,
-          size: file.size,
-          contentType: file.type,
-        }
-      }
+      data: savedMeditation.meditation || savedMeditation
     });
 
   } catch (error) {
