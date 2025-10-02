@@ -273,28 +273,13 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
   };
 
   const removeFromPlaylist = (meditationId: string) => {
-    setPlaylist(prev => {
-      const newPlaylist = prev.filter(m => m._id !== meditationId);
-      // If we removed the current track, stop playback
-      if (currentTrack?._id === meditationId) {
-        stop();
-      }
-      // Update current index if needed
-      const newIndex = newPlaylist.findIndex(m => m._id === currentTrack?._id);
-      if (newIndex !== -1) {
-        setCurrentIndex(newIndex);
-      } else if (currentIndex >= newPlaylist.length) {
-        setCurrentIndex(Math.max(0, newPlaylist.length - 1));
-      }
-      return newPlaylist;
-    });
+    setPlaylist(prev => prev.filter(m => m._id !== meditationId));
     toast.success('Removed from playlist');
   };
 
   const clearPlaylist = () => {
     setPlaylist([]);
     setCurrentIndex(-1);
-    stop(); // Stop current playback
     if (typeof window !== 'undefined') {
       localStorage.removeItem('audioPlaylist');
     }
@@ -312,7 +297,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       toast.info('End of playlist');
       stop();
     }
-  }, [playlist, currentIndex, play, stop]);
+  }, [playlist, currentIndex, play]);
 
   const playPrevious = useCallback(() => {
     if (playlist.length === 0) return;
@@ -341,7 +326,6 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
   const shufflePlaylist = () => {
     setPlaylist(prev => {
       const shuffled = [...prev].sort(() => Math.random() - 0.5);
-      setCurrentIndex(0); // Reset to first track
       toast.success('Playlist shuffled');
       return shuffled;
     });
