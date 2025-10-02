@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { useAudioPlayer } from "@/lib/contexts/audio-player-context";
 import { LoadingDots } from "@/components/ui/loading-dots";
 import { PageLoading } from "@/components/ui/page-loading";
+import { MeditationsFloatingPlayer } from "@/components/audio/meditations-floating-player";
 
 interface Meditation {
   id: string;
@@ -52,7 +53,23 @@ export default function MeditationsPage() {
     isPlaying, 
     addToPlaylist, 
     playPlaylist,
-    togglePlayPause 
+    togglePlayPause,
+    playNext,
+    playPrevious,
+    stop,
+    seek,
+    setVolume,
+    volume,
+    duration,
+    currentTime,
+    playlist,
+    currentIndex,
+    shufflePlaylist,
+    savedPlaylists,
+    currentPlaylistId,
+    loadSavedPlaylists,
+    savePlaylistToMongoDB,
+    loadPlaylistFromMongoDB
   } = useAudioPlayer();
 
   const formatTime = (seconds: number) => {
@@ -196,6 +213,35 @@ export default function MeditationsPage() {
     loadMeditations();
   };
 
+  const handlePlayAll = () => {
+    if (filteredMeditations.length === 0) {
+      toast.error('No meditations to play');
+      return;
+    }
+
+    // Filter out premium meditations if user is on free tier
+    const playableMeditations = filteredMeditations.filter(meditation => 
+      !meditation.isPremium || userTier === "premium"
+    );
+
+    if (playableMeditations.length === 0) {
+      toast.error('No playable meditations found');
+      return;
+    }
+
+    // Convert to the format expected by the audio player
+    const meditationsForPlayer = playableMeditations.map(meditation => ({
+      _id: meditation.id,
+      title: meditation.title,
+      audioUrl: meditation.audioUrl,
+      category: meditation.category
+    }));
+
+    // Play the playlist starting from the first track
+    playPlaylist(meditationsForPlayer, 0);
+    toast.success(`Playing ${meditationsForPlayer.length} meditations`);
+  };
+
   const filteredMeditations = meditations.filter(meditation => {
     const matchesSearch = meditation.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          meditation.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -264,6 +310,20 @@ export default function MeditationsPage() {
                 Search
               </Button>
             </form>
+            
+            {/* Play All Button */}
+            {!isLoading && filteredMeditations.length > 0 && (
+              <div className="mt-4 flex justify-center">
+                <Button
+                  onClick={handlePlayAll}
+                  variant="outline"
+                  className="gap-2"
+                >
+                  <PlayCircle className="w-4 h-4" />
+                  Play All ({filteredMeditations.filter(m => !m.isPremium || userTier === "premium").length})
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -383,6 +443,9 @@ export default function MeditationsPage() {
           </div>
         )}
       </div>
+      
+      {/* Floating Audio Player - Only visible on meditations page */}
+      <MeditationsFloatingPlayer />
     </div>
   );
 }

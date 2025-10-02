@@ -1,14 +1,6 @@
 "use client";
 
-import { 
-  createContext, 
-  useContext, 
-  useState, 
-  useRef, 
-  useEffect, 
-  ReactNode, 
-  useCallback 
-} from 'react';
+import { createContext, useContext, useState, useRef, useEffect, ReactNode, useCallback } from 'react';
 import { toast } from 'sonner';
 import { playlistAPI } from '@/lib/api/playlist';
 import { GlobalAudioPlayer } from "@/components/audio/global-audio-player";
@@ -151,7 +143,42 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     }
   }, [playlist]);
 
-  // Define play function first
+  useEffect(() => {
+    audioRef.current = new Audio();
+    audioRef.current.volume = volume;
+
+    const audio = audioRef.current;
+
+    const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
+    const handleDurationChange = () => setDuration(audio.duration);
+    const handleEnded = () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+      // Auto-play next track in playlist
+      if (playlist.length > 0 && currentIndex < playlist.length - 1) {
+        playNext();
+      }
+    };
+    const handleError = (e: Event) => {
+      console.error('Audio error:', e);
+      setIsPlaying(false);
+      toast.error('Failed to load audio file');
+    };
+
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('durationchange', handleDurationChange);
+    audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('error', handleError);
+
+    return () => {
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('durationchange', handleDurationChange);
+      audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('error', handleError);
+      audio.pause();
+    };
+  }, [playlist, currentIndex, playNext]);
+
   const play = useCallback((meditation: Meditation) => {
     if (!audioRef.current) return;
 
@@ -233,32 +260,6 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Define playNext and playPrevious functions
-  const playNext = useCallback(() => {
-    if (playlist.length === 0) return;
-    
-    const nextIndex = currentIndex + 1;
-    if (nextIndex < playlist.length) {
-      setCurrentIndex(nextIndex);
-      play(playlist[nextIndex]);
-    } else {
-      toast.info('End of playlist');
-      stop();
-    }
-  }, [playlist, currentIndex, play, stop]);
-
-  const playPrevious = useCallback(() => {
-    if (playlist.length === 0) return;
-    
-    const prevIndex = currentIndex - 1;
-    if (prevIndex >= 0) {
-      setCurrentIndex(prevIndex);
-      play(playlist[prevIndex]);
-    } else {
-      toast.info('Start of playlist');
-    }
-  }, [playlist, currentIndex, play]);
-
   // Playlist functions
   const addToPlaylist = (meditation: Meditation) => {
     setPlaylist(prev => {
@@ -300,6 +301,31 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     toast.success('Playlist cleared');
   };
 
+  const playNext = useCallback(() => {
+    if (playlist.length === 0) return;
+    
+    const nextIndex = currentIndex + 1;
+    if (nextIndex < playlist.length) {
+      setCurrentIndex(nextIndex);
+      play(playlist[nextIndex]);
+    } else {
+      toast.info('End of playlist');
+      stop();
+    }
+  }, [playlist, currentIndex, play, stop]);
+
+  const playPrevious = useCallback(() => {
+    if (playlist.length === 0) return;
+    
+    const prevIndex = currentIndex - 1;
+    if (prevIndex >= 0) {
+      setCurrentIndex(prevIndex);
+      play(playlist[prevIndex]);
+    } else {
+      toast.info('Start of playlist');
+    }
+  }, [playlist, currentIndex, play]);
+
   const playPlaylist = (meditations: Meditation[], startIndex: number = 0) => {
     if (meditations.length === 0) {
       toast.error('Playlist is empty');
@@ -320,44 +346,6 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       return shuffled;
     });
   };
-
-  // Set up audio element and event listeners
-  useEffect(() => {
-    audioRef.current = new Audio();
-    audioRef.current.volume = volume;
-
-    const audio = audioRef.current;
-
-    const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
-    const handleDurationChange = () => setDuration(audio.duration);
-    const handleEnded = () => {
-      setIsPlaying(false);
-      setCurrentTime(0);
-      // Auto-play next track in playlist
-      if (playlist.length > 0 && currentIndex < playlist.length - 1) {
-        playNext();
-      }
-    };
-    const handleError = (e: Event) => {
-      console.error('Audio error:', e);
-      setIsPlaying(false);
-      toast.error('Failed to load audio file');
-    };
-
-    audio.addEventListener('timeupdate', handleTimeUpdate);
-    audio.addEventListener('durationchange', handleDurationChange);
-    audio.addEventListener('ended', handleEnded);
-    audio.addEventListener('error', handleError);
-
-    return () => {
-      audio.removeEventListener('timeupdate', handleTimeUpdate);
-      audio.removeEventListener('durationchange', handleDurationChange);
-      audio.removeEventListener('ended', handleEnded);
-      audio.removeEventListener('error', handleError);
-      if (!audioRef.current) return;
-      audioRef.current.pause();
-    };
-  }, [playlist, currentIndex, playNext]);
 
   return (
     <AudioPlayerContext.Provider

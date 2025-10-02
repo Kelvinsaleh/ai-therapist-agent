@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
+    const search = searchParams.get('search');
     const category = searchParams.get('category');
     const isPremium = searchParams.get('isPremium');
     const limit = searchParams.get('limit') || '50';
@@ -12,6 +13,7 @@ export async function GET(request: NextRequest) {
     // Fetch from backend - FIXED: using /meditation (singular)
     const backendUrl = 'https://hope-backend-2.onrender.com';
     const params = new URLSearchParams();
+    if (search) params.append('search', search);
     if (category) params.append('category', category);
     if (isPremium !== null) params.append('isPremium', isPremium);
     params.append('limit', limit);
