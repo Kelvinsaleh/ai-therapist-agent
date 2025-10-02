@@ -1,39 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0; // Disable caching
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
+    const search = searchParams.get('search') || searchParams.get('q');
     const category = searchParams.get('category');
     const isPremium = searchParams.get('isPremium');
     const limit = searchParams.get('limit') || '50';
     
-    // Fetch from backend
+    // Fetch from backend - FIXED: using /meditation (singular)
     const backendUrl = 'https://hope-backend-2.onrender.com';
     const params = new URLSearchParams();
+    if (search) params.append('search', search);
     if (category) params.append('category', category);
     if (isPremium !== null) params.append('isPremium', isPremium);
     params.append('limit', limit);
 
-    const response = await fetch(`${backendUrl}/meditation?${params.toString()}`);
+    const backendResponse = await fetch(`${backendUrl}/meditation?${params.toString()}`, {
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache'
+      }
+    });
     
-    if (!response.ok) {
-      throw new Error(`Backend returned ${response.status}`);
+    if (!backendResponse.ok) {
+      throw new Error(`Backend returned ${backendResponse.status}`);
     }
 
-    const data = await response.json();
+    const data = await backendResponse.json();
     
     return NextResponse.json({
       success: true,
-      meditations: data.meditations || []
+      meditations: data.meditations || [],
+      pagination: data.pagination
     });
 
   } catch (error) {
-    console.error('Meditations error:', error);
+    console.error('Search error:', error);
     return NextResponse.json({ 
       success: false,
-      error: 'Failed to load meditations',
+      error: 'Failed to search meditations',
       meditations: []
     }, { status: 500 });
   }

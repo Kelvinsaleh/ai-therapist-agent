@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/contexts/session-context";
 import { backendService } from "@/lib/api/backend-service";
@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { useAudioPlayer } from "@/lib/contexts/audio-player-context";
 
 interface Meditation {
   _id: string;
@@ -282,6 +283,42 @@ export default function AdminMeditationsPage() {
     
     return matchesSearch && matchesCategory;
   });
+
+  // Use global audio player instead
+  const { play, pause, currentTrack: globalCurrentTrack, isPlaying: globalIsPlaying } = useAudioPlayer();
+
+  const handlePlay = async (meditationId: string) => {
+    const meditation = meditations.find(m => m._id === meditationId);
+    
+    if (!meditation) {
+      toast.error('Meditation not found');
+      return;
+    }
+
+    // Check if meditation is premium-only
+    if (meditation.isPremium) {
+      toast.error("This meditation is a premium feature. Upgrade to access advanced meditations.");
+      return;
+    }
+
+    // Check if audio URL is valid
+    if (!meditation.audioUrl) {
+      toast.error('Audio file not available');
+      return;
+    }
+
+    // Use global player
+    if (globalCurrentTrack?._id === meditationId && globalIsPlaying) {
+      pause();
+    } else {
+      play({
+        _id: meditation._id,
+        title: meditation.title,
+        audioUrl: meditation.audioUrl,
+        category: meditation.category
+      });
+    }
+  };
 
   // Redirect non-admin users
   if (!isAuthenticated || user?.email !== 'knsalee@gmail.com') {

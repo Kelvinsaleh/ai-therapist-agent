@@ -1,16 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    // TODO: Implement your meditation fetching logic here
-    const meditations = [];
+    const { searchParams } = new URL(request.url);
+    const category = searchParams.get('category');
+    const isPremium = searchParams.get('isPremium');
+    const limit = searchParams.get('limit') || '50';
     
-    return NextResponse.json({ meditations });
+    // Fetch from backend - FIXED: using /meditation (singular)
+    const backendUrl = 'https://hope-backend-2.onrender.com';
+    const params = new URLSearchParams();
+    if (category) params.append('category', category);
+    if (isPremium !== null) params.append('isPremium', isPremium);
+    params.append('limit', limit);
+
+    const backendResponse = await fetch(`${backendUrl}/meditation?${params.toString()}`);
+    
+    if (!backendResponse.ok) {
+      throw new Error(`Backend returned ${backendResponse.status}`);
+    }
+
+    const data = await backendResponse.json();
+    
+    return NextResponse.json({
+      success: true,
+      meditations: data.meditations || [],
+      pagination: data.pagination
+    });
+
   } catch (error) {
     console.error('Meditations error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ 
+      success: false,
+      error: 'Failed to load meditations',
+      meditations: []
+    }, { status: 500 });
   }
 }
