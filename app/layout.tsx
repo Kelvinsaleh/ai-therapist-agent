@@ -27,7 +27,7 @@ export default function RootLayout({
           <SessionProvider>
             <AudioPlayerProvider>
               <Header />
-              <main className="pt-16 pb-16">
+              <main className="pt-16 pb-28">
                 {children}
               </main>
               <Footer />
