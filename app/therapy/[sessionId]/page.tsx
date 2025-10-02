@@ -37,10 +37,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { BreathingGame } from "@/components/games/breathing-game";
-import { ZenGarden } from "@/components/games/zen-garden";
-import { ForestGame } from "@/components/games/forest-game";
-import { OceanWaves } from "@/components/games/ocean-waves";
 import { Badge } from "@/components/ui/badge";
 import {
   createChatSession,
@@ -56,7 +52,7 @@ import { Separator } from "@/components/ui/separator";
 import { VoiceControls } from "@/components/therapy/voice-controls";
 import { useSession } from "@/lib/contexts/session-context";
 import { toast } from "sonner";
-import { getSubscriptionStatus } from "@/lib/api/backend-service";
+import { backendService } from "@/lib/api/backend-service";
 
 type SpeechRecognitionEventLike = {
   results: {
@@ -228,9 +224,9 @@ export default function TherapyPage() {
     const loadSubscription = async () => {
       try {
         if (!user?._id) return;
-        const res = await getSubscriptionStatus(user._id as unknown as string);
-        if ((res as any)?.success) {
-          const data = (res as any).data;
+        const res = await backendService.getSubscriptionStatus(user._id as unknown as string);
+        if (res?.success) {
+          const data = res.data;
           // Expecting shape like { plan: 'premium' | 'free' }
           setIsPremium(Boolean(data?.isActive || data?.plan === 'premium'));
         }
@@ -1025,3 +1021,4 @@ export default function TherapyPage() {
     </div>
   );
 }
+

@@ -31,7 +31,10 @@ export default function PaymentSuccessPage() {
       try {
         const token = localStorage.getItem('token') || localStorage.getItem('authToken');
         
-        const response = await fetch('https://hope-backend-2.onrender.com/payments/verify', {
+        // Show progress feedback
+        setMessage('Verifying your payment with Paystack...');
+        
+        const response = await fetch('/api/payments/verify', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -43,26 +46,53 @@ export default function PaymentSuccessPage() {
         const data = await response.json();
 
         if (data.success) {
-          setStatus('success');
-          setMessage('Payment verified successfully! Your premium subscription is now active.');
-          toast.success('Welcome to Premium!');
+          setMessage('Payment verified! Activating premium features...');
           
-          // Refresh user tier to reflect premium status
-          await refreshUserTier();
-          
-          // Redirect to rescue pairs after 3 seconds to show premium features
-          setTimeout(() => {
-            router.push('/rescue-pairs');
-          }, 3000);
+          // Small delay for better UX
+          setTimeout(async () => {
+            setStatus('success');
+            setMessage('Payment verified successfully! Your premium subscription is now active.');
+            
+            // Enhanced success feedback
+            toast.success('🎉 Welcome to Premium!', { duration: 4000 });
+            
+            // Refresh user tier to reflect premium status
+            await refreshUserTier();
+            
+            // Show feature activation feedback
+            setTimeout(() => {
+              toast.success('✨ Premium features activated: Unlimited matches, Video calls, Advanced filters!', {
+                duration: 6000
+              });
+            }, 1000);
+            
+            // Show what they can do now
+            setTimeout(() => {
+              toast.success('🚀 Ready to explore? Visit the matching page to find unlimited support matches!', {
+                duration: 5000
+              });
+            }, 2500);
+            
+            // Redirect to matching page after 4 seconds to show premium features
+            setTimeout(() => {
+              router.push('/matching');
+            }, 4000);
+          }, 1000);
         } else {
           setStatus('error');
           setMessage(data.error || 'Payment verification failed');
           toast.error('Payment verification failed');
+          
+          if (data.supportInfo) {
+            setTimeout(() => {
+              alert(`Payment Issue\n\nIf your payment was processed, please contact:\n${data.supportInfo.email}\n\n${data.supportInfo.message}`);
+            }, 2000);
+          }
         }
       } catch (error) {
         console.error('Payment verification error:', error);
         setStatus('error');
-        setMessage('Failed to verify payment. Please contact support.');
+        setMessage('Failed to verify payment. Please contact support if your payment was processed.');
         toast.error('Payment verification failed');
       }
     };

@@ -101,13 +101,26 @@ export function UserMatching({ userTier, currentMatches, maxMatches }: UserMatch
 
     setIsLoading(true);
     try {
-      // Simulate API call to find matches
-      const { backendService } = await import("@/lib/api/backend-service");
-      const response = await backendService.findMatches(preferences);
+      // Call the new AI matching API
+      const response = await fetch('/api/matching/find', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          preferences,
+          userId: user?._id
+        })
+      });
+
+      const result = await response.json();
       
-      if (response.success) {
-        setPotentialMatches(response.data || []);
-        toast.success(`Found ${response.data?.length || 0} potential matches!`);
+      if (result.success) {
+        setPotentialMatches(result.data || []);
+        toast.success(`Found ${result.data?.length || 0} compatible matches with AI scoring!`);
+      } else {
+        throw new Error(result.error || 'Failed to find matches');
       }
     } catch (error) {
       console.error("Failed to find matches:", error);
@@ -119,13 +132,30 @@ export function UserMatching({ userTier, currentMatches, maxMatches }: UserMatch
 
   const acceptMatch = async (matchId: string) => {
     try {
-      const { backendService } = await import("@/lib/api/backend-service");
-      const response = await backendService.acceptMatch(matchId);
+      const response = await fetch('/api/matching/accept', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          matchId,
+          userId: user?._id
+        })
+      });
+
+      const result = await response.json();
       
-      if (response.success) {
-        toast.success("Match accepted! You can now start chatting.");
+      if (result.success) {
+        toast.success("Match accepted! You can now start chatting with AI-powered safety features.");
         setPotentialMatches(prev => prev.filter(m => m.id !== matchId));
-        // Refresh matches count
+        
+        // Navigate to chat if chatId is provided
+        if (result.data?.chatId) {
+          window.location.href = `/matching/chat/${matchId}`;
+        }
+      } else {
+        throw new Error(result.error || 'Failed to accept match');
       }
     } catch (error) {
       console.error("Failed to accept match:", error);

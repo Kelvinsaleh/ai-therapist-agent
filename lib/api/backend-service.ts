@@ -415,6 +415,71 @@ class BackendService {
       body: JSON.stringify(meditationData),
     });
   }
+
+  // Subscription methods
+  async getSubscriptionStatus(userId: string): Promise<ApiResponse> {
+    return this.makeRequest(`/subscription/status?userId=${userId}`);
+  }
+
+  // Rescue Pair / Matching methods - Additional methods for pricing features
+  async getActiveMatches(): Promise<ApiResponse> {
+    return this.makeRequest('/rescue-pairs/active');
+  }
+
+  async getChatSessions(): Promise<ApiResponse> {
+    return this.makeRequest('/chat/sessions');
+  }
+
+  async getMatchedChatHistory(matchId: string): Promise<ApiResponse> {
+    return this.makeRequest(`/rescue-pairs/${matchId}/messages`);
+  }
+
+  async sendMatchedChatMessage(matchId: string, message: string): Promise<ApiResponse> {
+    return this.makeRequest(`/rescue-pairs/${matchId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ message }),
+    });
+  }
+
+  // Video call methods for premium users
+  async initiateVideoCall(matchId: string): Promise<ApiResponse> {
+    return this.makeRequest(`/rescue-pairs/${matchId}/video-call`, {
+      method: 'POST',
+    });
+  }
+
+  async joinVideoCall(callId: string): Promise<ApiResponse> {
+    return this.makeRequest(`/video-calls/${callId}/join`, {
+      method: 'POST',
+    });
+  }
+
+  // Safety and moderation methods
+  async reportUser(userId: string, reason: string, details?: string): Promise<ApiResponse> {
+    return this.makeRequest('/safety/report', {
+      method: 'POST',
+      body: JSON.stringify({ userId, reason, details }),
+    });
+  }
+
+  async blockUser(userId: string): Promise<ApiResponse> {
+    return this.makeRequest('/safety/block', {
+      method: 'POST',
+      body: JSON.stringify({ userId }),
+    });
+  }
+
+  async getBlockedUsers(): Promise<ApiResponse> {
+    return this.makeRequest('/safety/blocked');
+  }
+
+  // Crisis support escalation
+  async escalateToCrisisSupport(details: string): Promise<ApiResponse> {
+    return this.makeRequest('/crisis/escalate', {
+      method: 'POST',
+      body: JSON.stringify({ details, timestamp: new Date().toISOString() }),
+    });
+  }
 }
 
 export const backendService = new BackendService();

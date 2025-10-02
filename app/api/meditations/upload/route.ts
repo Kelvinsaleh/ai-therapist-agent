@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
-import { meditationStorage } from '@/lib/meditations/meditation-storage';
 
 export async function POST(request: NextRequest) {
   try {

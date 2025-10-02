@@ -5,29 +5,32 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Star, Zap, Heart, Shield, Users, Crown } from "lucide-react";
+import { Check, Star, Zap, Heart, Shield, Users, Crown, Video, MessageSquare, Clock, AlertTriangle, Lock } from "lucide-react";
 import { paystackService, PaymentPlan } from "@/lib/payments/paystack-service";
 import { useSession } from "@/lib/contexts/session-context";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { feedback } from "@/lib/utils/feedback";
 
 export default function PricingPage() {
   const [isLoading, setIsLoading] = useState<string | null>(null);
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annually'>('monthly');
+  const [showSuccess, setShowSuccess] = useState(false);
   const { user, isAuthenticated } = useSession();
   const router = useRouter();
 
-  const plans = paystackService.getPlans();
-  const filteredPlans = plans.filter(plan => plan.interval === billingCycle);
-
   const handleSubscribe = async (planId: string) => {
     if (!isAuthenticated) {
+      await feedback.error();
       toast.error("Please sign in to subscribe");
       router.push("/login");
       return;
     }
 
     setIsLoading(planId);
+    await feedback.buttonClick();
+    
+    // Enhanced loading feedback
+    toast.loading("🔄 Initializing secure payment...");
     
     try {
       const result = await paystackService.initializePayment(
@@ -41,29 +44,55 @@ export default function PricingPage() {
       );
 
       if (result.success && result.authorization_url) {
-        // Redirect to Paystack payment page
-        window.location.href = result.authorization_url;
+        // Success feedback before redirect
+        await feedback.success();
+        toast.success("✅ Payment initialized! Redirecting to secure payment...", { 
+          duration: 2000 
+        });
+        
+        // Small delay for better UX
+        setTimeout(() => {
+          if (result.authorization_url) {
+            window.location.href = result.authorization_url;
+          } else {
+            toast.error("Payment URL not found. Please try again.");
+          }
+        }, 800);
       } else {
+        await feedback.error();
         toast.error(result.error || "Failed to initialize payment");
       }
     } catch (error) {
       console.error("Subscription error:", error);
+      await feedback.error();
       toast.error("Something went wrong. Please try again.");
     } finally {
-      setIsLoading(null);
+      setTimeout(() => {
+        setIsLoading(null);
+      }, 800);
     }
   };
 
-  const getPlanIcon = (planId: string) => {
-    switch (planId) {
-      case 'monthly':
-        return <Zap className="w-6 h-6" />;
-      case 'annually':
-        return <Crown className="w-6 h-6" />;
-      default:
-        return <Heart className="w-6 h-6" />;
-    }
+  const handleSignIn = async () => {
+    await feedback.buttonClick();
+    router.push("/login");
   };
+
+  const freePlanFeatures = [
+    "1 active match",
+    "Basic text chat",
+    "Weekly check-ins",
+    "Community support groups"
+  ];
+
+  const premiumPlanFeatures = [
+    "Unlimited matches",
+    "Video calls",
+    "Advanced matching filters",
+    "Priority matching",
+    "Daily check-ins",
+    "Crisis support priority"
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 py-24">
@@ -76,201 +105,252 @@ export default function PricingPage() {
           className="text-center mb-16"
         >
           <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-            Choose Your Plan
+            Find Your Support Match
           </h1>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-            Get unlimited access to AI therapy, personalized insights, and premium mental health features
+            Connect with others who understand your journey and can provide mutual support on your mental health path
           </p>
 
-          {/* Billing Toggle */}
-          <div className="flex items-center justify-center gap-4 mb-8">
-            <span className={`text-sm font-medium ${billingCycle === 'monthly' ? 'text-foreground' : 'text-muted-foreground'}`}>
-              Monthly
-            </span>
-            <button
-              onClick={() => setBillingCycle(billingCycle === 'monthly' ? 'annually' : 'monthly')}
-              className="relative inline-flex h-6 w-11 items-center rounded-full bg-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  billingCycle === 'annually' ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
-            <span className={`text-sm font-medium ${billingCycle === 'annually' ? 'text-foreground' : 'text-muted-foreground'}`}>
-              Annually
-            </span>
-            {billingCycle === 'annually' && (
-              <Badge variant="secondary" className="ml-2">
-                Save $6.89
-              </Badge>
-            )}
+          {/* Key Features */}
+          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-12">
+            <div className="text-center">
+              <div className="p-3 rounded-full bg-primary/10 w-12 h-12 mx-auto mb-3 flex items-center justify-center">
+                <Users className="w-6 h-6 text-primary" />
+              </div>
+              <h3 className="font-semibold mb-1">Peer Support</h3>
+              <p className="text-sm text-muted-foreground">Connect with others who share similar experiences and challenges</p>
+            </div>
+            <div className="text-center">
+              <div className="p-3 rounded-full bg-primary/10 w-12 h-12 mx-auto mb-3 flex items-center justify-center">
+                <Shield className="w-6 h-6 text-primary" />
+              </div>
+              <h3 className="font-semibold mb-1">Safe & Secure</h3>
+              <p className="text-sm text-muted-foreground">All interactions are moderated and safety-checked for your protection</p>
+            </div>
+            <div className="text-center">
+              <div className="p-3 rounded-full bg-primary/10 w-12 h-12 mx-auto mb-3 flex items-center justify-center">
+                <Zap className="w-6 h-6 text-primary" />
+              </div>
+              <h3 className="font-semibold mb-1">Smart Matching</h3>
+              <p className="text-sm text-muted-foreground">AI-powered matching based on compatibility, goals, and communication style</p>
+            </div>
           </div>
         </motion.div>
 
         {/* Pricing Cards */}
-        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-          {filteredPlans.map((plan, index) => (
-            <motion.div
-              key={plan.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-              className="relative"
-            >
-              {plan.popular && (
-                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
-                  <Badge className="bg-primary text-primary-foreground px-4 py-1">
-                    <Star className="w-3 h-3 mr-1" />
-                    Most Popular
-                  </Badge>
+        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-16">
+          {/* Free Plan */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="relative"
+          >
+            <Card className="h-full border-border">
+              <CardHeader className="text-center pb-4">
+                <div className="flex items-center justify-center mb-4">
+                  <div className="p-3 rounded-full bg-muted w-12 h-12 flex items-center justify-center">
+                    <Heart className="w-6 h-6 text-muted-foreground" />
+                  </div>
                 </div>
-              )}
+                <CardTitle className="text-2xl font-bold">Free Plan</CardTitle>
+                <Badge variant="secondary" className="mx-auto mt-2">Current</Badge>
+                <div className="mt-4">
+                  <span className="text-4xl font-bold">$0</span>
+                  <span className="text-muted-foreground">/month</span>
+                </div>
+              </CardHeader>
               
-              <Card className={`h-full ${plan.popular ? 'border-primary shadow-lg scale-105' : 'border-border'}`}>
-                <CardHeader className="text-center pb-4">
-                  <div className="flex items-center justify-center mb-4">
-                    <div className="p-3 rounded-full bg-primary/10 text-primary">
-                      {getPlanIcon(plan.id)}
-                    </div>
+              <CardContent className="space-y-6">
+                <ul className="space-y-3">
+                  {freePlanFeatures.map((feature, index) => (
+                    <li key={index} className="flex items-start gap-3">
+                      <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                      <span className="text-sm">{feature}</span>
+                    </li>
+                  ))}
+                  <li className="flex items-start gap-3 opacity-50">
+                    <Lock className="w-5 h-5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-muted-foreground line-through">Video calls</span>
+                  </li>
+                  <li className="flex items-start gap-3 opacity-50">
+                    <Lock className="w-5 h-5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-muted-foreground line-through">Advanced filters</span>
+                  </li>
+                </ul>
+
+                <Button
+                  onClick={handleSignIn}
+                  className="w-full bg-secondary hover:bg-secondary/90"
+                  size="lg"
+                >
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  Sign in to find your support match
+                </Button>
+
+                <p className="text-xs text-center text-muted-foreground">
+                  Connect with others who understand your journey and can provide mutual support.
+                </p>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Premium Plan */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="relative"
+          >
+            <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
+              <Badge className="bg-primary text-primary-foreground px-4 py-1">
+                <Star className="w-3 h-3 mr-1" />
+                Most Popular
+              </Badge>
+            </div>
+            
+            <Card className="h-full border-primary shadow-lg scale-105">
+              <CardHeader className="text-center pb-4">
+                <div className="flex items-center justify-center mb-4">
+                  <div className="p-3 rounded-full bg-primary/10 w-12 h-12 flex items-center justify-center">
+                    <Crown className="w-6 h-6 text-primary" />
                   </div>
-                  <CardTitle className="text-2xl font-bold">{plan.name}</CardTitle>
-                  <div className="mt-4">
-                    <span className="text-4xl font-bold">${plan.price}</span>
-                    <span className="text-muted-foreground">/{plan.interval === 'monthly' ? 'month' : 'year'}</span>
-                  </div>
-                  {plan.savings && (
-                    <p className="text-sm text-green-600 font-medium mt-2">
-                      Save ${plan.savings} per year
-                    </p>
+                </div>
+                <CardTitle className="text-2xl font-bold">Premium Plan</CardTitle>
+                <div className="mt-4">
+                  <span className="text-4xl font-bold">$7.99</span>
+                  <span className="text-muted-foreground">/month</span>
+                </div>
+              </CardHeader>
+              
+              <CardContent className="space-y-6">
+                <ul className="space-y-3">
+                  {premiumPlanFeatures.map((feature, index) => (
+                    <li key={index} className="flex items-start gap-3">
+                      <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                      <span className="text-sm">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <Button
+                  onClick={() => handleSubscribe('monthly')}
+                  disabled={isLoading === 'monthly'}
+                  className="w-full bg-primary hover:bg-primary/90"
+                  size="lg"
+                >
+                  {isLoading === 'monthly' ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Crown className="w-4 h-4 mr-2" />
+                      Upgrade to Premium
+                    </>
                   )}
-                </CardHeader>
-                
-                <CardContent className="space-y-6">
-                  <ul className="space-y-3">
-                    {plan.features.map((feature, featureIndex) => (
-                      <li key={featureIndex} className="flex items-start gap-3">
-                        <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                        <span className="text-sm">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
+                </Button>
 
-                  <Button
-                    onClick={() => handleSubscribe(plan.id)}
-                    disabled={isLoading === plan.id}
-                    className={`w-full ${
-                      plan.popular 
-                        ? 'bg-primary hover:bg-primary/90' 
-                        : 'bg-secondary hover:bg-secondary/90'
-                    }`}
-                    size="lg"
-                  >
-                    {isLoading === plan.id ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <Shield className="w-4 h-4 mr-2" />
-                        Subscribe Now
-                      </>
-                    )}
-                  </Button>
-
-                  <p className="text-xs text-center text-muted-foreground">
-                    Cancel anytime. No hidden fees.
-                  </p>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
+                <p className="text-xs text-center text-muted-foreground">
+                  Cancel anytime. No hidden fees.
+                </p>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
 
-        {/* Features Comparison */}
+        {/* Safety & Privacy Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
           className="mt-20"
         >
-          <h2 className="text-3xl font-bold text-center mb-12">
-            Why Choose HOPE Premium?
-          </h2>
-          
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            <div className="text-center">
-              <div className="p-4 rounded-full bg-primary/10 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                <Heart className="w-8 h-8 text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">24/7 AI Support</h3>
-              <p className="text-muted-foreground">
-                Get instant emotional support whenever you need it, day or night
-              </p>
+          <div className="grid md:grid-cols-2 gap-12 max-w-6xl mx-auto">
+            {/* Safety */}
+            <div>
+              <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                <Shield className="w-6 h-6 text-primary" />
+                Safety & Privacy
+              </h2>
+              <h3 className="text-lg font-semibold mb-4">Your Safety is Our Priority</h3>
+              <ul className="space-y-3 text-sm text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                  All profiles are verified and safety-checked
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                  AI content moderation for all messages
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                  Easy report and block functionality
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                  Emergency escalation to crisis support
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                  Session time limits for healthy boundaries
+                </li>
+              </ul>
             </div>
-            
-            <div className="text-center">
-              <div className="p-4 rounded-full bg-primary/10 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                <Users className="w-8 h-8 text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Personalized Care</h3>
-              <p className="text-muted-foreground">
-                AI that learns your patterns and provides tailored mental health insights
-              </p>
-            </div>
-            
-            <div className="text-center">
-              <div className="p-4 rounded-full bg-primary/10 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                <Shield className="w-8 h-8 text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Privacy First</h3>
-              <p className="text-muted-foreground">
-                Your data is encrypted and secure. We never share your personal information
-              </p>
+
+            {/* Privacy */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4 mt-8 md:mt-12">Privacy Protection</h3>
+              <ul className="space-y-3 text-sm text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                  End-to-end encrypted messaging
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                  No personal data shared without consent
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                  Anonymous matching options available
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                  GDPR compliant data handling
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                  You control what information to share
+                </li>
+              </ul>
             </div>
           </div>
         </motion.div>
 
-        {/* FAQ Section */}
+        {/* CTA Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.4 }}
-          className="mt-20"
+          className="text-center mt-16"
         >
-          <h2 className="text-3xl font-bold text-center mb-12">
-            Frequently Asked Questions
-          </h2>
-          
-          <div className="max-w-3xl mx-auto space-y-6">
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="font-semibold mb-2">Can I cancel anytime?</h3>
-                <p className="text-muted-foreground">
-                  Yes, you can cancel your subscription at any time. You'll continue to have access until the end of your billing period.
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="font-semibold mb-2">What payment methods do you accept?</h3>
-                <p className="text-muted-foreground">
-                  We accept all major credit cards, bank transfers, and mobile money through our secure Paystack payment system.
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="font-semibold mb-2">Is my data secure?</h3>
-                <p className="text-muted-foreground">
-                  Absolutely. All your data is encrypted and stored securely. We follow strict privacy guidelines and never share your personal information.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+          <Card className="max-w-2xl mx-auto bg-primary/5 border-primary/20">
+            <CardContent className="p-8">
+              <h2 className="text-2xl font-bold mb-4">Ready to Find Your Support Match?</h2>
+              <p className="text-muted-foreground mb-6">
+                Join thousands of people who have found meaningful connections and support through our platform.
+              </p>
+              <Button 
+                onClick={handleSignIn}
+                size="lg" 
+                className="bg-primary hover:bg-primary/90"
+              >
+                <Users className="w-4 h-4 mr-2" />
+                Get Started Today
+              </Button>
+            </CardContent>
+          </Card>
         </motion.div>
       </div>
     </div>
