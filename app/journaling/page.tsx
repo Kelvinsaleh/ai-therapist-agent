@@ -68,52 +68,43 @@ export default function JournalingPage() {
 
   useEffect(() => {
     const loadJournalEntries = async () => {
-      try {
-        // First load from localStorage for immediate display
-        const savedEntries = localStorage.getItem("journalEntries");
-        if (savedEntries) {
-          const localEntries = JSON.parse(savedEntries).map((entry: any) => ({
-            ...entry,
-            createdAt: new Date(entry.createdAt)
-          }));
-          setEntries(localEntries);
-        }
+      if (!isAuthenticated) {
+        setBackendConnected(false);
+        setEntries([]);
+        return;
+      }
 
-        // Then load from backend if authenticated
-        if (isAuthenticated) {
-          const { backendService } = await import("@/lib/api/backend-service");
-          const response = await backendService.getJournalEntries();
+      try {
+        const { backendService } = await import("@/lib/api/backend-service");
+        const response = await backendService.getJournalEntries();
+        
+        if (response.success && response.data) {
+          setBackendConnected(true);
+          const backendEntries = response.data.map((entry: any) => ({
+            id: entry._id,
+            title: entry.title,
+            content: entry.content,
+            mood: entry.mood,
+            tags: entry.tags || [],
+            createdAt: new Date(entry.createdAt),
+            insights: entry.insights || [],
+            emotionalState: entry.emotionalState || "",
+            keyThemes: entry.keyThemes || [],
+            concerns: entry.concerns || [],
+            achievements: entry.achievements || []
+          }));
           
-          if (response.success && response.data) {
-            setBackendConnected(true);
-            const backendEntries = response.data.map((entry: any) => ({
-              id: entry._id,
-              title: entry.title,
-              content: entry.content,
-              mood: entry.mood,
-              tags: entry.tags || [],
-              createdAt: new Date(entry.createdAt),
-              insights: entry.insights || [],
-              emotionalState: entry.emotionalState || "",
-              keyThemes: entry.keyThemes || [],
-              concerns: entry.concerns || [],
-              achievements: entry.achievements || []
-            }));
-            
-            // Merge with local entries (backend takes precedence)
-            const mergedEntries = [...backendEntries];
-            setEntries(mergedEntries);
-            
-            // Update localStorage with backend data
-            localStorage.setItem("journalEntries", JSON.stringify(mergedEntries));
-          } else {
-            setBackendConnected(false);
-          }
+          setEntries(backendEntries);
+        } else {
+          setBackendConnected(false);
+          setEntries([]);
+          toast.error("Failed to load journal entries from cloud storage");
         }
       } catch (error) {
         console.error("Failed to load journal entries:", error);
         setBackendConnected(false);
-        // Continue with localStorage data if backend fails
+        setEntries([]);
+        toast.error("Unable to connect to cloud storage. Please check your connection.");
       }
     };
 
@@ -149,12 +140,16 @@ export default function JournalingPage() {
 
   const saveEntries = (newEntries: JournalEntry[]) => {
     setEntries(newEntries);
-    localStorage.setItem("journalEntries", JSON.stringify(newEntries));
   };
 
   const handleSave = async () => {
     if (!currentEntry.trim()) {
       toast.error("Please write something before saving");
+      return;
+    }
+
+    if (!isAuthenticated) {
+      toast.error("Please sign in to save journal entries");
       return;
     }
 
@@ -175,71 +170,79 @@ export default function JournalingPage() {
       }
     }
 
-    const newEntry: JournalEntry = {
-      id: Date.now().toString(),
-      title: entryTitle || `Entry ${format(new Date(), "MMM dd, yyyy")}`,
-      content: currentEntry,
-      mood,
-      tags,
-      createdAt: new Date(),
-      insights: userTier === "premium" ? generateInsights(currentEntry, mood) : undefined
-    };
+    // Show loading state
+    toast.loading("Saving journal entry to cloud storage...");
 
-    const updatedEntries = [newEntry, ...entries];
-    saveEntries(updatedEntries);
-    
-    // Add to memory system for therapy context
     try {
-      const { userMemoryManager } = await import("@/lib/memory/user-memory");
-      await userMemoryManager.addJournalEntry({
-        date: new Date(),
-        mood,
+      const { backendService } = await import("@/lib/api/backend-service");
+      const insights = generateInsights(currentEntry, mood);
+      const emotionalState = analyzeEmotionalState(currentEntry, mood);
+      const keyThemes = extractKeyThemes(currentEntry);
+      const concerns = extractConcerns(currentEntry);
+      const achievements = extractAchievements(currentEntry);
+      
+      const response = await backendService.createJournalEntry({
+        title: entryTitle || `Entry ${format(new Date(), "MMM dd, yyyy")}`,
         content: currentEntry,
+        mood,
         tags,
-        keyThemes: [],
-        emotionalState: "",
-        concerns: [],
-        achievements: [],
-        insights: []
+        createdAt: new Date(),
+        insights,
+        emotionalState,
+        keyThemes,
+        concerns,
+        achievements
       });
-    } catch (error) {
-      console.error("Failed to add journal entry to memory:", error);
-    }
+      
+      if (response.success && response.data) {
+        // Create the new entry with backend data
+        const newEntry: JournalEntry = {
+          id: response.data._id || response.data.id,
+          title: response.data.title,
+          content: response.data.content,
+          mood: response.data.mood,
+          tags: response.data.tags || [],
+          createdAt: new Date(response.data.createdAt),
+          insights: response.data.insights || [],
+          emotionalState: response.data.emotionalState || "",
+          keyThemes: response.data.keyThemes || [],
+          concerns: response.data.concerns || [],
+          achievements: response.data.achievements || []
+        };
 
-        // Save to backend with AI analysis
+        // Update local state with the new entry
+        const updatedEntries = [newEntry, ...entries];
+        saveEntries(updatedEntries);
+        
+        toast.success("Journal entry saved and analyzed successfully!");
+        
+        // Add to memory system for therapy context
         try {
-          const { backendService } = await import("@/lib/api/backend-service");
-          const insights = generateInsights(currentEntry, mood);
-          const emotionalState = analyzeEmotionalState(currentEntry, mood);
-          const keyThemes = extractKeyThemes(currentEntry);
-          const concerns = extractConcerns(currentEntry);
-          const achievements = extractAchievements(currentEntry);
-          
-          const response = await backendService.createJournalEntry({
-            title: entryTitle || `Entry ${format(new Date(), "MMM dd, yyyy")}`,
-            content: currentEntry,
+          const { userMemoryManager } = await import("@/lib/memory/user-memory");
+          await userMemoryManager.addJournalEntry({
+            date: new Date(),
             mood,
+            content: currentEntry,
             tags,
-            createdAt: new Date(),
-            insights,
-            emotionalState,
             keyThemes,
+            emotionalState,
             concerns,
-            achievements
+            achievements,
+            insights
           });
-          
-          if (response.success) {
-            toast.success("Journal entry saved and analyzed successfully!");
-            // Update the entry with AI analysis
-            const updatedEntry = { ...newEntry, insights, emotionalState, keyThemes, concerns, achievements };
-            const updatedEntries = [updatedEntry, ...entries.slice(1)];
-            saveEntries(updatedEntries);
-          }
         } catch (error) {
-          console.error("Failed to save journal entry to backend:", error);
-          toast.error("Failed to sync with cloud. Entry saved locally.");
+          console.error("Failed to add journal entry to memory:", error);
         }
+      } else {
+        throw new Error(response.error || "Failed to save journal entry");
+      }
+    } catch (error) {
+      console.error("Failed to save journal entry to backend:", error);
+      toast.error("Failed to save journal entry. Please try again.");
+      return;
+    }
     
+    // Clear form
     setCurrentEntry("");
     setEntryTitle("");
     setMood(5);
@@ -392,24 +395,36 @@ export default function JournalingPage() {
   };
 
   const deleteEntry = async (id: string) => {
+    if (!isAuthenticated) {
+      toast.error("Please sign in to delete journal entries");
+      return;
+    }
+
     const entryToDelete = entries.find(entry => entry.id === id);
     
-    // Remove from local state immediately
-    const updatedEntries = entries.filter(entry => entry.id !== id);
-    saveEntries(updatedEntries);
+    // Show loading state
+    toast.loading("Deleting journal entry from cloud storage...");
     
-    if (selectedEntry?.id === id) {
-      setSelectedEntry(null);
-    }
-    
-    // Try to delete from backend
     try {
       const { backendService } = await import("@/lib/api/backend-service");
-      await backendService.deleteJournalEntry(id);
-      toast.success("Entry deleted successfully!");
+      const response = await backendService.deleteJournalEntry(id);
+      
+      if (response.success) {
+        // Remove from local state
+        const updatedEntries = entries.filter(entry => entry.id !== id);
+        saveEntries(updatedEntries);
+        
+        if (selectedEntry?.id === id) {
+          setSelectedEntry(null);
+        }
+        
+        toast.success("Entry deleted successfully!");
+      } else {
+        throw new Error(response.error || "Failed to delete journal entry");
+      }
     } catch (error) {
       console.error("Failed to delete entry from backend:", error);
-      toast.error("Entry deleted locally, but failed to sync with cloud.");
+      toast.error("Failed to delete journal entry. Please try again.");
     }
   };
 
@@ -434,23 +449,35 @@ export default function JournalingPage() {
             <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
               AI Journal
             </h1>
-            {/* Backend Connection Status */}
-            {backendConnected !== null && (
-              <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm ${
-                backendConnected 
-                  ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                  : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
-              }`}>
-                <div className={`w-2 h-2 rounded-full ${
-                  backendConnected ? 'bg-green-500' : 'bg-yellow-500'
-                }`} />
-                {backendConnected ? 'Cloud Sync' : 'Local Only'}
-              </div>
-            )}
+          {/* Backend Connection Status */}
+          {backendConnected !== null && (
+            <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm ${
+              backendConnected 
+                ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+            }`}>
+              <div className={`w-2 h-2 rounded-full ${
+                backendConnected ? 'bg-green-500' : 'bg-red-500'
+              }`} />
+              {backendConnected ? 'Cloud Storage Connected' : 'Cloud Storage Unavailable'}
+            </div>
+          )}
           </div>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-4">
             Write freely, reflect deeply, and discover insights about your mental well-being
           </p>
+          
+          {!isAuthenticated && (
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 max-w-2xl mx-auto mb-6">
+              <div className="flex items-center gap-2 text-blue-800 dark:text-blue-400">
+                <AlertCircle className="w-5 h-5" />
+                <span className="font-medium">Sign in required</span>
+              </div>
+              <p className="text-blue-700 dark:text-blue-300 text-sm mt-1">
+                Please sign in to access your journal entries and save new ones to cloud storage.
+              </p>
+            </div>
+          )}
           
           {/* Stats */}
           <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
@@ -494,7 +521,8 @@ export default function JournalingPage() {
                   value={entryTitle}
                   onChange={(e) => setEntryTitle(e.target.value)}
                   placeholder="Give your entry a title..."
-                  className="w-full p-3 rounded-md border bg-background"
+                  disabled={!isAuthenticated}
+                  className="w-full p-3 rounded-md border bg-background disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -508,7 +536,8 @@ export default function JournalingPage() {
                     max="6"
                     value={mood}
                     onChange={(e) => setMood(parseInt(e.target.value))}
-                    className="flex-1"
+                    disabled={!isAuthenticated}
+                    className="flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                   <span className="text-sm text-muted-foreground">🤩</span>
                   <span className={`text-sm font-medium ${getMoodColor(mood)}`}>
@@ -542,7 +571,8 @@ export default function JournalingPage() {
                       }
                     }}
                     placeholder="Add a tag..."
-                    className="flex-1 p-2 rounded-md border bg-background text-sm"
+                    disabled={!isAuthenticated}
+                    className="flex-1 p-2 rounded-md border bg-background text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                   <Button
                     size="sm"
@@ -550,6 +580,7 @@ export default function JournalingPage() {
                       addTag(newTag);
                       setNewTag("");
                     }}
+                    disabled={!isAuthenticated}
                   >
                     Add
                   </Button>
@@ -559,7 +590,8 @@ export default function JournalingPage() {
                     <button
                       key={tag}
                       onClick={() => addTag(tag)}
-                      className="text-xs px-2 py-1 rounded-full bg-muted hover:bg-primary/20 transition-colors"
+                      disabled={!isAuthenticated}
+                      className="text-xs px-2 py-1 rounded-full bg-muted hover:bg-primary/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {tag}
                     </button>
@@ -576,7 +608,8 @@ export default function JournalingPage() {
                     setSaved(false);
                   }}
                   placeholder="Write freely about your thoughts, feelings, experiences, or anything else on your mind..."
-                  className="w-full min-h-[300px] rounded-md border p-3 bg-background resize-none"
+                  disabled={!isAuthenticated}
+                  className="w-full min-h-[300px] rounded-md border p-3 bg-background resize-none disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -584,11 +617,11 @@ export default function JournalingPage() {
                 <div className="flex items-center gap-2">
                   <Button
                     onClick={handleSave}
-                    disabled={!currentEntry.trim()}
+                    disabled={!currentEntry.trim() || !isAuthenticated}
                     className="bg-primary/90 hover:bg-primary"
                   >
                     <Save className="w-4 h-4 mr-2" />
-                    Save Entry
+                    {isAuthenticated ? "Save Entry" : "Sign in to Save"}
                   </Button>
                   {saved && (
                     <motion.span
