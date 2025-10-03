@@ -32,6 +32,7 @@ import {
   ChatSession,
 } from "@/lib/api/chat";
 import { backendService } from "@/lib/api/backend-service";
+import { logger } from "@/lib/utils/logger";
 
 // TypeScript declarations for Speech Recognition
 declare global {
@@ -169,7 +170,7 @@ export default function MemoryEnhancedTherapyPage() {
       const allSessions = await getAllChatSessions();
       setSessions(allSessions);
     } catch (error) {
-      console.error("Failed to load sessions", { error });
+      logger.error("Failed to load sessions", error);
     }
   };
 
@@ -198,7 +199,7 @@ export default function MemoryEnhancedTherapyPage() {
       setMessages([]);
       setIsLoading(false);
     } catch (error) {
-      console.error("Failed to create new session", { error });
+      logger.error("Failed to create new session", error);
       setIsLoading(false);
     }
   };
@@ -354,7 +355,7 @@ export default function MemoryEnhancedTherapyPage() {
 
 
     } catch (error) {
-      console.error("Error in chat", { error });
+      logger.error("Error in chat", error);
       setMessages((prev) => [
         ...prev,
         {
@@ -404,7 +405,7 @@ export default function MemoryEnhancedTherapyPage() {
       const data = await response.json();
       return data;
     } catch (error) {
-      console.error('Error sending memory-enhanced message:', error);
+      logger.error('Error sending memory-enhanced message:', error);
       return {
         response: "I'm here to support you. Your thoughts and feelings are important. Please try again in a moment.",
         techniques: [],
@@ -461,7 +462,7 @@ export default function MemoryEnhancedTherapyPage() {
         setSessionId(selectedSessionId);
       }
     } catch (error) {
-      console.error("Failed to load session", { error });
+      logger.error("Failed to load session", error);
     } finally {
       setIsLoading(false);
     }
@@ -500,10 +501,10 @@ export default function MemoryEnhancedTherapyPage() {
 
 
   return (
-    <div className="relative max-w-7xl mx-auto px-4">
+    <div className="min-h-screen bg-background">
       {/* Mobile bar for sessions toggle */}
       <div className="md:hidden fixed top-16 left-0 right-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex items-center justify-between px-4 py-2">
+        <div className="flex items-center justify-between px-4 py-3">
           <h2 className="text-sm font-medium text-muted-foreground">Memory-Enhanced Therapy</h2>
           <Button
             variant="outline"
@@ -517,17 +518,17 @@ export default function MemoryEnhancedTherapyPage() {
         </div>
       </div>
 
-      <div className="flex h-[calc(100vh-4rem)] mt-20 gap-6 pb-20">
+      <div className="flex h-[calc(100vh-4rem)] mt-20 gap-0">
         {/* Sessions Sidebar */}
         <div
           className={cn(
-            "flex flex-col border-r bg-muted/30 md:w-80 md:static md:translate-x-0 transition-transform duration-200",
+            "flex flex-col border-r bg-background md:w-80 md:static md:translate-x-0 transition-transform duration-200",
             isSidebarOpen
               ? "fixed inset-y-20 left-0 right-0 z-40 translate-x-0 md:static md:inset-auto"
               : "fixed inset-y-20 left-0 right-0 z-40 -translate-x-full md:translate-x-0 md:static md:inset-auto"
           )}
         >
-          <div className="p-4 border-b">
+          <div className="p-6 border-b bg-muted/30">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold flex items-center gap-2">
                 <MessageSquare className="w-5 h-5 text-primary" />
@@ -548,7 +549,7 @@ export default function MemoryEnhancedTherapyPage() {
               </Button>
             </div>
             <Button
-              variant="outline"
+              variant="default"
               className="w-full justify-start gap-2"
               onClick={handleNewSession}
               disabled={isLoading}
@@ -572,67 +573,73 @@ export default function MemoryEnhancedTherapyPage() {
           </div>
 
           <ScrollArea className="flex-1 p-4">
-            <div className="space-y-4">
-              {sessions.map((session) => (
-                <div
-                  key={session.sessionId}
-                  className={cn(
-                    "p-3 rounded-lg text-sm cursor-pointer hover:bg-primary/5 transition-colors",
-                    session.sessionId === sessionId
-                      ? "bg-primary/10 text-primary"
-                      : "bg-secondary/10"
-                  )}
-                  onClick={() => {
-                    handleSessionSelect(session.sessionId);
-                    setIsSidebarOpen(false);
-                  }}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <MessageSquare className="w-4 h-4" />
-                    <span className="font-medium">
-                      {session.messages[0]?.content.slice(0, 30) || "New Chat"}
-                    </span>
-                  </div>
-                  <p className="line-clamp-2 text-muted-foreground">
-                    {session.messages[session.messages.length - 1]?.content ||
-                      "No messages yet"}
-                  </p>
-                  <div className="flex items-center justify-between mt-2">
-                    <span className="text-xs text-muted-foreground">
-                      {session.messages.length} messages
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {(() => {
-                        try {
-                          const date = new Date(session.updatedAt);
-                          if (isNaN(date.getTime())) {
+            <div className="space-y-3">
+              {sessions.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No sessions yet</p>
+                  <p className="text-xs">Start a new conversation</p>
+                </div>
+              ) : (
+                sessions.map((session) => (
+                  <div
+                    key={session.sessionId}
+                    className={cn(
+                      "p-4 rounded-lg text-sm cursor-pointer hover:bg-muted/50 transition-all duration-200 border",
+                      session.sessionId === sessionId
+                        ? "bg-primary/10 text-primary border-primary/20 shadow-sm"
+                        : "bg-background border-border hover:border-primary/20"
+                    )}
+                    onClick={() => {
+                      handleSessionSelect(session.sessionId);
+                      setIsSidebarOpen(false);
+                    }}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <MessageSquare className="w-4 h-4" />
+                      <span className="font-medium truncate">
+                        {session.messages[0]?.content.slice(0, 25) || "New Chat"}
+                      </span>
+                    </div>
+                    <p className="line-clamp-2 text-muted-foreground text-xs mb-2">
+                      {session.messages[session.messages.length - 1]?.content ||
+                        "No messages yet"}
+                    </p>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>{session.messages.length} messages</span>
+                      <span>
+                        {(() => {
+                          try {
+                            const date = new Date(session.updatedAt);
+                            if (isNaN(date.getTime())) {
+                              return "Just now";
+                            }
+                            return formatDistanceToNow(date, {
+                              addSuffix: true,
+                            });
+                          } catch (error) {
                             return "Just now";
                           }
-                          return formatDistanceToNow(date, {
-                            addSuffix: true,
-                          });
-                        } catch (error) {
-                          return "Just now";
-                        }
-                      })()}
-                    </span>
+                        })()}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </ScrollArea>
         </div>
 
         {/* Main chat area */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-background rounded-lg border">
+        <div className="flex-1 flex flex-col overflow-hidden bg-background">
           {/* Chat header */}
-          <div className="p-4 border-b flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center">
-                <Brain className="w-5 h-5" />
+          <div className="p-6 border-b bg-muted/30 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center ring-1 ring-primary/20">
+                <Bot className="w-6 h-6" />
               </div>
               <div>
-                <h2 className="font-semibold">AI Therapist with Memory</h2>
+                <h2 className="font-semibold text-lg">AI Therapist with Memory</h2>
                 <p className="text-sm text-muted-foreground">
                   {messages.length} messages • Memory Enhanced
                 </p>
@@ -664,17 +671,28 @@ export default function MemoryEnhancedTherapyPage() {
                     }
                   }
                 }}
+                className="gap-2"
               >
-                {isVoiceMode ? "Voice Mode: On" : "Voice Mode: Off"}
+                {isVoiceMode ? (
+                  <>
+                    <Mic className="w-4 h-4" />
+                    Voice On
+                  </>
+                ) : (
+                  <>
+                    <MicOff className="w-4 h-4" />
+                    Voice Off
+                  </>
+                )}
               </Button>
             </div>
           </div>
 
           {messages.length === 0 ? (
             // Welcome screen with suggested questions
-            <div className="flex-1 flex items-center justify-center p-4">
+            <div className="flex-1 flex items-center justify-center p-8">
               <div className="max-w-2xl w-full space-y-8">
-                <div className="text-center space-y-4">
+                <div className="text-center space-y-6">
                   <div className="relative inline-flex flex-col items-center">
                     <motion.div
                       className="absolute inset-0 bg-primary/20 blur-2xl rounded-full"
@@ -682,29 +700,29 @@ export default function MemoryEnhancedTherapyPage() {
                       animate="animate"
                       variants={glowAnimation}
                     />
-                    <div className="relative flex items-center gap-2 text-2xl font-semibold">
+                    <div className="relative flex items-center gap-3 text-3xl font-semibold">
                       <div className="relative">
-                        <Brain className="w-6 h-6 text-primary" />
+                        <Bot className="w-8 h-8 text-primary" />
                         <motion.div
                           className="absolute inset-0 text-primary"
                           initial="initial"
                           animate="animate"
                           variants={glowAnimation}
                         >
-                          <Brain className="w-6 h-6" />
+                          <Bot className="w-8 h-8" />
                         </motion.div>
                       </div>
                       <span className="bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent">
                         AI Therapist with Memory
                       </span>
                     </div>
-                    <p className="text-muted-foreground mt-2">
+                    <p className="text-muted-foreground mt-3 text-lg">
                       I remember our conversations and your mental health journey
                     </p>
                   </div>
                 </div>
 
-                <div className="grid gap-3 relative">
+                <div className="grid gap-4 relative">
                   <motion.div
                     className="absolute -inset-4 bg-gradient-to-b from-primary/5 to-transparent blur-xl"
                     initial={{ opacity: 0 }}
@@ -720,7 +738,7 @@ export default function MemoryEnhancedTherapyPage() {
                     >
                       <Button
                         variant="outline"
-                        className="w-full h-auto py-4 px-6 text-left justify-start hover:bg-muted/50 hover:border-primary/50 transition-all duration-300"
+                        className="w-full h-auto py-6 px-8 text-left justify-start hover:bg-primary/5 hover:border-primary/50 transition-all duration-300 text-base"
                         onClick={() => handleSuggestedQuestion(q.text)}
                       >
                         {q.text}
@@ -732,8 +750,8 @@ export default function MemoryEnhancedTherapyPage() {
             </div>
           ) : (
             // Chat messages
-            <div className="flex-1 overflow-y-auto scroll-smooth pb-28 overscroll-contain">
-              <div className="max-w-3xl mx-auto">
+            <div className="flex-1 overflow-y-auto scroll-smooth pb-32 overscroll-contain">
+              <div className="max-w-4xl mx-auto px-4">
                 <AnimatePresence initial={false}>
                   {messages.map((msg) => (
                     <motion.div
@@ -742,27 +760,27 @@ export default function MemoryEnhancedTherapyPage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.3 }}
                       className={cn(
-                        "px-6 py-8",
+                        "py-6",
                         msg.role === "assistant"
-                          ? "bg-muted/30"
+                          ? "bg-muted/20"
                           : "bg-background"
                       )}
                     >
-                      <div className="flex gap-4">
-                        <div className="w-8 h-8 shrink-0 mt-1">
+                      <div className="flex gap-4 max-w-3xl mx-auto">
+                        <div className="w-10 h-10 shrink-0 mt-1">
                           {msg.role === "assistant" ? (
-                            <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center ring-1 ring-primary/20">
-                              <Brain className="w-5 h-5" />
+                            <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center ring-1 ring-primary/20">
+                              <Bot className="w-6 h-6" />
                             </div>
                           ) : (
-                            <div className="w-8 h-8 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center">
-                              <User className="w-5 h-5" />
+                            <div className="w-10 h-10 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center">
+                              <User className="w-6 h-6" />
                             </div>
                           )}
                         </div>
-                        <div className="flex-1 space-y-2 overflow-hidden min-h-[2rem]">
+                        <div className="flex-1 space-y-3 overflow-hidden min-h-[2.5rem]">
                           <div className="flex items-center justify-between">
-                            <p className="font-medium text-sm">
+                            <p className="font-medium text-base">
                               {msg.role === "assistant"
                                 ? "AI Therapist"
                                 : "You"}
@@ -773,12 +791,12 @@ export default function MemoryEnhancedTherapyPage() {
                               </Badge>
                             )}
                           </div>
-                          <div className="prose prose-sm dark:prose-invert leading-relaxed">
+                          <div className="prose prose-base dark:prose-invert leading-relaxed max-w-none">
                             <ReactMarkdown>{msg.content}</ReactMarkdown>
                           </div>
                           {msg.metadata?.goal && (
-                            <p className="text-xs text-muted-foreground mt-2">
-                              Goal: {msg.metadata.goal}
+                            <p className="text-sm text-muted-foreground mt-3 p-2 bg-muted/30 rounded-md">
+                              <strong>Goal:</strong> {msg.metadata.goal}
                             </p>
                           )}
                         </div>
@@ -791,16 +809,25 @@ export default function MemoryEnhancedTherapyPage() {
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="px-6 py-8 flex gap-4 bg-muted/30"
+                    className="py-6 bg-muted/20"
                   >
-                    <div className="w-8 h-8 shrink-0">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center ring-1 ring-primary/20">
-                        <Loader2 className="w-4 h-4 animate-spin" />
+                    <div className="flex gap-4 max-w-3xl mx-auto px-4">
+                      <div className="w-10 h-10 shrink-0">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center ring-1 ring-primary/20">
+                          <Loader2 className="w-6 h-6 animate-spin" />
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex-1 space-y-2">
-                      <p className="font-medium text-sm">AI Therapist</p>
-                      <p className="text-sm text-muted-foreground">Thinking...</p>
+                      <div className="flex-1 space-y-3">
+                        <p className="font-medium text-base">AI Therapist</p>
+                        <div className="flex items-center gap-2">
+                          <div className="flex gap-1">
+                            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                          </div>
+                          <span className="text-sm text-muted-foreground">Thinking...</span>
+                        </div>
+                      </div>
                     </div>
                   </motion.div>
                 )}
@@ -810,10 +837,10 @@ export default function MemoryEnhancedTherapyPage() {
           )}
 
           {/* Input area */}
-          <div className="border-t bg-background/50 backdrop-blur supports-[backdrop-filter]:bg-background/50 p-4 relative z-[60] sticky bottom-0 left-0 right-0 pb-[env(safe-area-inset-bottom)]">
+          <div className="border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/95 p-6 relative z-[60] sticky bottom-0 left-0 right-0">
             <form
               onSubmit={handleSubmit}
-              className="max-w-3xl mx-auto flex gap-4 items-end relative"
+              className="max-w-4xl mx-auto flex gap-4 items-end relative"
             >
               <div className="flex-1 relative group">
                 <textarea
@@ -829,7 +856,7 @@ export default function MemoryEnhancedTherapyPage() {
                   }
                   className={cn(
                     "w-full resize-none rounded-2xl border bg-background",
-                    "p-3 pr-20 min-h-[48px] max-h-[200px]",
+                    "p-4 pr-24 min-h-[56px] max-h-[200px]",
                     "focus:outline-none focus:ring-2 focus:ring-primary/50",
                     isListening && "ring-2 ring-red-500/50 bg-red-50 dark:bg-red-950/20",
                     "transition-all duration-200",
@@ -853,7 +880,7 @@ export default function MemoryEnhancedTherapyPage() {
                   onClick={toggleListening}
                   disabled={isTyping || !voiceSupported}
                   className={cn(
-                    "absolute right-12 bottom-3.5 h-[36px] w-[36px]",
+                    "absolute right-16 bottom-4 h-[40px] w-[40px]",
                     "rounded-xl transition-all duration-200",
                     "z-10 bg-background border",
                     isListening && "animate-pulse"
@@ -867,9 +894,9 @@ export default function MemoryEnhancedTherapyPage() {
                   }
                 >
                   {isListening ? (
-                    <MicOff className="w-4 h-4" />
+                    <MicOff className="w-5 h-5" />
                   ) : (
-                    <Mic className="w-4 h-4" />
+                    <Mic className="w-5 h-5" />
                   )}
                 </Button>
                 
@@ -877,7 +904,7 @@ export default function MemoryEnhancedTherapyPage() {
                   type="submit"
                   size="icon"
                   className={cn(
-                    "absolute right-1.5 bottom-3.5 h-[36px] w-[36px]",
+                    "absolute right-2 bottom-4 h-[40px] w-[40px]",
                     "rounded-xl transition-all duration-200",
                     "bg-primary hover:bg-primary/90",
                     "shadow-sm shadow-primary/20",
@@ -891,14 +918,14 @@ export default function MemoryEnhancedTherapyPage() {
                     handleSubmit(e);
                   }}
                 >
-                  <Send className="w-4 h-4" />
+                  <Send className="w-5 h-5" />
                 </Button>
               </div>
             </form>
-            <div className="mt-2 text-xs text-center text-muted-foreground">
-              Press <kbd className="px-2 py-0.5 rounded bg-muted">Enter ↵</kbd>{" "}
+            <div className="mt-3 text-xs text-center text-muted-foreground">
+              Press <kbd className="px-2 py-1 rounded bg-muted text-xs">Enter ↵</kbd>{" "}
               to send,
-              <kbd className="px-2 py-0.5 rounded bg-muted ml-1">
+              <kbd className="px-2 py-1 rounded bg-muted ml-1 text-xs">
                 Shift + Enter
               </kbd>{" "}
               for new line
