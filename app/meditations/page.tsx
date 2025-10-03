@@ -46,6 +46,13 @@ export default function MeditationsPage() {
   const [userTier, setUserTier] = useState<"free" | "premium">("free");
   
   // Use ONLY the global audio player - no local audio state
+  const audioPlayer = useAudioPlayer();
+  
+  if (!audioPlayer) {
+    console.error('Audio player context not available');
+    return <div>Audio player not available</div>;
+  }
+  
   const { 
     play, 
     pause, 
@@ -70,7 +77,7 @@ export default function MeditationsPage() {
     loadSavedPlaylists,
     savePlaylistToMongoDB,
     loadPlaylistFromMongoDB
-  } = useAudioPlayer();
+  } = audioPlayer;
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -120,6 +127,13 @@ export default function MeditationsPage() {
       }));
 
       console.log('Loaded meditations:', normalized);
+      
+      // Check if any meditations have valid audio URLs
+      const validMeditations = normalized.filter(m => m.audioUrl);
+      console.log('Meditations with valid audio URLs:', validMeditations.length, 'out of', normalized.length);
+      if (validMeditations.length > 0) {
+        console.log('First valid meditation:', validMeditations[0]);
+      }
 
       setMeditations(normalized);
     } catch (e) {
@@ -197,6 +211,10 @@ export default function MeditationsPage() {
     console.log('Calling play with:', meditationForPlayer);
 
     // Use the global audio player for background playback
+    console.log('Current track:', currentTrack);
+    console.log('Meditation ID:', meditation.id);
+    console.log('Current track ID:', currentTrack?._id);
+    
     if (currentTrack?._id === meditation.id) {
       console.log('Toggling play/pause for current track');
       // Same track - toggle play/pause

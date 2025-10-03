@@ -155,13 +155,16 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
 
   // Define play function first
   const play = useCallback((meditation: Meditation) => {
+    console.log('Play function called with:', meditation);
+    
     if (typeof window === 'undefined' || !audioRef.current) {
-      console.error('Audio not available');
+      console.error('Audio not available - window:', typeof window, 'audioRef:', audioRef.current);
       return;
     }
 
     // Check if audio URL is valid
     if (!meditation.audioUrl) {
+      console.error('No audio URL provided:', meditation);
       toast.error('Audio file not available');
       return;
     }
