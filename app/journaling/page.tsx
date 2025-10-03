@@ -55,7 +55,11 @@ export default function JournalingPage() {
     "😔 Very Low", "😟 Low", "😐 Neutral", "😊 Good", "😄 Great", "🤩 Excellent"
   ];
 
-  const commonTags = ["gratitude", "anxiety", "work", "relationships", "health", "goals", "reflection"];
+  const commonTags = [
+    "gratitude", "anxiety", "work", "relationships", "health", "goals", "reflection",
+    "stress", "happiness", "family", "friends", "exercise", "sleep", "mindfulness",
+    "achievement", "challenge", "growth", "learning", "creativity", "nature"
+  ];
 
   useEffect(() => {
     const loadJournalEntries = async () => {
@@ -107,13 +111,43 @@ export default function JournalingPage() {
     loadJournalEntries();
   }, [isAuthenticated]);
 
+  // Load user tier
+  useEffect(() => {
+    if (isAuthenticated) {
+      const checkUserTier = async () => {
+        try {
+          const response = await fetch('/api/auth/me', {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          });
+          
+          if (response.ok) {
+            const userData = await response.json();
+            setUserTier(userData.user?.subscription?.tier || 'free');
+          } else {
+            setUserTier('free');
+          }
+        } catch (error) {
+          console.error('Error checking user tier:', error);
+          setUserTier('free');
+        }
+      };
+      
+      checkUserTier();
+    }
+  }, [isAuthenticated]);
+
   const saveEntries = (newEntries: JournalEntry[]) => {
     setEntries(newEntries);
     localStorage.setItem("journalEntries", JSON.stringify(newEntries));
   };
 
   const handleSave = async () => {
-    if (!currentEntry.trim()) return;
+    if (!currentEntry.trim()) {
+      toast.error("Please write something before saving");
+      return;
+    }
 
     // Check journal limits for free users
     if (userTier === "free") {
@@ -145,38 +179,43 @@ export default function JournalingPage() {
     const updatedEntries = [newEntry, ...entries];
     saveEntries(updatedEntries);
     
-            // Add to memory system for therapy context
-        try {
-          const { userMemoryManager } = await import("@/lib/memory/user-memory");
-          await userMemoryManager.addJournalEntry({
-            date: new Date(),
-            mood,
-            content: currentEntry,
-            tags,
-            keyThemes: [],
-            emotionalState: "",
-            concerns: [],
-            achievements: [],
-            insights: []
-          });
-        } catch (error) {
-          console.error("Failed to add journal entry to memory:", error);
-        }
+    // Add to memory system for therapy context
+    try {
+      const { userMemoryManager } = await import("@/lib/memory/user-memory");
+      await userMemoryManager.addJournalEntry({
+        date: new Date(),
+        mood,
+        content: currentEntry,
+        tags,
+        keyThemes: [],
+        emotionalState: "",
+        concerns: [],
+        achievements: [],
+        insights: []
+      });
+    } catch (error) {
+      console.error("Failed to add journal entry to memory:", error);
+    }
 
-        // Save to backend
-        try {
-          const { backendService } = await import("@/lib/api/backend-service");
-          await backendService.createJournalEntry({
-            title: entryTitle || `Entry ${format(new Date(), "MMM dd, yyyy")}`,
-            content: currentEntry,
-            mood,
-            tags,
-            createdAt: new Date(),
-            insights: generateInsights(currentEntry, mood)
-          });
-        } catch (error) {
-          console.error("Failed to save journal entry to backend:", error);
-        }
+    // Save to backend
+    try {
+      const { backendService } = await import("@/lib/api/backend-service");
+      const response = await backendService.createJournalEntry({
+        title: entryTitle || `Entry ${format(new Date(), "MMM dd, yyyy")}`,
+        content: currentEntry,
+        mood,
+        tags,
+        createdAt: new Date(),
+        insights: generateInsights(currentEntry, mood)
+      });
+      
+      if (response.success) {
+        toast.success("Journal entry saved successfully!");
+      }
+    } catch (error) {
+      console.error("Failed to save journal entry to backend:", error);
+      toast.error("Failed to sync with cloud. Entry saved locally.");
+    }
     
     setCurrentEntry("");
     setEntryTitle("");
@@ -188,21 +227,54 @@ export default function JournalingPage() {
 
   const generateInsights = (content: string, mood: number): string[] => {
     const insights = [];
+    const lowerContent = content.toLowerCase();
     
-    if (content.toLowerCase().includes("grateful") || content.toLowerCase().includes("thankful")) {
-      insights.push("Gratitude practice detected - great for mental well-being!");
+    // Gratitude detection
+    if (lowerContent.includes("grateful") || lowerContent.includes("thankful") || 
+        lowerContent.includes("appreciate") || lowerContent.includes("blessed")) {
+      insights.push("🌟 Gratitude practice detected - great for mental well-being!");
     }
     
-    if (mood <= 3) {
-      insights.push("Consider reaching out to a support system or trying a relaxation technique.");
+    // Mood-based insights
+    if (mood <= 2) {
+      insights.push("💙 Consider reaching out to a support system or trying a relaxation technique.");
+    } else if (mood >= 5) {
+      insights.push("😊 You're feeling great today - this positive energy is wonderful!");
     }
     
-    if (content.toLowerCase().includes("goal") || content.toLowerCase().includes("plan")) {
-      insights.push("Goal-setting mindset - keep up the positive planning!");
+    // Goal-setting detection
+    if (lowerContent.includes("goal") || lowerContent.includes("plan") || 
+        lowerContent.includes("achieve") || lowerContent.includes("target")) {
+      insights.push("🎯 Goal-setting mindset - keep up the positive planning!");
     }
     
-    if (content.length > 200) {
-      insights.push("Detailed reflection - this depth of thinking is valuable for self-awareness.");
+    // Stress/anxiety detection
+    if (lowerContent.includes("stress") || lowerContent.includes("anxiety") || 
+        lowerContent.includes("worried") || lowerContent.includes("overwhelmed")) {
+      insights.push("🧘 Consider trying mindfulness exercises or deep breathing techniques.");
+    }
+    
+    // Relationships detection
+    if (lowerContent.includes("friend") || lowerContent.includes("family") || 
+        lowerContent.includes("relationship") || lowerContent.includes("love")) {
+      insights.push("💕 Relationships are important for well-being - nurture these connections.");
+    }
+    
+    // Achievement detection
+    if (lowerContent.includes("accomplish") || lowerContent.includes("success") || 
+        lowerContent.includes("proud") || lowerContent.includes("achieved")) {
+      insights.push("🏆 Celebrating your achievements is important for motivation!");
+    }
+    
+    // Detailed reflection
+    if (content.length > 300) {
+      insights.push("📝 Detailed reflection - this depth of thinking is valuable for self-awareness.");
+    }
+    
+    // Exercise/physical activity
+    if (lowerContent.includes("exercise") || lowerContent.includes("workout") || 
+        lowerContent.includes("run") || lowerContent.includes("walk")) {
+      insights.push("🏃 Physical activity is excellent for both mental and physical health!");
     }
     
     return insights;
@@ -218,11 +290,25 @@ export default function JournalingPage() {
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
-  const deleteEntry = (id: string) => {
+  const deleteEntry = async (id: string) => {
+    const entryToDelete = entries.find(entry => entry.id === id);
+    
+    // Remove from local state immediately
     const updatedEntries = entries.filter(entry => entry.id !== id);
     saveEntries(updatedEntries);
+    
     if (selectedEntry?.id === id) {
       setSelectedEntry(null);
+    }
+    
+    // Try to delete from backend
+    try {
+      const { backendService } = await import("@/lib/api/backend-service");
+      await backendService.deleteJournalEntry(id);
+      toast.success("Entry deleted successfully!");
+    } catch (error) {
+      console.error("Failed to delete entry from backend:", error);
+      toast.error("Entry deleted locally, but failed to sync with cloud.");
     }
   };
 
@@ -242,29 +328,52 @@ export default function JournalingPage() {
 
   return (
     <div className="container mx-auto px-4 py-20">
-      <div className="text-center mb-12">
-        <div className="flex items-center justify-center gap-4 mb-4">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-            AI Journal
-          </h1>
-          {/* Backend Connection Status */}
-          {backendConnected !== null && (
-            <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm ${
-              backendConnected 
-                ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
-            }`}>
-              <div className={`w-2 h-2 rounded-full ${
-                backendConnected ? 'bg-green-500' : 'bg-yellow-500'
-              }`} />
-              {backendConnected ? 'Cloud Sync' : 'Local Only'}
+        <div className="text-center mb-12">
+          <div className="flex items-center justify-center gap-4 mb-4">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+              AI Journal
+            </h1>
+            {/* Backend Connection Status */}
+            {backendConnected !== null && (
+              <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm ${
+                backendConnected 
+                  ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                  : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
+              }`}>
+                <div className={`w-2 h-2 rounded-full ${
+                  backendConnected ? 'bg-green-500' : 'bg-yellow-500'
+                }`} />
+                {backendConnected ? 'Cloud Sync' : 'Local Only'}
+              </div>
+            )}
+          </div>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-4">
+            Write freely, reflect deeply, and discover insights about your mental well-being
+          </p>
+          
+          {/* Stats */}
+          <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <NotebookPen className="w-4 h-4" />
+              <span>{entries.length} entries</span>
             </div>
-          )}
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4" />
+              <span>
+                {entries.length > 0 
+                  ? Math.round(entries.reduce((sum, entry) => sum + entry.mood, 0) / entries.length * 10) / 10
+                  : 0
+                } avg mood
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4" />
+              <span>
+                {entries.filter(entry => isToday(entry.createdAt)).length} today
+              </span>
+            </div>
+          </div>
         </div>
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-          Write freely, reflect deeply, and discover insights about your mental well-being
-        </p>
-      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* New Entry Form */}
@@ -389,10 +498,18 @@ export default function JournalingPage() {
                       ✓ Saved!
                     </motion.span>
                   )}
+                  {userTier === "free" && (
+                    <Badge variant="outline" className="text-xs">
+                      <Crown className="w-3 h-3 mr-1" />
+                      Premium for AI insights
+                    </Badge>
+                  )}
                 </div>
-                <span className="text-sm text-muted-foreground">
-                  {currentEntry.length} characters
-                </span>
+                <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                  <span>{currentEntry.length} characters</span>
+                  <span>•</span>
+                  <span>{currentEntry.split(' ').filter(word => word.length > 0).length} words</span>
+                </div>
               </div>
             </CardContent>
           </Card>
