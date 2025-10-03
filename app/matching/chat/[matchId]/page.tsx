@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { backendService } from "@/lib/api/backend-service";
 import { useSession } from "@/lib/contexts/session-context";
+import { logger } from "@/lib/utils/logger";
 import { toast } from "sonner";
 
 interface MatchedMessage {

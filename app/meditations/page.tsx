@@ -20,6 +20,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useSession } from "@/lib/hooks/use-session";
 import { toast } from "sonner";
+import { logger } from "@/lib/utils/logger";
 import { useAudioPlayer } from "@/lib/contexts/audio-player-context";
 import { LoadingDots } from "@/components/ui/loading-dots";
 import { PageLoading } from "@/components/ui/page-loading";
@@ -122,8 +123,8 @@ export default function MeditationsPage() {
       logger.debug('Loaded meditations:', normalized);
       
       // Check if any meditations have valid audio URLs
-      const validMeditations = normalized.filter(m => m.audioUrl);
-      logger.debug('Meditations with valid audio URLs:', validMeditations.length, 'out of', normalized.length);
+      const validMeditations = normalized.filter((m: Meditation) => m.audioUrl);
+      logger.debug(`Meditations with valid audio URLs: ${validMeditations.length} out of ${normalized.length}`);
       if (validMeditations.length > 0) {
         logger.debug('First valid meditation:', validMeditations[0]);
       }
