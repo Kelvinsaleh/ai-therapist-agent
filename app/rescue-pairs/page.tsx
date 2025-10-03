@@ -57,6 +57,13 @@ interface RescuePair {
   user2Id?: any;
   createdAt?: string;
   acceptedAt?: string;
+  // New anonymous matching fields
+  isAnonymous: boolean;
+  anonymousId?: string;
+  revealIdentity?: boolean;
+  chatEnabled: boolean;
+  lastMessage?: string;
+  unreadCount?: number;
 }
 
 export default function RescuePairsPage() {
@@ -68,8 +75,10 @@ export default function RescuePairsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filter, setFilter] = useState<"all" | "online" | "verified">("all");
+  const [filter, setFilter] = useState<"all" | "online" | "verified" | "anonymous">("all");
   const [showProfileSetup, setShowProfileSetup] = useState(false);
+  const [anonymousPreference, setAnonymousPreference] = useState<"anonymous" | "revealed" | "both">("both");
+  const [showAnonymousSettings, setShowAnonymousSettings] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -94,9 +103,9 @@ export default function RescuePairsPage() {
             id: pair._id,
             _id: pair._id,
             partnerId: partner?._id || partner?.id || 'unknown',
-            partnerName: partner?.name || "Anonymous User",
+            partnerName: pair.isAnonymous ? `Support Partner ${pair.anonymousId?.slice(-4) || '****'}` : (partner?.name || "Anonymous User"),
             partnerAge: 25, // Default age since not in user model
-            partnerBio: "Someone who understands your journey and is here to provide mutual support",
+            partnerBio: pair.isAnonymous ? "A supportive partner who shares similar experiences and is here to help" : "Someone who understands your journey and is here to provide mutual support",
             status: pair.status,
             lastActive: pair.acceptedAt ? new Date(pair.acceptedAt).toLocaleDateString() : "Recently",
             compatibility: pair.compatibilityScore || 85,
@@ -115,7 +124,14 @@ export default function RescuePairsPage() {
             user1Id: pair.user1Id,
             user2Id: pair.user2Id,
             createdAt: pair.createdAt,
-            acceptedAt: pair.acceptedAt
+            acceptedAt: pair.acceptedAt,
+            // Anonymous matching fields
+            isAnonymous: pair.isAnonymous || false,
+            anonymousId: pair.anonymousId,
+            revealIdentity: pair.revealIdentity || false,
+            chatEnabled: pair.chatEnabled !== false, // Default to true
+            lastMessage: pair.lastMessage,
+            unreadCount: pair.unreadCount || 0
           };
         });
         
@@ -183,7 +199,7 @@ export default function RescuePairsPage() {
     }
   };
 
-  const findNewMatch = async () => {
+  const findNewMatch = async (isAnonymous: boolean = false) => {
     if (userTier === "free") {
       toast.error("Premium matching is available with Premium Plan. Upgrade for unlimited matches!");
       return;
@@ -199,19 +215,25 @@ export default function RescuePairsPage() {
       
       // The backend findMatches endpoint doesn't need preferences in the body
       // It uses the user's profile and preferences automatically
-      const response = await backendService.findMatches();
+      const response = await backendService.findMatches({
+        anonymous: isAnonymous,
+        preference: anonymousPreference
+      });
       
       if (response.success && response.data) {
         const matches = response.data.matches || []; // Backend returns { matches: [...] }
         if (Array.isArray(matches) && matches.length > 0) {
           const matchCount = matches.length;
-          toast.success(`Found ${matchCount} potential support matches! 🤝`);
+          const matchType = isAnonymous ? "anonymous" : "revealed";
+          toast.success(`Found ${matchCount} potential ${matchType} support matches! 🤝`);
           
           // Create rescue pairs for the matches found
           for (const match of matches.slice(0, 3)) { // Limit to top 3 matches
             try {
               await backendService.createRescuePair({
                 targetUserId: match.userId?._id || match.userId?.id || match._id,
+                isAnonymous: isAnonymous,
+                anonymousId: isAnonymous ? `anon_${Date.now()}_${Math.random().toString(36).substr(2, 4)}` : undefined
               });
             } catch (createError) {
               console.log("Could not create rescue pair for match:", createError);
@@ -282,13 +304,46 @@ export default function RescuePairsPage() {
     }
   };
 
+  const revealIdentity = async (pairId: string) => {
+    try {
+      const response = await backendService.revealIdentity(pairId);
+      
+      if (response.success) {
+        toast.success("Identity revealed! Your partner can now see your name and profile.");
+        loadRescuePairs();
+      } else {
+        throw new Error(response.error || "Failed to reveal identity");
+      }
+    } catch (error) {
+      console.error("Failed to reveal identity:", error);
+      toast.error("Failed to reveal identity. Please try again.");
+    }
+  };
+
+  const enableChat = async (pairId: string) => {
+    try {
+      const response = await backendService.enableChat(pairId);
+      
+      if (response.success) {
+        toast.success("Chat enabled! You can now communicate with your support partner.");
+        loadRescuePairs();
+      } else {
+        throw new Error(response.error || "Failed to enable chat");
+      }
+    } catch (error) {
+      console.error("Failed to enable chat:", error);
+      toast.error("Failed to enable chat. Please try again.");
+    }
+  };
+
   const filteredPairs = pairs.filter(pair => {
     const matchesSearch = pair.partnerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          pair.partnerBio.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesFilter = filter === "all" || 
                          (filter === "online" && pair.status === "active") ||
-                         (filter === "verified" && pair.isVerified);
+                         (filter === "verified" && pair.isVerified) ||
+                         (filter === "anonymous" && pair.isAnonymous);
     
     return matchesSearch && matchesFilter;
   });
@@ -346,8 +401,20 @@ export default function RescuePairsPage() {
               <Crown className="w-3 h-3 mr-1" />
               {userTier === "premium" ? "Premium Plan" : "Free Plan"}
             </Badge>
+            
+            {userTier === "premium" && (
+              <Button
+                variant="outline"
+                onClick={() => setShowAnonymousSettings(true)}
+                className="flex items-center gap-2"
+              >
+                <Shield className="w-4 h-4" />
+                Anonymous Settings
+              </Button>
+            )}
+            
             <Button
-              onClick={userTier === "premium" ? findNewMatch : () => router.push("/pricing")}
+              onClick={userTier === "premium" ? () => findNewMatch(false) : () => router.push("/pricing")}
               disabled={isLoading}
               className="flex items-center gap-2"
             >
@@ -360,6 +427,18 @@ export default function RescuePairsPage() {
               )}
               {userTier === "premium" ? "Find Match" : "Upgrade for Unlimited"}
             </Button>
+            
+            {userTier === "premium" && (
+              <Button
+                variant="outline"
+                onClick={() => findNewMatch(true)}
+                disabled={isLoading}
+                className="flex items-center gap-2"
+              >
+                <Shield className="w-4 h-4" />
+                Anonymous Match
+              </Button>
+            )}
           </div>
         </div>
 
@@ -553,7 +632,7 @@ export default function RescuePairsPage() {
             />
           </div>
           <div className="flex gap-2">
-            {["all", "online", "verified"].map((f) => (
+            {["all", "online", "verified", "anonymous"].map((f) => (
               <Button
                 key={f}
                 variant={filter === f ? "default" : "outline"}
@@ -561,7 +640,14 @@ export default function RescuePairsPage() {
                 onClick={() => setFilter(f as typeof filter)}
                 className="capitalize"
               >
-                {f}
+                {f === "anonymous" ? (
+                  <>
+                    <Shield className="w-3 h-3 mr-1" />
+                    Anonymous
+                  </>
+                ) : (
+                  f
+                )}
               </Button>
             ))}
           </div>
@@ -633,10 +719,21 @@ export default function RescuePairsPage() {
                         <Badge className={`text-xs ${getStatusColor(pair.status)}`}>
                           {pair.status}
                         </Badge>
-                        {pair.isVerified && (
+                        {pair.isAnonymous && (
+                          <Badge variant="outline" className="text-xs bg-blue-50 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
+                            <Shield className="w-3 h-3 mr-1" />
+                            Anonymous
+                          </Badge>
+                        )}
+                        {pair.isVerified && !pair.isAnonymous && (
                           <Badge variant="outline" className="text-xs">
                             <Shield className="w-3 h-3 mr-1" />
                             Verified
+                          </Badge>
+                        )}
+                        {pair.unreadCount > 0 && (
+                          <Badge variant="destructive" className="text-xs">
+                            {pair.unreadCount} new
                           </Badge>
                         )}
                       </div>
@@ -683,17 +780,46 @@ export default function RescuePairsPage() {
                     <div className="flex gap-2">
                       {pair.status === "active" ? (
                         <>
-                          <Button
-                            size="sm"
-                            className="flex-1"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              router.push(`/matching/chat/${pair.id}`);
-                            }}
-                          >
-                            <MessageSquare className="w-4 h-4 mr-2" />
-                            Chat
-                          </Button>
+                          {pair.chatEnabled ? (
+                            <Button
+                              size="sm"
+                              className="flex-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(`/matching/chat/${pair.id}`);
+                              }}
+                            >
+                              <MessageSquare className="w-4 h-4 mr-2" />
+                              {pair.unreadCount > 0 ? `Chat (${pair.unreadCount})` : "Chat"}
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              className="flex-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                enableChat(pair.id);
+                              }}
+                            >
+                              <MessageSquare className="w-4 h-4 mr-2" />
+                              Enable Chat
+                            </Button>
+                          )}
+                          
+                          {pair.isAnonymous && !pair.revealIdentity && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                revealIdentity(pair.id);
+                              }}
+                            >
+                              <Shield className="w-4 h-4 mr-1" />
+                              Reveal
+                            </Button>
+                          )}
+                          
                           {userTier === "premium" && (
                             <Button
                               size="sm"
@@ -803,6 +929,92 @@ export default function RescuePairsPage() {
                     variant="outline" 
                     onClick={() => setShowProfileSetup(false)}
                     disabled={isLoading}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Anonymous Settings Modal */}
+        {showAnonymousSettings && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <Card className="w-full max-w-md">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-primary" />
+                  Anonymous Matching Settings
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Choose your privacy preferences for support matching.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Matching Preference</label>
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="anonymousPreference"
+                          value="anonymous"
+                          checked={anonymousPreference === "anonymous"}
+                          onChange={(e) => setAnonymousPreference(e.target.value as any)}
+                          className="text-primary"
+                        />
+                        <span className="text-sm">Anonymous matches only</span>
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="anonymousPreference"
+                          value="revealed"
+                          checked={anonymousPreference === "revealed"}
+                          onChange={(e) => setAnonymousPreference(e.target.value as any)}
+                          className="text-primary"
+                        />
+                        <span className="text-sm">Revealed identity matches only</span>
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="anonymousPreference"
+                          value="both"
+                          checked={anonymousPreference === "both"}
+                          onChange={(e) => setAnonymousPreference(e.target.value as any)}
+                          className="text-primary"
+                        />
+                        <span className="text-sm">Both anonymous and revealed matches</span>
+                      </label>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                    <div className="flex items-start gap-2">
+                      <Shield className="w-4 h-4 text-blue-600 mt-0.5" />
+                      <div className="text-sm">
+                        <p className="font-medium text-blue-800 dark:text-blue-400">Anonymous Matching</p>
+                        <p className="text-blue-700 dark:text-blue-300">
+                          Your identity remains hidden until you choose to reveal it. You can communicate safely while maintaining privacy.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={() => setShowAnonymousSettings(false)}
+                    className="flex-1"
+                  >
+                    Save Settings
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowAnonymousSettings(false)}
                   >
                     Cancel
                   </Button>
