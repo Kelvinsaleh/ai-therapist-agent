@@ -16,7 +16,8 @@ import {
   Shuffle,
   Loader2
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -45,8 +46,26 @@ export function MeditationsFloatingPlayer() {
 
   const [showVolume, setShowVolume] = useState(false);
   const [showPlaylist, setShowPlaylist] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const pathname = usePathname();
 
-  if (!currentTrack) return null;
+  // Hide player when navigating away from meditations page
+  useEffect(() => {
+    if (pathname !== '/meditations') {
+      setIsVisible(false);
+    } else if (currentTrack) {
+      setIsVisible(true);
+    }
+  }, [pathname, currentTrack]);
+
+  // Show player when track starts playing on meditations page
+  useEffect(() => {
+    if (currentTrack && pathname === '/meditations') {
+      setIsVisible(true);
+    }
+  }, [currentTrack, pathname]);
+
+  if (!currentTrack || !isVisible) return null;
 
   const formatTime = (seconds: number) => {
     if (isNaN(seconds) || !isFinite(seconds)) return '0:00';
