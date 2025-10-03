@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "./theme-toggle";
 import { SignInButton } from "@/components/auth/sign-in-button";
+import { MentalHealthData } from "@/components/mental-health-data";
 // import { WhatsAppStyleMenu } from "@/components/whatsapp-style-menu";
 import { useSession } from "@/lib/contexts/session-context";
 
@@ -68,6 +69,13 @@ export function Header() {
             </nav>
 
             <div className="flex items-center gap-3">
+              {/* Mental Health Data - only show for authenticated users */}
+              {isAuthenticated && (
+                <div className="hidden lg:block">
+                  <MentalHealthData compact={true} showInsights={false} />
+                </div>
+              )}
+              
               <ThemeToggle />
 
               {/* Mobile menu button */}
@@ -125,6 +133,12 @@ export function Header() {
             
             {/* Menu content */}
             <div className="md:hidden border-t border-primary/10 bg-background/98 backdrop-blur-sm relative z-[95]">
+              {/* Mental Health Data for mobile */}
+              {isAuthenticated && (
+                <div className="p-4 border-b border-primary/10">
+                  <MentalHealthData compact={true} showInsights={false} />
+                </div>
+              )}
               <nav className="flex flex-col space-y-1 py-4">
               {navItems.map((item) => (
                 <Link

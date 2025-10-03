@@ -3,40 +3,25 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 
-  Brain, 
   MessageSquare, 
   PlusCircle, 
   Loader2,
-  Heart,
-  Activity,
-  TrendingUp,
-  Calendar,
-  BookOpen,
-  Lightbulb,
   Send,
   Bot,
   User,
   Sparkles,
-  X,
-  Trophy,
-  Star,
-  Clock,
-  Smile,
   Mic,
   MicOff
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
-import { userMemoryManager, UserMemory } from "@/lib/memory/user-memory";
-import { format } from "date-fns";
+import { userMemoryManager } from "@/lib/memory/user-memory";
 import { useSession } from "@/lib/contexts/session-context";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistanceToNow } from "date-fns";
-import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import {
   createChatSession,
@@ -91,9 +76,7 @@ export default function MemoryEnhancedTherapyPage() {
   const params = useParams();
   const router = useRouter();
   const { user, loading: authLoading, isAuthenticated } = useSession();
-  const [userMemory, setUserMemory] = useState<UserMemory | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [showMemoryStats, setShowMemoryStats] = useState(true);
   
   // Chat state
   const [message, setMessage] = useState("");
@@ -117,7 +100,6 @@ export default function MemoryEnhancedTherapyPage() {
   const userId = user?._id || "";
 
   useEffect(() => {
-    loadUserMemory();
     setMounted(true);
   }, [userId]);
 
@@ -168,18 +150,6 @@ export default function MemoryEnhancedTherapyPage() {
     }
   }, []);
 
-  const loadUserMemory = async () => {
-    try {
-      setIsLoading(true);
-      if (!userId) return;
-      const memory = await userMemoryManager.loadUserMemory(userId);
-      setUserMemory(memory);
-    } catch (error) {
-      console.error("Failed to load user memory:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const loadSubscription = async () => {
     try {
@@ -382,8 +352,6 @@ export default function MemoryEnhancedTherapyPage() {
         summary: `Discussed: ${extractTopics(currentMessage).join(', ')}`
       });
 
-      // Reload memory
-      await loadUserMemory();
 
     } catch (error) {
       console.error("Error in chat", { error });
@@ -499,24 +467,6 @@ export default function MemoryEnhancedTherapyPage() {
     }
   };
 
-  const getMemoryStats = () => {
-    if (!userMemory) return null;
-
-    return {
-      journalEntries: userMemory.journalEntries.length,
-      meditationSessions: userMemory.meditationHistory.length,
-      therapySessions: userMemory.therapySessions.length,
-      insights: userMemory.insights.length,
-      recentMood: userMemory.moodPatterns[userMemory.moodPatterns.length - 1]?.mood || 3,
-      moodTrend: userMemory.moodPatterns.length >= 7 ? 
-        (userMemory.moodPatterns.slice(-7).reduce((sum, p) => sum + p.mood, 0) / 7) : 3
-    };
-  };
-
-  const getRecentInsights = () => {
-    if (!userMemory) return [];
-    return userMemory.insights.slice(-3);
-  };
 
   if (authLoading) {
     return (
@@ -548,8 +498,6 @@ export default function MemoryEnhancedTherapyPage() {
     );
   }
 
-  const stats = getMemoryStats();
-  const recentInsights = getRecentInsights();
 
   return (
     <div className="relative max-w-7xl mx-auto px-4">
@@ -563,18 +511,18 @@ export default function MemoryEnhancedTherapyPage() {
             onClick={() => setIsSidebarOpen((p) => !p)}
             className="gap-2"
           >
-            <Brain className="w-4 h-4" />
-            {isSidebarOpen ? "Hide Stats" : "Show Stats"}
+            <MessageSquare className="w-4 h-4" />
+            {isSidebarOpen ? "Hide Sessions" : "Show Sessions"}
           </Button>
         </div>
       </div>
 
       <div className="flex h-[calc(100vh-4rem)] mt-20 gap-6 pb-20">
-        {/* Memory Stats Sidebar */}
+        {/* Sessions Sidebar */}
         <div
           className={cn(
             "flex flex-col border-r bg-muted/30 md:w-80 md:static md:translate-x-0 transition-transform duration-200",
-            isSidebarOpen || showMemoryStats
+            isSidebarOpen
               ? "fixed inset-y-20 left-0 right-0 z-40 translate-x-0 md:static md:inset-auto"
               : "fixed inset-y-20 left-0 right-0 z-40 -translate-x-full md:translate-x-0 md:static md:inset-auto"
           )}
@@ -582,8 +530,8 @@ export default function MemoryEnhancedTherapyPage() {
           <div className="p-4 border-b">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold flex items-center gap-2">
-                <Brain className="w-5 h-5 text-primary" />
-                Memory Stats
+                <MessageSquare className="w-5 h-5 text-primary" />
+                Chat Sessions
               </h2>
               <Button
                 variant="ghost"
@@ -625,91 +573,6 @@ export default function MemoryEnhancedTherapyPage() {
 
           <ScrollArea className="flex-1 p-4">
             <div className="space-y-4">
-              {stats && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Brain className="w-5 h-5 text-primary" />
-                      Your Mental Health Data
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-primary">{stats.journalEntries}</div>
-                        <div className="text-xs text-muted-foreground">Journal Entries</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-blue-500">{stats.meditationSessions}</div>
-                        <div className="text-xs text-muted-foreground">Meditations</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-green-500">{stats.therapySessions}</div>
-                        <div className="text-xs text-muted-foreground">Therapy Sessions</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-yellow-500">{stats.insights}</div>
-                        <div className="text-xs text-muted-foreground">AI Insights</div>
-                      </div>
-                    </div>
-                    
-                    <div className="pt-4 border-t">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium">Current Mood</span>
-                        <span className={`text-sm font-bold ${
-                          stats.recentMood <= 2 ? 'text-red-500' : 
-                          stats.recentMood <= 4 ? 'text-yellow-500' : 'text-green-500'
-                        }`}>
-                          {stats.recentMood}/6
-                        </span>
-                      </div>
-                      <div className="w-full bg-muted rounded-full h-2">
-                        <div 
-                          className={`h-2 rounded-full ${
-                            stats.recentMood <= 2 ? 'bg-red-500' : 
-                            stats.recentMood <= 4 ? 'bg-yellow-500' : 'bg-green-500'
-                          }`}
-                          style={{ width: `${(stats.recentMood / 6) * 100}%` }}
-                        />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {recentInsights.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Lightbulb className="w-5 h-5 text-yellow-500" />
-                      Recent Insights
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {recentInsights.map((insight, index) => (
-                      <div key={index} className="p-3 bg-muted/50 rounded-lg">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Badge 
-                            variant={
-                              insight.type === 'achievement' ? 'default' :
-                              insight.type === 'concern' ? 'destructive' :
-                              insight.type === 'breakthrough' ? 'secondary' : 'outline'
-                            }
-                            className="text-xs"
-                          >
-                            {insight.type}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground">
-                            {format(insight.date, 'MMM dd')}
-                          </span>
-                        </div>
-                        <p className="text-sm">{insight.content}</p>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              )}
-
               {sessions.map((session) => (
                 <div
                   key={session.sessionId}
