@@ -46,13 +46,6 @@ export default function MeditationsPage() {
   const [userTier, setUserTier] = useState<"free" | "premium">("free");
   
   // Use ONLY the global audio player - no local audio state
-  const audioPlayer = useAudioPlayer();
-  
-  if (!audioPlayer) {
-    console.error('Audio player context not available');
-    return <div>Audio player not available</div>;
-  }
-  
   const { 
     play, 
     pause, 
@@ -77,7 +70,7 @@ export default function MeditationsPage() {
     loadSavedPlaylists,
     savePlaylistToMongoDB,
     loadPlaylistFromMongoDB
-  } = audioPlayer;
+  } = useAudioPlayer();
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -210,19 +203,12 @@ export default function MeditationsPage() {
 
     console.log('Calling play with:', meditationForPlayer);
 
-    // Use the global audio player for background playback
-    console.log('Current track:', currentTrack);
-    console.log('Meditation ID:', meditation.id);
-    console.log('Current track ID:', currentTrack?._id);
-    
-    if (currentTrack?._id === meditation.id) {
-      console.log('Toggling play/pause for current track');
-      // Same track - toggle play/pause
-      togglePlayPause();
-    } else {
-      console.log('Playing new track');
-      // New track - play it (will continue playing when navigating away)
+    // Always call play - let the audio player handle the logic
+    try {
       play(meditationForPlayer);
+    } catch (error) {
+      console.error('Error calling play:', error);
+      toast.error('Failed to start playback');
     }
   };
 
@@ -421,7 +407,9 @@ export default function MeditationsPage() {
 
                       <div className="flex gap-2">
                         <Button
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
                             console.log('Play button clicked for:', meditation.id);
                             handlePlay(meditation.id);
                           }}

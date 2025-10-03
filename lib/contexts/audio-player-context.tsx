@@ -193,42 +193,65 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     audioRef.current.src = meditation.audioUrl;
     audioRef.current.load();
     
-    // Wait for audio to be ready
-    const handleCanPlay = () => {
-      if (audioRef.current) {
-        audioRef.current.removeEventListener('canplay', handleCanPlay);
-        console.log('Audio ready, starting playback');
-        audioRef.current.play()
-          .then(() => {
-            setCurrentTrack(meditation);
-            setIsPlaying(true);
-            setIsLoading(false);
-            console.log('Playback started successfully');
-            
-            // Update current index if track is in playlist
-            const index = playlist.findIndex(m => m._id === meditation._id);
-            if (index !== -1) {
-              setCurrentIndex(index);
+    // Try to play immediately, then handle events
+    const attemptPlay = () => {
+      if (!audioRef.current) return;
+      
+      audioRef.current.play()
+        .then(() => {
+          setCurrentTrack(meditation);
+          setIsPlaying(true);
+          setIsLoading(false);
+          console.log('Playback started successfully');
+          
+          // Update current index if track is in playlist
+          const index = playlist.findIndex(m => m._id === meditation._id);
+          if (index !== -1) {
+            setCurrentIndex(index);
+          }
+        })
+        .catch((error) => {
+          console.error('Initial play failed:', error);
+          // Wait for audio to be ready
+          const handleCanPlay = () => {
+            if (audioRef.current) {
+              audioRef.current.removeEventListener('canplay', handleCanPlay);
+              console.log('Audio ready, retrying playback');
+              audioRef.current.play()
+                .then(() => {
+                  setCurrentTrack(meditation);
+                  setIsPlaying(true);
+                  setIsLoading(false);
+                  console.log('Playback started successfully after retry');
+                  
+                  // Update current index if track is in playlist
+                  const index = playlist.findIndex(m => m._id === meditation._id);
+                  if (index !== -1) {
+                    setCurrentIndex(index);
+                  }
+                })
+                .catch((retryError) => {
+                  console.error('Retry play failed:', retryError);
+                  setIsPlaying(false);
+                  setIsLoading(false);
+                  toast.error('Failed to play meditation. Please check your internet connection.');
+                });
             }
-          })
-          .catch((error) => {
-            console.error('Play failed:', error);
-            setIsPlaying(false);
-            setIsLoading(false);
-            toast.error('Failed to play meditation. Please check your internet connection.');
-          });
-      }
+          };
+
+          audioRef.current.addEventListener('canplay', handleCanPlay);
+          
+          // Fallback timeout in case canplay doesn't fire
+          setTimeout(() => {
+            if (audioRef.current) {
+              audioRef.current.removeEventListener('canplay', handleCanPlay);
+              setIsLoading(false);
+            }
+          }, 5000);
+        });
     };
 
-    audioRef.current.addEventListener('canplay', handleCanPlay);
-    
-    // Fallback timeout in case canplay doesn't fire
-    setTimeout(() => {
-      if (audioRef.current && !audioRef.current.paused) {
-        audioRef.current.removeEventListener('canplay', handleCanPlay);
-        setIsLoading(false);
-      }
-    }, 5000);
+    attemptPlay();
   }, [currentTrack, playlist]);
 
   const pause = () => {
@@ -377,9 +400,14 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
-    audioRef.current = new Audio();
+    // Create audio element if it doesn't exist
+    if (!audioRef.current) {
+      audioRef.current = new Audio();
+    }
+    
     audioRef.current.volume = volume;
     audioRef.current.preload = 'metadata';
+    audioRef.current.crossOrigin = 'anonymous';
 
     const audio = audioRef.current;
 
@@ -453,8 +481,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('error', handleError);
-      if (!audioRef.current) return;
-      audioRef.current.pause();
+      // Don't pause audio on cleanup - let it continue playing
     };
   }, [playlist, currentIndex, playNext]);
 
