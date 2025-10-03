@@ -54,6 +54,7 @@ import { useSession } from "@/lib/contexts/session-context";
 import { toast } from "sonner";
 import { backendService } from "@/lib/api/backend-service";
 import { logger } from "@/lib/utils/logger";
+import { LoadingDots } from "@/components/ui/loading-dots";
 
 type SpeechRecognitionEventLike = {
   results: {
@@ -919,16 +920,21 @@ export default function TherapyPage() {
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="px-6 py-8 flex gap-4 bg-muted/30"
+                    className="py-6 bg-muted/20"
                   >
-                    <div className="w-8 h-8 shrink-0">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center ring-1 ring-primary/20">
-                        <Loader2 className="w-4 h-4 animate-spin" />
+                    <div className="flex gap-4 max-w-3xl mx-auto px-4">
+                      <div className="w-10 h-10 shrink-0">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center ring-1 ring-primary/20">
+                          <Bot className="w-6 h-6" />
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex-1 space-y-2">
-                      <p className="font-medium text-sm">AI Therapist</p>
-                      <p className="text-sm text-muted-foreground">Typing...</p>
+                      <div className="flex-1 space-y-3">
+                        <p className="font-medium text-base">AI Therapist</p>
+                        <div className="flex items-center gap-2">
+                          <LoadingDots size="sm" color="primary" />
+                          <span className="text-sm text-muted-foreground">Thinking...</span>
+                        </div>
+                      </div>
                     </div>
                   </motion.div>
                 )}

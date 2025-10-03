@@ -33,6 +33,7 @@ import {
 } from "@/lib/api/chat";
 import { backendService } from "@/lib/api/backend-service";
 import { logger } from "@/lib/utils/logger";
+import { LoadingDots } from "@/components/ui/loading-dots";
 
 // TypeScript declarations for Speech Recognition
 declare global {
@@ -820,11 +821,7 @@ export default function MemoryEnhancedTherapyPage() {
                       <div className="flex-1 space-y-3">
                         <p className="font-medium text-base">AI Therapist</p>
                         <div className="flex items-center gap-2">
-                          <div className="flex gap-1">
-                            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                          </div>
+                          <LoadingDots size="sm" color="primary" />
                           <span className="text-sm text-muted-foreground">Thinking...</span>
                         </div>
                       </div>
