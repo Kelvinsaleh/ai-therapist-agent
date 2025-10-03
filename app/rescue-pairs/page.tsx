@@ -29,6 +29,14 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { 
+  rescuePairsProductionConfig, 
+  logRescuePairsEvent, 
+  retryRescuePairsOperation,
+  RescuePairsError,
+  checkSpecialAccess,
+  canAccessFeature
+} from "@/lib/rescue-pairs/production-config";
 
 interface RescuePair {
   id: string;
@@ -200,8 +208,17 @@ export default function RescuePairsPage() {
   };
 
   const findNewMatch = async (isAnonymous: boolean = false) => {
-    if (userTier === "free") {
+    // Check access permissions
+    const hasSpecialAccess = user?.email ? checkSpecialAccess(user.email) : false;
+    const canFindMatches = hasSpecialAccess || canAccessFeature('unlimitedMatches', user?.email, userTier);
+    
+    if (!canFindMatches) {
       toast.error("Premium matching is available with Premium Plan. Upgrade for unlimited matches!");
+      logRescuePairsEvent('access_denied', { 
+        userTier, 
+        hasSpecialAccess, 
+        feature: 'unlimitedMatches' 
+      }, 'warn', user?._id);
       return;
     }
 
@@ -210,33 +227,60 @@ export default function RescuePairsPage() {
       return;
     }
 
+    // Check anonymous matching access
+    if (isAnonymous && !hasSpecialAccess && !canAccessFeature('anonymousMatching', user?.email, userTier)) {
+      toast.error("Anonymous matching is a premium feature. Upgrade to access!");
+      return;
+    }
+
     try {
       setIsLoading(true);
       
-      // The backend findMatches endpoint doesn't need preferences in the body
-      // It uses the user's profile and preferences automatically
-      const response = await backendService.findMatches({
-        anonymous: isAnonymous,
-        preference: anonymousPreference
+      logRescuePairsEvent('find_matches_started', {
+        isAnonymous,
+        preference: anonymousPreference,
+        userTier,
+        hasSpecialAccess
+      }, 'info', user?._id);
+      
+      // Use retry mechanism for production reliability
+      const response = await retryRescuePairsOperation(async () => {
+        return await backendService.findMatches({
+          anonymous: isAnonymous,
+          preference: anonymousPreference
+        });
       });
       
       if (response.success && response.data) {
-        const matches = response.data.matches || []; // Backend returns { matches: [...] }
+        const matches = response.data.matches || [];
         if (Array.isArray(matches) && matches.length > 0) {
           const matchCount = matches.length;
           const matchType = isAnonymous ? "anonymous" : "revealed";
+          
+          logRescuePairsEvent('matches_found', {
+            count: matchCount,
+            type: matchType,
+            isAnonymous
+          }, 'info', user?._id);
+          
           toast.success(`Found ${matchCount} potential ${matchType} support matches! 🤝`);
           
           // Create rescue pairs for the matches found
-          for (const match of matches.slice(0, 3)) { // Limit to top 3 matches
+          const maxMatches = hasSpecialAccess ? 10 : 3; // Special access gets more matches
+          for (const match of matches.slice(0, maxMatches)) {
             try {
-              await backendService.createRescuePair({
-                targetUserId: match.userId?._id || match.userId?.id || match._id,
-                isAnonymous: isAnonymous,
-                anonymousId: isAnonymous ? `anon_${Date.now()}_${Math.random().toString(36).substr(2, 4)}` : undefined
+              await retryRescuePairsOperation(async () => {
+                return await backendService.createRescuePair({
+                  targetUserId: match.userId?._id || match.userId?.id || match._id,
+                  isAnonymous: isAnonymous,
+                  anonymousId: isAnonymous ? `anon_${Date.now()}_${Math.random().toString(36).substr(2, rescuePairsProductionConfig.anonymousMatching.anonymousIdLength)}` : undefined
+                });
               });
             } catch (createError) {
-              console.log("Could not create rescue pair for match:", createError);
+              logRescuePairsEvent('pair_creation_failed', {
+                error: createError instanceof Error ? createError.message : 'Unknown error',
+                matchId: match._id
+              }, 'error', user?._id);
               // Continue with other matches even if one fails
             }
           }
@@ -246,6 +290,7 @@ export default function RescuePairsPage() {
             loadRescuePairs();
           }, 1000);
         } else {
+          logRescuePairsEvent('no_matches_found', { isAnonymous }, 'info', user?._id);
           toast.info("No matches found right now. Our AI is continuously looking for compatible support partners!");
         }
       } else {
@@ -258,7 +303,19 @@ export default function RescuePairsPage() {
         }
       }
     } catch (error) {
-      console.error("Failed to find matches:", error);
+      const rescuePairsError = error instanceof RescuePairsError ? error : new RescuePairsError(
+        error instanceof Error ? error.message : 'Unknown error',
+        'FIND_MATCHES_FAILED',
+        500,
+        { isAnonymous, userTier }
+      );
+      
+      logRescuePairsEvent('find_matches_failed', {
+        error: rescuePairsError.message,
+        code: rescuePairsError.code,
+        isAnonymous
+      }, 'error', user?._id);
+      
       const errorMessage = error instanceof Error ? error.message : '';
       
       if (errorMessage.includes("profile not found") || errorMessage.includes("complete your profile")) {
@@ -397,12 +454,26 @@ export default function RescuePairsPage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <Badge variant={userTier === "premium" ? "default" : "secondary"} className="text-sm">
-              <Crown className="w-3 h-3 mr-1" />
-              {userTier === "premium" ? "Premium Plan" : "Free Plan"}
+            <Badge variant={
+              userTier === "special" ? "default" : 
+              userTier === "premium" ? "default" : "secondary"
+            } className={`text-sm ${
+              userTier === "special" ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white" : ""
+            }`}>
+              {userTier === "special" ? (
+                <>
+                  <Star className="w-3 h-3 mr-1" />
+                  Special Access
+                </>
+              ) : (
+                <>
+                  <Crown className="w-3 h-3 mr-1" />
+                  {userTier === "premium" ? "Premium Plan" : "Free Plan"}
+                </>
+              )}
             </Badge>
             
-            {userTier === "premium" && (
+            {(userTier === "premium" || userTier === "special") && (
               <Button
                 variant="outline"
                 onClick={() => setShowAnonymousSettings(true)}
@@ -414,21 +485,21 @@ export default function RescuePairsPage() {
             )}
             
             <Button
-              onClick={userTier === "premium" ? () => findNewMatch(false) : () => router.push("/pricing")}
+              onClick={(userTier === "premium" || userTier === "special") ? () => findNewMatch(false) : () => router.push("/pricing")}
               disabled={isLoading}
               className="flex items-center gap-2"
             >
               {isLoading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
-              ) : userTier === "premium" ? (
+              ) : (userTier === "premium" || userTier === "special") ? (
                 <Plus className="w-4 h-4" />
               ) : (
                 <Crown className="w-4 h-4" />
               )}
-              {userTier === "premium" ? "Find Match" : "Upgrade for Unlimited"}
+              {(userTier === "premium" || userTier === "special") ? "Find Match" : "Upgrade for Unlimited"}
             </Button>
             
-            {userTier === "premium" && (
+            {(userTier === "premium" || userTier === "special") && (
               <Button
                 variant="outline"
                 onClick={() => findNewMatch(true)}
@@ -443,7 +514,7 @@ export default function RescuePairsPage() {
         </div>
 
         {/* Plan Comparison */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className={`grid grid-cols-1 ${userTier === "special" ? "md:grid-cols-3" : "md:grid-cols-2"} gap-6 mb-8`}>
           {/* Free Plan */}
           <Card className="border-2 border-muted">
             <CardHeader className="text-center pb-4">
@@ -516,6 +587,57 @@ export default function RescuePairsPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Special Access Plan */}
+          {userTier === "special" && (
+            <Card className="border-2 border-purple-500 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20">
+              <CardHeader className="text-center pb-4">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white">Special Access</Badge>
+                  <Star className="w-4 h-4 text-purple-500" />
+                </div>
+                <CardTitle className="text-lg">VIP Support</CardTitle>
+                <div className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  Unlimited Everything
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center gap-2 text-sm">
+                  <Star className="w-4 h-4 text-purple-500" />
+                  <span>Unlimited anonymous matches</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Video className="w-4 h-4 text-purple-500" />
+                  <span>Video calls (coming soon)</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Filter className="w-4 h-4 text-purple-500" />
+                  <span>Advanced matching filters</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Zap className="w-4 h-4 text-purple-500" />
+                  <span>Priority matching</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Heart className="w-4 h-4 text-purple-500" />
+                  <span>Daily check-ins</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <AlertTriangle className="w-4 h-4 text-purple-500" />
+                  <span>Enhanced crisis support</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Shield className="w-4 h-4 text-purple-500" />
+                  <span>Full anonymity control</span>
+                </div>
+                <div className="bg-purple-100 dark:bg-purple-900/30 p-2 rounded-lg mt-4">
+                  <p className="text-xs text-purple-800 dark:text-purple-200 text-center font-medium">
+                    🎉 You have special access to all features!
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Safety & Privacy Section */}
@@ -820,7 +942,7 @@ export default function RescuePairsPage() {
                             </Button>
                           )}
                           
-                          {userTier === "premium" && (
+                          {(userTier === "premium" || userTier === "special") && (
                             <Button
                               size="sm"
                               variant="outline"

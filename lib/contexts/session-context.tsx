@@ -26,7 +26,7 @@ interface User {
 interface SessionContextType {
   user: User | null;
   isAuthenticated: boolean;
-  userTier: "free" | "premium";
+  userTier: "free" | "premium" | "special";
   isLoading: boolean;
   loading: boolean;
   checkSession: () => Promise<void>;
@@ -42,7 +42,7 @@ const SessionContext = createContext<SessionContextType | undefined>(undefined);
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userTier, setUserTier] = useState<"free" | "premium">("free");
+  const [userTier, setUserTier] = useState<"free" | "premium" | "special">("free");
   const [isLoading, setIsLoading] = useState(true);
 
   const checkAuthStatus = async () => {
@@ -72,17 +72,22 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           
           // Get user tier/subscription status
           try {
-            const tierResponse = await fetch('https://hope-backend-2.onrender.com/subscription/status', {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-              },
-            });
-            
-            if (tierResponse.ok) {
-              const tierData = await tierResponse.json();
-              setUserTier(tierData.userTier || "free");
+            // Check for special access first
+            if (data.user?.email === 'knsalee@gmail.com') {
+              setUserTier("special");
             } else {
-              setUserTier("free");
+              const tierResponse = await fetch('https://hope-backend-2.onrender.com/subscription/status', {
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                },
+              });
+              
+              if (tierResponse.ok) {
+                const tierData = await tierResponse.json();
+                setUserTier(tierData.userTier || "free");
+              } else {
+                setUserTier("free");
+              }
             }
           } catch (error) {
             console.error("Error fetching user tier:", error);
