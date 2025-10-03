@@ -206,7 +206,11 @@ class UserMemoryManager {
           mood: entry.mood,
           tags: entry.tags,
           createdAt: entry.date,
-          insights: journalMemory.insights
+          insights: journalMemory.insights,
+          emotionalState: journalMemory.emotionalState,
+          keyThemes: journalMemory.keyThemes,
+          concerns: journalMemory.concerns,
+          achievements: journalMemory.achievements
         });
       }
     } catch (error) {

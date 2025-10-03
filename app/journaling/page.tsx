@@ -17,7 +17,8 @@ import {
   Plus,
   Edit,
   Trash2,
-  Crown
+  Crown,
+  AlertCircle
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -34,6 +35,10 @@ interface JournalEntry {
   tags: string[];
   createdAt: Date;
   insights?: string[];
+  emotionalState?: string;
+  keyThemes?: string[];
+  concerns?: string[];
+  achievements?: string[];
 }
 
 export default function JournalingPage() {
@@ -88,7 +93,11 @@ export default function JournalingPage() {
               mood: entry.mood,
               tags: entry.tags || [],
               createdAt: new Date(entry.createdAt),
-              insights: entry.insights || []
+              insights: entry.insights || [],
+              emotionalState: entry.emotionalState || "",
+              keyThemes: entry.keyThemes || [],
+              concerns: entry.concerns || [],
+              achievements: entry.achievements || []
             }));
             
             // Merge with local entries (backend takes precedence)
@@ -197,25 +206,39 @@ export default function JournalingPage() {
       console.error("Failed to add journal entry to memory:", error);
     }
 
-    // Save to backend
-    try {
-      const { backendService } = await import("@/lib/api/backend-service");
-      const response = await backendService.createJournalEntry({
-        title: entryTitle || `Entry ${format(new Date(), "MMM dd, yyyy")}`,
-        content: currentEntry,
-        mood,
-        tags,
-        createdAt: new Date(),
-        insights: generateInsights(currentEntry, mood)
-      });
-      
-      if (response.success) {
-        toast.success("Journal entry saved successfully!");
-      }
-    } catch (error) {
-      console.error("Failed to save journal entry to backend:", error);
-      toast.error("Failed to sync with cloud. Entry saved locally.");
-    }
+        // Save to backend with AI analysis
+        try {
+          const { backendService } = await import("@/lib/api/backend-service");
+          const insights = generateInsights(currentEntry, mood);
+          const emotionalState = analyzeEmotionalState(currentEntry, mood);
+          const keyThemes = extractKeyThemes(currentEntry);
+          const concerns = extractConcerns(currentEntry);
+          const achievements = extractAchievements(currentEntry);
+          
+          const response = await backendService.createJournalEntry({
+            title: entryTitle || `Entry ${format(new Date(), "MMM dd, yyyy")}`,
+            content: currentEntry,
+            mood,
+            tags,
+            createdAt: new Date(),
+            insights,
+            emotionalState,
+            keyThemes,
+            concerns,
+            achievements
+          });
+          
+          if (response.success) {
+            toast.success("Journal entry saved and analyzed successfully!");
+            // Update the entry with AI analysis
+            const updatedEntry = { ...newEntry, insights, emotionalState, keyThemes, concerns, achievements };
+            const updatedEntries = [updatedEntry, ...entries.slice(1)];
+            saveEntries(updatedEntries);
+          }
+        } catch (error) {
+          console.error("Failed to save journal entry to backend:", error);
+          toast.error("Failed to sync with cloud. Entry saved locally.");
+        }
     
     setCurrentEntry("");
     setEntryTitle("");
@@ -278,6 +301,84 @@ export default function JournalingPage() {
     }
     
     return insights;
+  };
+
+  const analyzeEmotionalState = (content: string, mood: number): string => {
+    const lowerContent = content.toLowerCase();
+    
+    if (mood <= 2) {
+      return "Low mood - may need support";
+    } else if (mood <= 4) {
+      return "Neutral to moderate mood";
+    } else {
+      return "Positive mood - feeling good";
+    }
+  };
+
+  const extractKeyThemes = (content: string): string[] => {
+    const themes = [];
+    const lowerContent = content.toLowerCase();
+    
+    if (lowerContent.includes("work") || lowerContent.includes("job") || lowerContent.includes("career")) {
+      themes.push("Work/Career");
+    }
+    if (lowerContent.includes("family") || lowerContent.includes("parent") || lowerContent.includes("sibling")) {
+      themes.push("Family");
+    }
+    if (lowerContent.includes("friend") || lowerContent.includes("social")) {
+      themes.push("Social Relationships");
+    }
+    if (lowerContent.includes("health") || lowerContent.includes("exercise") || lowerContent.includes("fitness")) {
+      themes.push("Health & Wellness");
+    }
+    if (lowerContent.includes("goal") || lowerContent.includes("plan") || lowerContent.includes("future")) {
+      themes.push("Goals & Planning");
+    }
+    if (lowerContent.includes("stress") || lowerContent.includes("anxiety") || lowerContent.includes("worry")) {
+      themes.push("Stress & Anxiety");
+    }
+    
+    return themes;
+  };
+
+  const extractConcerns = (content: string): string[] => {
+    const concerns = [];
+    const lowerContent = content.toLowerCase();
+    
+    if (lowerContent.includes("worried") || lowerContent.includes("concerned") || lowerContent.includes("anxious")) {
+      concerns.push("General anxiety");
+    }
+    if (lowerContent.includes("tired") || lowerContent.includes("exhausted") || lowerContent.includes("fatigue")) {
+      concerns.push("Fatigue");
+    }
+    if (lowerContent.includes("sad") || lowerContent.includes("depressed") || lowerContent.includes("down")) {
+      concerns.push("Low mood");
+    }
+    if (lowerContent.includes("stressed") || lowerContent.includes("overwhelmed")) {
+      concerns.push("Stress");
+    }
+    
+    return concerns;
+  };
+
+  const extractAchievements = (content: string): string[] => {
+    const achievements = [];
+    const lowerContent = content.toLowerCase();
+    
+    if (lowerContent.includes("accomplished") || lowerContent.includes("completed") || lowerContent.includes("finished")) {
+      achievements.push("Task completion");
+    }
+    if (lowerContent.includes("proud") || lowerContent.includes("success") || lowerContent.includes("achieved")) {
+      achievements.push("Personal success");
+    }
+    if (lowerContent.includes("learned") || lowerContent.includes("discovered") || lowerContent.includes("realized")) {
+      achievements.push("Learning & growth");
+    }
+    if (lowerContent.includes("helped") || lowerContent.includes("supported") || lowerContent.includes("gave")) {
+      achievements.push("Helping others");
+    }
+    
+    return achievements;
   };
 
   const addTag = (tag: string) => {
@@ -698,6 +799,58 @@ export default function JournalingPage() {
                           <div key={index} className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-md">
                             <p className="text-sm">{insight}</p>
                           </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {selectedEntry.emotionalState && (
+                    <div>
+                      <h4 className="font-medium mb-2 flex items-center gap-2">
+                        <Heart className="w-4 h-4 text-red-500" />
+                        Emotional State
+                      </h4>
+                      <p className="text-sm text-muted-foreground">{selectedEntry.emotionalState}</p>
+                    </div>
+                  )}
+                  
+                  {selectedEntry.keyThemes && selectedEntry.keyThemes.length > 0 && (
+                    <div>
+                      <h4 className="font-medium mb-2 flex items-center gap-2">
+                        <Brain className="w-4 h-4 text-blue-500" />
+                        Key Themes
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedEntry.keyThemes.map((theme, index) => (
+                          <Badge key={index} variant="secondary">{theme}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {selectedEntry.concerns && selectedEntry.concerns.length > 0 && (
+                    <div>
+                      <h4 className="font-medium mb-2 flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-orange-500" />
+                        Concerns
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedEntry.concerns.map((concern, index) => (
+                          <Badge key={index} variant="destructive" className="text-xs">{concern}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {selectedEntry.achievements && selectedEntry.achievements.length > 0 && (
+                    <div>
+                      <h4 className="font-medium mb-2 flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4 text-green-500" />
+                        Achievements
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedEntry.achievements.map((achievement, index) => (
+                          <Badge key={index} variant="default" className="text-xs bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">{achievement}</Badge>
                         ))}
                       </div>
                     </div>
