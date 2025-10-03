@@ -27,7 +27,7 @@ export default function LoginPage() {
     setError("");
     
     try {
-      console.log("Attempting login...");
+      logger.debug("Attempting login...");
       
       // Use the session context login method
       const success = await login(email, password);

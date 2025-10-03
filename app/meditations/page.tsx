@@ -119,13 +119,13 @@ export default function MeditationsPage() {
         createdAt: m.createdAt || "",
       }));
 
-      console.log('Loaded meditations:', normalized);
+      logger.debug('Loaded meditations:', normalized);
       
       // Check if any meditations have valid audio URLs
       const validMeditations = normalized.filter(m => m.audioUrl);
-      console.log('Meditations with valid audio URLs:', validMeditations.length, 'out of', normalized.length);
+      logger.debug('Meditations with valid audio URLs:', validMeditations.length, 'out of', normalized.length);
       if (validMeditations.length > 0) {
-        console.log('First valid meditation:', validMeditations[0]);
+        logger.debug('First valid meditation:', validMeditations[0]);
       }
 
       setMeditations(normalized);
@@ -168,7 +168,7 @@ export default function MeditationsPage() {
   }, [loadMeditations]);
 
   const handlePlay = async (meditationId: string) => {
-    console.log('Play button clicked for meditation:', meditationId);
+    logger.debug('Play button clicked for meditation:', meditationId);
     
     const meditation = meditations.find(m => m.id === meditationId);
     
@@ -178,7 +178,7 @@ export default function MeditationsPage() {
       return;
     }
 
-    console.log('Found meditation:', meditation);
+    logger.debug('Found meditation:', meditation);
 
     // Check if meditation is premium-only
     if (meditation.isPremium && userTier === "free") {
@@ -201,7 +201,7 @@ export default function MeditationsPage() {
       category: meditation.category
     };
 
-    console.log('Calling play with:', meditationForPlayer);
+    logger.debug('Calling play with:', meditationForPlayer);
 
     // Always call play - let the audio player handle the logic
     try {
@@ -410,7 +410,7 @@ export default function MeditationsPage() {
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            console.log('Play button clicked for:', meditation.id);
+                            logger.debug('Play button clicked for:', meditation.id);
                             handlePlay(meditation.id);
                           }}
                           className="flex-1"

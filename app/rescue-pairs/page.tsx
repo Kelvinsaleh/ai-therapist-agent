@@ -214,7 +214,7 @@ export default function RescuePairsPage() {
                 targetUserId: match.userId?._id || match.userId?.id || match._id,
               });
             } catch (createError) {
-              console.log("Could not create rescue pair for match:", createError);
+              logger.error("Could not create rescue pair for match:", createError);
               // Continue with other matches even if one fails
             }
           }

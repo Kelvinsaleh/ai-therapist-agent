@@ -22,10 +22,7 @@ export function Header() {
   const { isAuthenticated, logout, user } = useSession();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  // Simple debug log
-  if (process.env.NODE_ENV === 'development') {
-    console.debug("Header: Auth state:", { isAuthenticated, user: user ? { id: user.id, email: user.email } : null });
-  }
+  // Debug logging removed for cleaner terminal output
   
   const navItems = [
     { href: "/features", label: "Features" },

@@ -271,7 +271,7 @@ export default function MatchedChatPage() {
           toast.success("Video call initiated! Waiting for participant to join.");
           
           // In a real implementation, initialize WebRTC here
-          console.log('WebRTC signaling data:', result.data?.signaling);
+          logger.debug('WebRTC signaling data:', result.data?.signaling);
         } else {
           if (result.requiresPremium) {
             toast.error("Video calls require Premium subscription.");
