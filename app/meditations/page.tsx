@@ -119,6 +119,8 @@ export default function MeditationsPage() {
         createdAt: m.createdAt || "",
       }));
 
+      console.log('Loaded meditations:', normalized);
+
       setMeditations(normalized);
     } catch (e) {
       console.error("Error loading meditations:", e);
@@ -159,12 +161,17 @@ export default function MeditationsPage() {
   }, [loadMeditations]);
 
   const handlePlay = async (meditationId: string) => {
+    console.log('Play button clicked for meditation:', meditationId);
+    
     const meditation = meditations.find(m => m.id === meditationId);
     
     if (!meditation) {
+      console.error('Meditation not found:', meditationId);
       toast.error('Meditation not found');
       return;
     }
+
+    console.log('Found meditation:', meditation);
 
     // Check if meditation is premium-only
     if (meditation.isPremium && userTier === "free") {
@@ -174,6 +181,7 @@ export default function MeditationsPage() {
 
     // Check if audio URL is valid
     if (!meditation.audioUrl) {
+      console.error('No audio URL for meditation:', meditation);
       toast.error('Audio file not available');
       return;
     }
@@ -186,11 +194,15 @@ export default function MeditationsPage() {
       category: meditation.category
     };
 
+    console.log('Calling play with:', meditationForPlayer);
+
     // Use the global audio player for background playback
     if (currentTrack?._id === meditation.id) {
+      console.log('Toggling play/pause for current track');
       // Same track - toggle play/pause
       togglePlayPause();
     } else {
+      console.log('Playing new track');
       // New track - play it (will continue playing when navigating away)
       play(meditationForPlayer);
     }
@@ -391,7 +403,10 @@ export default function MeditationsPage() {
 
                       <div className="flex gap-2">
                         <Button
-                          onClick={() => handlePlay(meditation.id)}
+                          onClick={() => {
+                            console.log('Play button clicked for:', meditation.id);
+                            handlePlay(meditation.id);
+                          }}
                           className="flex-1"
                           disabled={meditation.isPremium && userTier === "free"}
                         >

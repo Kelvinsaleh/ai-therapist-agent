@@ -13,7 +13,8 @@ import {
   SkipForward, 
   SkipBack,
   List,
-  Shuffle
+  Shuffle,
+  Loader2
 } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -24,6 +25,7 @@ export function MeditationsFloatingPlayer() {
   const { 
     currentTrack, 
     isPlaying, 
+    isLoading,
     currentTime, 
     duration, 
     volume,
@@ -47,13 +49,15 @@ export function MeditationsFloatingPlayer() {
   if (!currentTrack) return null;
 
   const formatTime = (seconds: number) => {
-    if (isNaN(seconds)) return '0:00';
+    if (isNaN(seconds) || !isFinite(seconds)) return '0:00';
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const progress = duration > 0 && isFinite(duration) ? (currentTime / duration) * 100 : 0;
+  
+  console.log('Floating player progress:', { currentTime, duration, progress });
 
   return (
     <AnimatePresence>
@@ -96,8 +100,19 @@ export function MeditationsFloatingPlayer() {
                 )}
 
                 {/* Play/Pause */}
-                <Button size="icon" onClick={togglePlayPause} className="h-9 w-9 sm:h-10 sm:w-10">
-                  {isPlaying ? <Pause className="w-4 h-4 sm:w-5 sm:h-5" /> : <Play className="w-4 h-4 sm:w-5 sm:h-5" />}
+                <Button 
+                  size="icon" 
+                  onClick={togglePlayPause} 
+                  className="h-9 w-9 sm:h-10 sm:w-10"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
+                  ) : isPlaying ? (
+                    <Pause className="w-4 h-4 sm:w-5 sm:h-5" />
+                  ) : (
+                    <Play className="w-4 h-4 sm:w-5 sm:h-5" />
+                  )}
                 </Button>
 
                 {/* Next */}

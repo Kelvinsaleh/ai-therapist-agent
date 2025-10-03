@@ -23,6 +23,7 @@ interface Meditation {
 interface AudioPlayerContextType {
   currentTrack: Meditation | null;
   isPlaying: boolean;
+  isLoading: boolean;
   currentTime: number;
   duration: number;
   volume: number;
@@ -55,6 +56,7 @@ const AudioPlayerContext = createContext<AudioPlayerContextType | undefined>(und
 export function AudioPlayerProvider({ children }: { children: ReactNode }) {
   const [currentTrack, setCurrentTrack] = useState<Meditation | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolumeState] = useState(0.7);
@@ -153,32 +155,77 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
 
   // Define play function first
   const play = useCallback((meditation: Meditation) => {
-    if (!audioRef.current) return;
-
-    if (currentTrack?._id === meditation._id && audioRef.current.src) {
-      audioRef.current.play();
-      setIsPlaying(true);
+    if (typeof window === 'undefined' || !audioRef.current) {
+      console.error('Audio not available');
       return;
     }
 
+    // Check if audio URL is valid
+    if (!meditation.audioUrl) {
+      toast.error('Audio file not available');
+      return;
+    }
+
+    console.log('Playing meditation:', meditation.title, meditation.audioUrl);
+
+    if (currentTrack?._id === meditation._id && audioRef.current.src) {
+      console.log('Resuming current track');
+      audioRef.current.play()
+        .then(() => {
+          setIsPlaying(true);
+          console.log('Resume successful');
+        })
+        .catch((error) => {
+          console.error('Resume failed:', error);
+          toast.error('Failed to resume playback');
+        });
+      return;
+    }
+
+    // Set loading state
+    setIsPlaying(false);
+    setIsLoading(true);
+    
+    console.log('Loading new track:', meditation.audioUrl);
     audioRef.current.src = meditation.audioUrl;
     audioRef.current.load();
-    audioRef.current.play()
-      .then(() => {
-        setCurrentTrack(meditation);
-        setIsPlaying(true);
-        
-        // Update current index if track is in playlist
-        const index = playlist.findIndex(m => m._id === meditation._id);
-        if (index !== -1) {
-          setCurrentIndex(index);
-        }
-      })
-      .catch((error) => {
-        console.error('Play failed:', error);
-        setIsPlaying(false);
-        toast.error('Failed to play meditation');
-      });
+    
+    // Wait for audio to be ready
+    const handleCanPlay = () => {
+      if (audioRef.current) {
+        audioRef.current.removeEventListener('canplay', handleCanPlay);
+        console.log('Audio ready, starting playback');
+        audioRef.current.play()
+          .then(() => {
+            setCurrentTrack(meditation);
+            setIsPlaying(true);
+            setIsLoading(false);
+            console.log('Playback started successfully');
+            
+            // Update current index if track is in playlist
+            const index = playlist.findIndex(m => m._id === meditation._id);
+            if (index !== -1) {
+              setCurrentIndex(index);
+            }
+          })
+          .catch((error) => {
+            console.error('Play failed:', error);
+            setIsPlaying(false);
+            setIsLoading(false);
+            toast.error('Failed to play meditation. Please check your internet connection.');
+          });
+      }
+    };
+
+    audioRef.current.addEventListener('canplay', handleCanPlay);
+    
+    // Fallback timeout in case canplay doesn't fire
+    setTimeout(() => {
+      if (audioRef.current && !audioRef.current.paused) {
+        audioRef.current.removeEventListener('canplay', handleCanPlay);
+        setIsLoading(false);
+      }
+    }, 5000);
   }, [currentTrack, playlist]);
 
   const pause = () => {
@@ -204,6 +251,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
       setIsPlaying(false);
+      setIsLoading(false);
       setCurrentTime(0);
       setCurrentTrack(null);
       setCurrentIndex(-1);
@@ -214,6 +262,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     if (audioRef.current) {
       audioRef.current.currentTime = time;
       setCurrentTime(time);
+      console.log('Seeked to:', time);
     }
   };
 
@@ -323,13 +372,35 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
 
   // Set up audio element and event listeners
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     audioRef.current = new Audio();
     audioRef.current.volume = volume;
+    audioRef.current.preload = 'metadata';
 
     const audio = audioRef.current;
 
-    const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
-    const handleDurationChange = () => setDuration(audio.duration);
+    const handleTimeUpdate = () => {
+      if (audio && !isNaN(audio.currentTime)) {
+        setCurrentTime(audio.currentTime);
+        console.log('Time update:', audio.currentTime, 'Duration:', audio.duration);
+      }
+    };
+    
+    const handleDurationChange = () => {
+      if (audio && !isNaN(audio.duration) && audio.duration > 0) {
+        setDuration(audio.duration);
+        console.log('Duration changed to:', audio.duration);
+      }
+    };
+    
+    const handleLoadedMetadata = () => {
+      if (audio && !isNaN(audio.duration) && audio.duration > 0) {
+        setDuration(audio.duration);
+        console.log('Metadata loaded, duration:', audio.duration);
+      }
+    };
+    
     const handleEnded = () => {
       setIsPlaying(false);
       setCurrentTime(0);
@@ -341,17 +412,42 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     const handleError = (e: Event) => {
       console.error('Audio error:', e);
       setIsPlaying(false);
-      toast.error('Failed to load audio file');
+      setIsLoading(false);
+      const error = e.target as HTMLAudioElement;
+      let errorMessage = 'Failed to load audio file';
+      
+      if (error.error) {
+        switch (error.error.code) {
+          case 1: // MEDIA_ERR_ABORTED
+            errorMessage = 'Audio playback was aborted';
+            break;
+          case 2: // MEDIA_ERR_NETWORK
+            errorMessage = 'Network error while loading audio';
+            break;
+          case 3: // MEDIA_ERR_DECODE
+            errorMessage = 'Audio format not supported';
+            break;
+          case 4: // MEDIA_ERR_SRC_NOT_SUPPORTED
+            errorMessage = 'Audio source not supported';
+            break;
+          default:
+            errorMessage = 'Unknown audio error occurred';
+        }
+      }
+      
+      toast.error(errorMessage);
     };
 
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('durationchange', handleDurationChange);
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
     audio.addEventListener('ended', handleEnded);
     audio.addEventListener('error', handleError);
 
     return () => {
       audio.removeEventListener('timeupdate', handleTimeUpdate);
       audio.removeEventListener('durationchange', handleDurationChange);
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('error', handleError);
       if (!audioRef.current) return;
@@ -364,6 +460,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       value={{
         currentTrack,
         isPlaying,
+        isLoading,
         currentTime,
         duration,
         volume,
