@@ -43,7 +43,7 @@ class PaystackService {
     this.publicKey = this.config.paystack.publicKey;
     this.backendUrl = this.config.backend.apiUrl;
     
-    // Validate configuration in production
+    // Validate configuration in production (but not during build)
     if (process.env.NODE_ENV === 'production') {
       const validation = require('./production-config').validateProductionConfig();
       if (!validation.isValid) {

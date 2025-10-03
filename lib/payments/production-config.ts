@@ -80,6 +80,14 @@ export const productionConfig: ProductionPaymentConfig = {
 export function validateProductionConfig(): { isValid: boolean; errors: string[] } {
   const errors: string[] = [];
   
+  // Skip validation during build phase
+  if (process.env.NEXT_PHASE === 'phase-production-build' || process.env.VERCEL_ENV === 'preview') {
+    return {
+      isValid: true,
+      errors: []
+    };
+  }
+  
   // Check Paystack configuration
   if (!productionConfig.paystack.publicKey) {
     errors.push('NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY is required');
