@@ -15,15 +15,12 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "./theme-toggle";
 import { SignInButton } from "@/components/auth/sign-in-button";
 import { MentalHealthData } from "@/components/mental-health-data";
-// import { WhatsAppStyleMenu } from "@/components/whatsapp-style-menu";
 import { useSession } from "@/lib/contexts/session-context";
 
 export function Header() {
   const { isAuthenticated, logout, user } = useSession();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  // Debug logging removed for cleaner terminal output
-  
   const navItems = [
     { href: "/features", label: "Features" },
     { href: "/pricing", label: "Pricing" },
@@ -109,8 +106,6 @@ export function Header() {
                     <LogOut className="w-4 h-4 mr-2" />
                     Sign out
                   </Button>
-                  {/* WhatsApp Style Menu */}
-                  {/* <WhatsAppStyleMenu /> */}
                 </>
               ) : (
                 <SignInButton />
@@ -137,56 +132,56 @@ export function Header() {
                 </div>
               )}
               <nav className="flex flex-col space-y-1 py-4">
-              {navItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-primary/5 rounded-md transition-colors"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {item.label}
-                </Link>
-              ))}
-              {isAuthenticated && (
-                <>
-                  <Button
-                    asChild
-                    className="mt-2 mx-4 gap-2 bg-primary/90 hover:bg-primary"
+                {navItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-primary/5 rounded-md transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
                   >
-                    <Link href="/therapy/memory-enhanced" onClick={() => setIsMenuOpen(false)}>
-                      <MessageCircle className="w-4 h-4" />
-                      <span>Start Chat</span>
-                    </Link>
-                  </Button>
-                  {user?.email === "knsalee@gmail.com" && (
-                    <Link
-                      href="/admin/meditations"
-                      className="px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-primary/5 rounded-md transition-colors"
-                      onClick={() => setIsMenuOpen(false)}
+                    {item.label}
+                  </Link>
+                ))}
+                {isAuthenticated && (
+                  <>
+                    <Button
+                      asChild
+                      className="mt-2 mx-4 gap-2 bg-primary/90 hover:bg-primary"
                     >
-                      Admin
-                    </Link>
-                  )}
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      logout();
-                      setIsMenuOpen(false);
-                    }}
-                    className="mt-2 mx-4 text-muted-foreground hover:text-foreground"
-                  >
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Sign out
-                  </Button>
-                </>
-              )}
-              {!isAuthenticated && (
-                <div className="px-4 py-2">
-                  <SignInButton />
-                </div>
-              )}
-            </nav>
-          </div>
+                      <Link href="/therapy/memory-enhanced" onClick={() => setIsMenuOpen(false)}>
+                        <MessageCircle className="w-4 h-4" />
+                        <span>Start Chat</span>
+                      </Link>
+                    </Button>
+                    {user?.email === "knsalee@gmail.com" && (
+                      <Link
+                        href="/admin/meditations"
+                        className="px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-primary/5 rounded-md transition-colors"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Admin
+                      </Link>
+                    )}
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        logout();
+                        setIsMenuOpen(false);
+                      }}
+                      className="mt-2 mx-4 text-muted-foreground hover:text-foreground"
+                    >
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Sign out
+                    </Button>
+                  </>
+                )}
+                {!isAuthenticated && (
+                  <div className="px-4 py-2">
+                    <SignInButton />
+                  </div>
+                )}
+              </nav>
+            </div>
           </>
         )}
       </header>
