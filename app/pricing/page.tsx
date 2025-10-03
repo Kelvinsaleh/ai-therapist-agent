@@ -7,10 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Star, Zap, Heart, Shield, Users, Crown, Video, MessageSquare, Clock, AlertTriangle, Lock } from "lucide-react";
 import { paystackService, PaymentPlan } from "@/lib/payments/paystack-service";
+import { testPaymentService } from "@/lib/payments/test-payment";
 import { useSession } from "@/lib/contexts/session-context";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { feedback } from "@/lib/utils/feedback";
+import { PaymentDebugPanel } from "@/components/debug/payment-debug";
 
 export default function PricingPage() {
   const [isLoading, setIsLoading] = useState<string | null>(null);
@@ -26,6 +28,13 @@ export default function PricingPage() {
       return;
     }
 
+    // Validate user data
+    if (!user?.email || !user?._id) {
+      toast.error("User information is incomplete. Please sign in again.");
+      router.push("/login");
+      return;
+    }
+
     setIsLoading(planId);
     await feedback.buttonClick();
     
@@ -33,15 +42,76 @@ export default function PricingPage() {
     toast.loading("🔄 Initializing secure payment...");
     
     try {
-      const result = await paystackService.initializePayment(
-        user?.email || '',
+      console.log("Starting payment initialization:", {
+        email: user.email,
         planId,
-        user?._id || '',
+        userId: user._id,
+        paystackConfigured: paystackService.isConfigured()
+      });
+
+      // Check if Paystack is properly configured
+      if (!paystackService.isConfigured()) {
+        throw new Error("Payment system is not properly configured. Please contact support.");
+      }
+
+      let result = await paystackService.initializePayment(
+        user.email,
+        planId,
+        user._id,
         {
           source: 'pricing_page',
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          userAgent: navigator.userAgent,
+          referrer: window.location.href
         }
       );
+
+      console.log("Payment initialization result:", result);
+
+      // If backend payment fails, try direct Paystack initialization as fallback
+      if (!result.success && result.error?.includes('Backend')) {
+        console.log("Backend payment failed, trying direct Paystack initialization...");
+        toast.loading("🔄 Trying alternative payment method...");
+        
+        result = await paystackService.initializeDirectPayment(
+          user.email,
+          planId,
+          user._id,
+          {
+            source: 'pricing_page_fallback',
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent,
+            referrer: window.location.href
+          }
+        );
+        
+        console.log("Direct payment initialization result:", result);
+      }
+
+      // If direct Paystack also fails, try test mode (development only)
+      if (!result.success && testPaymentService.isEnabled()) {
+        console.log("Direct payment failed, trying test mode...");
+        toast.loading("🧪 Initializing test payment...");
+        
+        const testResult = await testPaymentService.initializeTestPayment(
+          user.email,
+          planId,
+          user._id,
+          {
+            source: 'pricing_page_test',
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent,
+            referrer: window.location.href
+          }
+        );
+        
+        if (testResult.success) {
+          result = testResult;
+          toast.info("🧪 Test Payment Mode - This is a simulated payment for development");
+        }
+        
+        console.log("Test payment initialization result:", testResult);
+      }
 
       if (result.success && result.authorization_url) {
         // Success feedback before redirect
@@ -50,26 +120,35 @@ export default function PricingPage() {
           duration: 2000 
         });
         
-        // Small delay for better UX
-        setTimeout(() => {
-          if (result.authorization_url) {
-            window.location.href = result.authorization_url;
-          } else {
-            toast.error("Payment URL not found. Please try again.");
-          }
-        }, 800);
+        // Immediate redirect to payment page
+        console.log("Redirecting to payment URL:", result.authorization_url);
+        window.location.href = result.authorization_url;
       } else {
         await feedback.error();
-        toast.error(result.error || "Failed to initialize payment");
+        console.error("Payment initialization failed:", result);
+        toast.error(result.error || "Failed to initialize payment. Please try again.");
       }
     } catch (error) {
       console.error("Subscription error:", error);
       await feedback.error();
-      toast.error("Something went wrong. Please try again.");
+      
+      // More specific error messages
+      if (error instanceof Error) {
+        if (error.message.includes("network") || error.message.includes("fetch")) {
+          toast.error("Network error. Please check your connection and try again.");
+        } else if (error.message.includes("configured")) {
+          toast.error("Payment system configuration error. Please contact support.");
+        } else {
+          toast.error(`Payment error: ${error.message}`);
+        }
+      } else {
+        toast.error("Something went wrong. Please try again.");
+      }
     } finally {
+      // Reset loading state after a short delay
       setTimeout(() => {
         setIsLoading(null);
-      }, 800);
+      }, 1000);
     }
   };
 
@@ -110,6 +189,15 @@ export default function PricingPage() {
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
             Connect with others who understand your journey and can provide mutual support on your mental health path
           </p>
+
+          {/* Payment Mode Indicator */}
+          {testPaymentService.isEnabled() && (
+            <div className="mb-6">
+              <Badge variant="outline" className="bg-yellow-50 text-yellow-800 border-yellow-200">
+                🧪 {testPaymentService.getStatusMessage()}
+              </Badge>
+            </div>
+          )}
 
           {/* Key Features */}
           <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-12">
@@ -353,6 +441,9 @@ export default function PricingPage() {
           </Card>
         </motion.div>
       </div>
+
+      {/* Debug Panel for Development */}
+      <PaymentDebugPanel />
     </div>
   );
 }

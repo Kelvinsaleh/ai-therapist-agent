@@ -245,8 +245,21 @@ class BackendService {
     return this.makeRequest('/rescue-pairs');
   }
 
-  async findMatches(preferences?: any): Promise<ApiResponse> {
-    return this.makeRequest('/rescue-pairs/matches');
+  async findMatches(options?: { 
+    anonymous?: boolean; 
+    preference?: string;
+    preferences?: any;
+  }): Promise<ApiResponse> {
+    const queryParams = new URLSearchParams();
+    if (options?.anonymous !== undefined) {
+      queryParams.append('anonymous', options.anonymous.toString());
+    }
+    if (options?.preference) {
+      queryParams.append('preference', options.preference);
+    }
+    
+    const endpoint = `/rescue-pairs/matches${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+    return this.makeRequest(endpoint);
   }
 
   async acceptMatch(pairId: string): Promise<ApiResponse> {
@@ -261,10 +274,20 @@ class BackendService {
     });
   }
 
-  async createRescuePair(data: { targetUserId: string; preferences?: any }): Promise<ApiResponse> {
+  async createRescuePair(data: { 
+    targetUserId: string; 
+    preferences?: any;
+    isAnonymous?: boolean;
+    anonymousId?: string;
+  }): Promise<ApiResponse> {
     return this.makeRequest('/rescue-pairs', {
       method: 'POST',
-      body: JSON.stringify({ targetUserId: data.targetUserId }),
+      body: JSON.stringify({ 
+        targetUserId: data.targetUserId,
+        isAnonymous: data.isAnonymous,
+        anonymousId: data.anonymousId,
+        preferences: data.preferences
+      }),
     });
   }
 
@@ -276,6 +299,18 @@ class BackendService {
     return this.makeRequest(`/rescue-pairs/${pairId}/status`, {
       method: 'PUT',
       body: JSON.stringify({ status }),
+    });
+  }
+
+  async revealIdentity(pairId: string): Promise<ApiResponse> {
+    return this.makeRequest(`/rescue-pairs/${pairId}/reveal`, {
+      method: 'POST',
+    });
+  }
+
+  async enableChat(pairId: string): Promise<ApiResponse> {
+    return this.makeRequest(`/rescue-pairs/${pairId}/enable-chat`, {
+      method: 'POST',
     });
   }
 

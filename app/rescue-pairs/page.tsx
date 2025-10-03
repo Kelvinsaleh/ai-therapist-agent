@@ -29,6 +29,14 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { 
+  rescuePairsProductionConfig, 
+  logRescuePairsEvent, 
+  retryRescuePairsOperation,
+  RescuePairsError,
+  checkSpecialAccess,
+  canAccessFeature
+} from "@/lib/rescue-pairs/production-config";
 
 interface RescuePair {
   id: string;
@@ -57,6 +65,13 @@ interface RescuePair {
   user2Id?: any;
   createdAt?: string;
   acceptedAt?: string;
+  // New anonymous matching fields
+  isAnonymous: boolean;
+  anonymousId?: string;
+  revealIdentity?: boolean;
+  chatEnabled: boolean;
+  lastMessage?: string;
+  unreadCount?: number;
 }
 
 export default function RescuePairsPage() {
@@ -68,8 +83,10 @@ export default function RescuePairsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filter, setFilter] = useState<"all" | "online" | "verified">("all");
+  const [filter, setFilter] = useState<"all" | "online" | "verified" | "anonymous">("all");
   const [showProfileSetup, setShowProfileSetup] = useState(false);
+  const [anonymousPreference, setAnonymousPreference] = useState<"anonymous" | "revealed" | "both">("both");
+  const [showAnonymousSettings, setShowAnonymousSettings] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -94,9 +111,9 @@ export default function RescuePairsPage() {
             id: pair._id,
             _id: pair._id,
             partnerId: partner?._id || partner?.id || 'unknown',
-            partnerName: partner?.name || "Anonymous User",
+            partnerName: pair.isAnonymous ? `Support Partner ${pair.anonymousId?.slice(-4) || '****'}` : (partner?.name || "Anonymous User"),
             partnerAge: 25, // Default age since not in user model
-            partnerBio: "Someone who understands your journey and is here to provide mutual support",
+            partnerBio: pair.isAnonymous ? "A supportive partner who shares similar experiences and is here to help" : "Someone who understands your journey and is here to provide mutual support",
             status: pair.status,
             lastActive: pair.acceptedAt ? new Date(pair.acceptedAt).toLocaleDateString() : "Recently",
             compatibility: pair.compatibilityScore || 85,
@@ -115,7 +132,14 @@ export default function RescuePairsPage() {
             user1Id: pair.user1Id,
             user2Id: pair.user2Id,
             createdAt: pair.createdAt,
-            acceptedAt: pair.acceptedAt
+            acceptedAt: pair.acceptedAt,
+            // Anonymous matching fields
+            isAnonymous: pair.isAnonymous || false,
+            anonymousId: pair.anonymousId,
+            revealIdentity: pair.revealIdentity || false,
+            chatEnabled: pair.chatEnabled !== false, // Default to true
+            lastMessage: pair.lastMessage,
+            unreadCount: pair.unreadCount || 0
           };
         });
         
@@ -183,9 +207,18 @@ export default function RescuePairsPage() {
     }
   };
 
-  const findNewMatch = async () => {
-    if (userTier === "free") {
+  const findNewMatch = async (isAnonymous: boolean = false) => {
+    // Check access permissions
+    const hasSpecialAccess = user?.email ? checkSpecialAccess(user.email) : false;
+    const canFindMatches = hasSpecialAccess || canAccessFeature('unlimitedMatches', user?.email, userTier);
+    
+    if (!canFindMatches) {
       toast.error("Premium matching is available with Premium Plan. Upgrade for unlimited matches!");
+      logRescuePairsEvent('access_denied', { 
+        userTier, 
+        hasSpecialAccess, 
+        feature: 'unlimitedMatches' 
+      }, 'warn', user?._id);
       return;
     }
 
@@ -194,27 +227,60 @@ export default function RescuePairsPage() {
       return;
     }
 
+    // Check anonymous matching access
+    if (isAnonymous && !hasSpecialAccess && !canAccessFeature('anonymousMatching', user?.email, userTier)) {
+      toast.error("Anonymous matching is a premium feature. Upgrade to access!");
+      return;
+    }
+
     try {
       setIsLoading(true);
       
-      // The backend findMatches endpoint doesn't need preferences in the body
-      // It uses the user's profile and preferences automatically
-      const response = await backendService.findMatches();
+      logRescuePairsEvent('find_matches_started', {
+        isAnonymous,
+        preference: anonymousPreference,
+        userTier,
+        hasSpecialAccess
+      }, 'info', user?._id);
+      
+      // Use retry mechanism for production reliability
+      const response = await retryRescuePairsOperation(async () => {
+        return await backendService.findMatches({
+          anonymous: isAnonymous,
+          preference: anonymousPreference
+        });
+      });
       
       if (response.success && response.data) {
-        const matches = response.data.matches || []; // Backend returns { matches: [...] }
+        const matches = response.data.matches || [];
         if (Array.isArray(matches) && matches.length > 0) {
           const matchCount = matches.length;
-          toast.success(`Found ${matchCount} potential support matches! 🤝`);
+          const matchType = isAnonymous ? "anonymous" : "revealed";
+          
+          logRescuePairsEvent('matches_found', {
+            count: matchCount,
+            type: matchType,
+            isAnonymous
+          }, 'info', user?._id);
+          
+          toast.success(`Found ${matchCount} potential ${matchType} support matches! 🤝`);
           
           // Create rescue pairs for the matches found
-          for (const match of matches.slice(0, 3)) { // Limit to top 3 matches
+          const maxMatches = hasSpecialAccess ? 10 : 3; // Special access gets more matches
+          for (const match of matches.slice(0, maxMatches)) {
             try {
-              await backendService.createRescuePair({
-                targetUserId: match.userId?._id || match.userId?.id || match._id,
+              await retryRescuePairsOperation(async () => {
+                return await backendService.createRescuePair({
+                  targetUserId: match.userId?._id || match.userId?.id || match._id,
+                  isAnonymous: isAnonymous,
+                  anonymousId: isAnonymous ? `anon_${Date.now()}_${Math.random().toString(36).substr(2, rescuePairsProductionConfig.anonymousMatching.anonymousIdLength)}` : undefined
+                });
               });
             } catch (createError) {
-              console.log("Could not create rescue pair for match:", createError);
+              logRescuePairsEvent('pair_creation_failed', {
+                error: createError instanceof Error ? createError.message : 'Unknown error',
+                matchId: match._id
+              }, 'error', user?._id);
               // Continue with other matches even if one fails
             }
           }
@@ -224,6 +290,7 @@ export default function RescuePairsPage() {
             loadRescuePairs();
           }, 1000);
         } else {
+          logRescuePairsEvent('no_matches_found', { isAnonymous }, 'info', user?._id);
           toast.info("No matches found right now. Our AI is continuously looking for compatible support partners!");
         }
       } else {
@@ -236,7 +303,19 @@ export default function RescuePairsPage() {
         }
       }
     } catch (error) {
-      console.error("Failed to find matches:", error);
+      const rescuePairsError = error instanceof RescuePairsError ? error : new RescuePairsError(
+        error instanceof Error ? error.message : 'Unknown error',
+        'FIND_MATCHES_FAILED',
+        500,
+        { isAnonymous, userTier }
+      );
+      
+      logRescuePairsEvent('find_matches_failed', {
+        error: rescuePairsError.message,
+        code: rescuePairsError.code,
+        isAnonymous
+      }, 'error', user?._id);
+      
       const errorMessage = error instanceof Error ? error.message : '';
       
       if (errorMessage.includes("profile not found") || errorMessage.includes("complete your profile")) {
@@ -282,13 +361,46 @@ export default function RescuePairsPage() {
     }
   };
 
+  const revealIdentity = async (pairId: string) => {
+    try {
+      const response = await backendService.revealIdentity(pairId);
+      
+      if (response.success) {
+        toast.success("Identity revealed! Your partner can now see your name and profile.");
+        loadRescuePairs();
+      } else {
+        throw new Error(response.error || "Failed to reveal identity");
+      }
+    } catch (error) {
+      console.error("Failed to reveal identity:", error);
+      toast.error("Failed to reveal identity. Please try again.");
+    }
+  };
+
+  const enableChat = async (pairId: string) => {
+    try {
+      const response = await backendService.enableChat(pairId);
+      
+      if (response.success) {
+        toast.success("Chat enabled! You can now communicate with your support partner.");
+        loadRescuePairs();
+      } else {
+        throw new Error(response.error || "Failed to enable chat");
+      }
+    } catch (error) {
+      console.error("Failed to enable chat:", error);
+      toast.error("Failed to enable chat. Please try again.");
+    }
+  };
+
   const filteredPairs = pairs.filter(pair => {
     const matchesSearch = pair.partnerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          pair.partnerBio.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesFilter = filter === "all" || 
                          (filter === "online" && pair.status === "active") ||
-                         (filter === "verified" && pair.isVerified);
+                         (filter === "verified" && pair.isVerified) ||
+                         (filter === "anonymous" && pair.isAnonymous);
     
     return matchesSearch && matchesFilter;
   });
@@ -342,29 +454,67 @@ export default function RescuePairsPage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <Badge variant={userTier === "premium" ? "default" : "secondary"} className="text-sm">
-              <Crown className="w-3 h-3 mr-1" />
-              {userTier === "premium" ? "Premium Plan" : "Free Plan"}
+            <Badge variant={
+              userTier === "special" ? "default" : 
+              userTier === "premium" ? "default" : "secondary"
+            } className={`text-sm ${
+              userTier === "special" ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white" : ""
+            }`}>
+              {userTier === "special" ? (
+                <>
+                  <Star className="w-3 h-3 mr-1" />
+                  Special Access
+                </>
+              ) : (
+                <>
+                  <Crown className="w-3 h-3 mr-1" />
+                  {userTier === "premium" ? "Premium Plan" : "Free Plan"}
+                </>
+              )}
             </Badge>
+            
+            {(userTier === "premium" || userTier === "special") && (
+              <Button
+                variant="outline"
+                onClick={() => setShowAnonymousSettings(true)}
+                className="flex items-center gap-2"
+              >
+                <Shield className="w-4 h-4" />
+                Anonymous Settings
+              </Button>
+            )}
+            
             <Button
-              onClick={userTier === "premium" ? findNewMatch : () => router.push("/pricing")}
+              onClick={(userTier === "premium" || userTier === "special") ? () => findNewMatch(false) : () => router.push("/pricing")}
               disabled={isLoading}
               className="flex items-center gap-2"
             >
               {isLoading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
-              ) : userTier === "premium" ? (
+              ) : (userTier === "premium" || userTier === "special") ? (
                 <Plus className="w-4 h-4" />
               ) : (
                 <Crown className="w-4 h-4" />
               )}
-              {userTier === "premium" ? "Find Match" : "Upgrade for Unlimited"}
+              {(userTier === "premium" || userTier === "special") ? "Find Match" : "Upgrade for Unlimited"}
             </Button>
+            
+            {(userTier === "premium" || userTier === "special") && (
+              <Button
+                variant="outline"
+                onClick={() => findNewMatch(true)}
+                disabled={isLoading}
+                className="flex items-center gap-2"
+              >
+                <Shield className="w-4 h-4" />
+                Anonymous Match
+              </Button>
+            )}
           </div>
         </div>
 
         {/* Plan Comparison */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className={`grid grid-cols-1 ${userTier === "special" ? "md:grid-cols-3" : "md:grid-cols-2"} gap-6 mb-8`}>
           {/* Free Plan */}
           <Card className="border-2 border-muted">
             <CardHeader className="text-center pb-4">
@@ -437,6 +587,57 @@ export default function RescuePairsPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Special Access Plan */}
+          {userTier === "special" && (
+            <Card className="border-2 border-purple-500 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20">
+              <CardHeader className="text-center pb-4">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white">Special Access</Badge>
+                  <Star className="w-4 h-4 text-purple-500" />
+                </div>
+                <CardTitle className="text-lg">VIP Support</CardTitle>
+                <div className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  Unlimited Everything
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center gap-2 text-sm">
+                  <Star className="w-4 h-4 text-purple-500" />
+                  <span>Unlimited anonymous matches</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Video className="w-4 h-4 text-purple-500" />
+                  <span>Video calls (coming soon)</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Filter className="w-4 h-4 text-purple-500" />
+                  <span>Advanced matching filters</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Zap className="w-4 h-4 text-purple-500" />
+                  <span>Priority matching</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Heart className="w-4 h-4 text-purple-500" />
+                  <span>Daily check-ins</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <AlertTriangle className="w-4 h-4 text-purple-500" />
+                  <span>Enhanced crisis support</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Shield className="w-4 h-4 text-purple-500" />
+                  <span>Full anonymity control</span>
+                </div>
+                <div className="bg-purple-100 dark:bg-purple-900/30 p-2 rounded-lg mt-4">
+                  <p className="text-xs text-purple-800 dark:text-purple-200 text-center font-medium">
+                    🎉 You have special access to all features!
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Safety & Privacy Section */}
@@ -553,7 +754,7 @@ export default function RescuePairsPage() {
             />
           </div>
           <div className="flex gap-2">
-            {["all", "online", "verified"].map((f) => (
+            {["all", "online", "verified", "anonymous"].map((f) => (
               <Button
                 key={f}
                 variant={filter === f ? "default" : "outline"}
@@ -561,7 +762,14 @@ export default function RescuePairsPage() {
                 onClick={() => setFilter(f as typeof filter)}
                 className="capitalize"
               >
-                {f}
+                {f === "anonymous" ? (
+                  <>
+                    <Shield className="w-3 h-3 mr-1" />
+                    Anonymous
+                  </>
+                ) : (
+                  f
+                )}
               </Button>
             ))}
           </div>
@@ -633,10 +841,21 @@ export default function RescuePairsPage() {
                         <Badge className={`text-xs ${getStatusColor(pair.status)}`}>
                           {pair.status}
                         </Badge>
-                        {pair.isVerified && (
+                        {pair.isAnonymous && (
+                          <Badge variant="outline" className="text-xs bg-blue-50 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
+                            <Shield className="w-3 h-3 mr-1" />
+                            Anonymous
+                          </Badge>
+                        )}
+                        {pair.isVerified && !pair.isAnonymous && (
                           <Badge variant="outline" className="text-xs">
                             <Shield className="w-3 h-3 mr-1" />
                             Verified
+                          </Badge>
+                        )}
+                        {pair.unreadCount > 0 && (
+                          <Badge variant="destructive" className="text-xs">
+                            {pair.unreadCount} new
                           </Badge>
                         )}
                       </div>
@@ -683,18 +902,47 @@ export default function RescuePairsPage() {
                     <div className="flex gap-2">
                       {pair.status === "active" ? (
                         <>
-                          <Button
-                            size="sm"
-                            className="flex-1"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              router.push(`/matching/chat/${pair.id}`);
-                            }}
-                          >
-                            <MessageSquare className="w-4 h-4 mr-2" />
-                            Chat
-                          </Button>
-                          {userTier === "premium" && (
+                          {pair.chatEnabled ? (
+                            <Button
+                              size="sm"
+                              className="flex-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(`/matching/chat/${pair.id}`);
+                              }}
+                            >
+                              <MessageSquare className="w-4 h-4 mr-2" />
+                              {pair.unreadCount > 0 ? `Chat (${pair.unreadCount})` : "Chat"}
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              className="flex-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                enableChat(pair.id);
+                              }}
+                            >
+                              <MessageSquare className="w-4 h-4 mr-2" />
+                              Enable Chat
+                            </Button>
+                          )}
+                          
+                          {pair.isAnonymous && !pair.revealIdentity && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                revealIdentity(pair.id);
+                              }}
+                            >
+                              <Shield className="w-4 h-4 mr-1" />
+                              Reveal
+                            </Button>
+                          )}
+                          
+                          {(userTier === "premium" || userTier === "special") && (
                             <Button
                               size="sm"
                               variant="outline"
@@ -803,6 +1051,92 @@ export default function RescuePairsPage() {
                     variant="outline" 
                     onClick={() => setShowProfileSetup(false)}
                     disabled={isLoading}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Anonymous Settings Modal */}
+        {showAnonymousSettings && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <Card className="w-full max-w-md">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-primary" />
+                  Anonymous Matching Settings
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Choose your privacy preferences for support matching.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Matching Preference</label>
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="anonymousPreference"
+                          value="anonymous"
+                          checked={anonymousPreference === "anonymous"}
+                          onChange={(e) => setAnonymousPreference(e.target.value as any)}
+                          className="text-primary"
+                        />
+                        <span className="text-sm">Anonymous matches only</span>
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="anonymousPreference"
+                          value="revealed"
+                          checked={anonymousPreference === "revealed"}
+                          onChange={(e) => setAnonymousPreference(e.target.value as any)}
+                          className="text-primary"
+                        />
+                        <span className="text-sm">Revealed identity matches only</span>
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="anonymousPreference"
+                          value="both"
+                          checked={anonymousPreference === "both"}
+                          onChange={(e) => setAnonymousPreference(e.target.value as any)}
+                          className="text-primary"
+                        />
+                        <span className="text-sm">Both anonymous and revealed matches</span>
+                      </label>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                    <div className="flex items-start gap-2">
+                      <Shield className="w-4 h-4 text-blue-600 mt-0.5" />
+                      <div className="text-sm">
+                        <p className="font-medium text-blue-800 dark:text-blue-400">Anonymous Matching</p>
+                        <p className="text-blue-700 dark:text-blue-300">
+                          Your identity remains hidden until you choose to reveal it. You can communicate safely while maintaining privacy.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={() => setShowAnonymousSettings(false)}
+                    className="flex-1"
+                  >
+                    Save Settings
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowAnonymousSettings(false)}
                   >
                     Cancel
                   </Button>
