@@ -401,6 +401,93 @@ class PaystackService {
   isConfigured(): boolean {
     return !!(this.publicKey && this.backendUrl);
   }
+
+  // Direct Paystack initialization (fallback if backend is down)
+  async initializeDirectPayment(
+    email: string,
+    planId: string,
+    userId: string,
+    metadata?: Record<string, any>
+  ): Promise<PaymentResponse> {
+    try {
+      const plan = this.getPlans().find(p => p.id === planId);
+      if (!plan) {
+        throw new ProductionPaymentError('Invalid plan selected', 'INVALID_PLAN', 400);
+      }
+
+      logPaymentEvent('DIRECT_PAYMENT_INITIALIZATION_STARTED', {
+        email: email.split('@')[0] + '@***',
+        planId,
+        userId,
+        planPrice: plan.price,
+      });
+
+      // Direct Paystack API call (requires secret key on frontend - not recommended for production)
+      // This is a fallback mechanism
+      const response = await fetch('https://api.paystack.co/transaction/initialize', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.config.paystack.secretKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          amount: Math.round(plan.price * 100), // Convert to kobo/cents
+          currency: plan.currency,
+          reference: `HOPE_${Date.now()}_${userId}`,
+          callback_url: `${window.location.origin}/payment/success`,
+          metadata: {
+            planId,
+            planName: plan.name,
+            userId,
+            ...metadata
+          }
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.status && data.data) {
+        logPaymentEvent('DIRECT_PAYMENT_INITIALIZATION_SUCCESS', {
+          reference: data.data.reference,
+          planId,
+          userId,
+        });
+
+        return {
+          success: true,
+          reference: data.data.reference,
+          authorization_url: data.data.authorization_url,
+          access_code: data.data.access_code,
+          message: 'Payment initialized successfully'
+        };
+      } else {
+        throw new ProductionPaymentError(
+          data.message || 'Failed to initialize payment',
+          'PAYSTACK_ERROR',
+          400
+        );
+      }
+    } catch (error) {
+      logPaymentEvent('DIRECT_PAYMENT_INITIALIZATION_ERROR', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        planId,
+        userId,
+      }, 'error');
+
+      if (error instanceof ProductionPaymentError) {
+        return {
+          success: false,
+          error: error.message
+        };
+      }
+
+      return {
+        success: false,
+        error: 'Payment initialization failed. Please try again.'
+      };
+    }
+  }
 }
 
 // Export singleton instance
