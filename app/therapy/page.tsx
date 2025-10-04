@@ -267,10 +267,26 @@ export default function UnifiedTherapyPage() {
 
     } catch (error) {
       logger.error("Failed to send message:", error);
+      
+      // Provide more helpful error messages based on the error type
+      let errorContent = "I apologize, but I'm having trouble processing your message right now. Please try again.";
+      
+      if (error instanceof Error) {
+        if (error.message.includes("401") || error.message.includes("unauthorized")) {
+          errorContent = "Please log in to continue chatting with me. Your session may have expired.";
+        } else if (error.message.includes("500") || error.message.includes("server")) {
+          errorContent = "I'm experiencing some technical difficulties. Please try again in a moment.";
+        } else if (error.message.includes("No response received")) {
+          errorContent = "I didn't receive a proper response. Let me try to help you in a different way.";
+        } else if (error.message.includes("network") || error.message.includes("fetch")) {
+          errorContent = "There seems to be a connection issue. Please check your internet connection and try again.";
+        }
+      }
+      
       const errorMessage: ChatMessage = {
         id: Date.now().toString(),
         role: "assistant",
-        content: "I apologize, but I'm having trouble processing your message right now. Please try again.",
+        content: errorContent,
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, errorMessage]);
@@ -286,6 +302,8 @@ export default function UnifiedTherapyPage() {
     const userMemory = await userMemoryManager.loadUserMemory(userId);
     const context = userMemoryManager.getTherapyContext();
 
+    logger.log("Sending memory-enhanced message:", { message, userId });
+
     const response = await fetch('/api/chat/memory-enhanced', {
       method: 'POST',
       headers: {
@@ -294,21 +312,53 @@ export default function UnifiedTherapyPage() {
       },
       body: JSON.stringify({
         message,
+        userId,
         userMemory,
         context,
       }),
     });
 
     if (!response.ok) {
-      throw new Error('Failed to send message');
+      const errorData = await response.json().catch(() => ({}));
+      logger.error("Memory-enhanced message failed:", { status: response.status, error: errorData });
+      throw new Error(`Failed to send message: ${response.status} ${errorData.error || 'Unknown error'}`);
     }
 
     const data = await response.json();
+    logger.log("Memory-enhanced response received:", data);
+
+    // Handle different response formats
+    const aiResponse = data.response || data.message || data.content || data.answer;
+    
+    if (!aiResponse) {
+      logger.error("No AI response found in data:", data);
+      
+      // Provide a fallback response if the AI doesn't respond
+      const fallbackResponses = [
+        "I'm here to listen and help. Could you tell me more about what's on your mind?",
+        "I understand you're reaching out. What would you like to talk about today?",
+        "I'm ready to support you. What's been going on lately?",
+        "Thank you for sharing. How can I help you feel better today?",
+        "I'm listening. What's been weighing on your mind?"
+      ];
+      
+      const randomResponse = fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
+      
+      return {
+        id: Date.now().toString(),
+        role: "assistant" as const,
+        content: randomResponse,
+        timestamp: new Date(),
+        metadata: { fallback: true },
+      };
+    }
+
     return {
       id: Date.now().toString(),
       role: "assistant" as const,
-      content: data.response,
+      content: aiResponse,
       timestamp: new Date(),
+      metadata: data.metadata || data.analysis,
     };
   };
 

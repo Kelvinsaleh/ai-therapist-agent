@@ -82,7 +82,7 @@ export const createChatSession = async (): Promise<string> => {
 export const sendChatMessage = async (
   sessionId: string,
   message: string
-): Promise<ApiResponse> => {
+): Promise<ChatMessage> => {
   try {
     console.log(`Sending message to session ${sessionId}:`, message);
     const response = await fetch(
@@ -90,19 +90,55 @@ export const sendChatMessage = async (
       {
         method: "POST",
         headers: getAuthHeaders(),
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ 
+          message,
+          timestamp: new Date().toISOString()
+        }),
       }
     );
 
     if (!response.ok) {
-      const error = await response.json();
-      console.error("Failed to send message:", error);
-      throw new Error(error.error || "Failed to send message");
+      const error = await response.json().catch(() => ({}));
+      console.error("Failed to send message:", { status: response.status, error });
+      throw new Error(error.error || `Failed to send message: ${response.status}`);
     }
 
     const data = await response.json();
     console.log("Message sent successfully:", data);
-    return data;
+
+    // Handle different response formats
+    const aiResponse = data.response || data.message || data.content || data.answer;
+    
+    if (!aiResponse) {
+      console.error("No AI response found in data:", data);
+      
+      // Provide a fallback response if the AI doesn't respond
+      const fallbackResponses = [
+        "I'm here to listen and help. Could you tell me more about what's on your mind?",
+        "I understand you're reaching out. What would you like to talk about today?",
+        "I'm ready to support you. What's been going on lately?",
+        "Thank you for sharing. How can I help you feel better today?",
+        "I'm listening. What's been weighing on your mind?"
+      ];
+      
+      const randomResponse = fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
+      
+      return {
+        id: Date.now().toString(),
+        role: "assistant",
+        content: randomResponse,
+        timestamp: new Date(),
+        metadata: { fallback: true },
+      };
+    }
+
+    return {
+      id: Date.now().toString(),
+      role: "assistant",
+      content: aiResponse,
+      timestamp: new Date(),
+      metadata: data.metadata || data.analysis,
+    };
   } catch (error) {
     console.error("Error sending chat message:", error);
     throw error;
