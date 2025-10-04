@@ -1,6 +1,8 @@
 // Backend Service Layer for Hope Backend Integration
 // This service handles all communication with your backend API
 
+import { isPremiumBypassEmail } from "@/lib/utils/premium-bypass";
+
 const BACKEND_BASE_URL = "https://hope-backend-2.onrender.com";
 
 export interface ApiResponse<T = any> {
@@ -485,6 +487,26 @@ class BackendService {
       method: 'POST',
       body: JSON.stringify({ details, timestamp: new Date().toISOString() }),
     });
+  }
+
+  // Premium bypass check
+  async getUserTierWithBypass(userEmail?: string): Promise<{ userTier: "free" | "premium" }> {
+    // Check for premium bypass email first
+    if (userEmail && isPremiumBypassEmail(userEmail)) {
+      return { userTier: "premium" };
+    }
+
+    // Otherwise, check subscription status
+    try {
+      const response = await this.makeRequest('/subscription/status');
+      if (response.success && response.data) {
+        return { userTier: response.data.userTier || "free" };
+      }
+    } catch (error) {
+      console.error("Error fetching user tier:", error);
+    }
+
+    return { userTier: "free" };
   }
 }
 

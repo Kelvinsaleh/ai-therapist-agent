@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { backendService } from "@/lib/api/backend-service";
+import { isPremiumBypassEmail, logPremiumBypassActivation } from "@/lib/utils/premium-bypass";
 
 interface User {
   id: string;
@@ -70,23 +71,29 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           setUser(data.user);
           setIsAuthenticated(true);
           
-          // Get user tier/subscription status
-          try {
-            const tierResponse = await fetch('https://hope-backend-2.onrender.com/subscription/status', {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-              },
-            });
-            
-            if (tierResponse.ok) {
-              const tierData = await tierResponse.json();
-              setUserTier(tierData.userTier || "free");
-            } else {
+          // Check for premium bypass email
+          if (isPremiumBypassEmail(data.user.email)) {
+            setUserTier("premium");
+            logPremiumBypassActivation(data.user.email);
+          } else {
+            // Get user tier/subscription status
+            try {
+              const tierResponse = await fetch('https://hope-backend-2.onrender.com/subscription/status', {
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                },
+              });
+              
+              if (tierResponse.ok) {
+                const tierData = await tierResponse.json();
+                setUserTier(tierData.userTier || "free");
+              } else {
+                setUserTier("free");
+              }
+            } catch (error) {
+              console.error("Error fetching user tier:", error);
               setUserTier("free");
             }
-          } catch (error) {
-            console.error("Error fetching user tier:", error);
-            setUserTier("free");
           }
         } else {
           setIsAuthenticated(false);
@@ -116,23 +123,29 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         setUser(response.data.user);
         setIsAuthenticated(true);
         
-        // Get user tier after login
-        try {
-          const tierResponse = await fetch('https://hope-backend-2.onrender.com/subscription/status', {
-            headers: {
-              'Authorization': `Bearer ${response.data.token}`,
-            },
-          });
-          
-          if (tierResponse.ok) {
-            const tierData = await tierResponse.json();
-            setUserTier(tierData.userTier || "free");
-          } else {
+        // Check for premium bypass email first
+        if (isPremiumBypassEmail(response.data.user.email)) {
+          setUserTier("premium");
+          logPremiumBypassActivation(response.data.user.email);
+        } else {
+          // Get user tier after login
+          try {
+            const tierResponse = await fetch('https://hope-backend-2.onrender.com/subscription/status', {
+              headers: {
+                'Authorization': `Bearer ${response.data.token}`,
+              },
+            });
+            
+            if (tierResponse.ok) {
+              const tierData = await tierResponse.json();
+              setUserTier(tierData.userTier || "free");
+            } else {
+              setUserTier("free");
+            }
+          } catch (error) {
+            console.error("Error fetching user tier:", error);
             setUserTier("free");
           }
-        } catch (error) {
-          console.error("Error fetching user tier:", error);
-          setUserTier("free");
         }
         
         // Add small delay to ensure state is updated
@@ -154,7 +167,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       if (response.success && response.data) {
         setUser(response.data.user);
         setIsAuthenticated(true);
-        setUserTier("free");
+        
+        // Check for premium bypass email
+        if (isPremiumBypassEmail(response.data.user.email)) {
+          setUserTier("premium");
+          logPremiumBypassActivation(response.data.user.email);
+        } else {
+          setUserTier("free");
+        }
         
         // Add small delay to ensure state is updated
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -179,6 +199,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
       if (!token) return;
+
+      // Check for premium bypass email first
+      if (user?.email && isPremiumBypassEmail(user.email)) {
+        setUserTier("premium");
+        logPremiumBypassActivation(user.email);
+        return;
+      }
 
       const tierResponse = await fetch('https://hope-backend-2.onrender.com/subscription/status', {
         headers: {
