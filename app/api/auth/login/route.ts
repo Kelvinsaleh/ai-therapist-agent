@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
-const API_URL = "https://hope-backend-2.onrender.com";
+const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.BACKEND_API_URL || "https://hope-backend-2.onrender.com";
 
 const LoginSchema = z.object({
   email: z.string().email("Invalid email format"),

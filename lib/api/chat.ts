@@ -43,21 +43,9 @@ export interface ApiResponse {
   };
 }
 
-const API_BASE = "https://hope-backend-2.onrender.com";
+import { API_CONFIG, getAuthHeaders } from '../config/api';
 
-// Helper function to get auth headers
-const getAuthHeaders = () => {
-  let token: string | null = null;
-  try {
-    token =
-      localStorage.getItem("token") ||
-      localStorage.getItem("authToken");
-  } catch {}
-  return {
-    "Content-Type": "application/json",
-    Authorization: token ? `Bearer ${token}` : "",
-  };
-};
+const API_BASE = API_CONFIG.BASE_URL;
 
 export const createChatSession = async (): Promise<string> => {
   try {
