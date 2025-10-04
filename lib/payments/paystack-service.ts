@@ -1,5 +1,6 @@
 // Paystack Payment Service for HOPE
 // Handles all payment operations with Paystack
+// This service works with your backend's Paystack keys
 
 export interface PaymentPlan {
   id: string;
@@ -98,9 +99,16 @@ class PaystackService {
         throw new Error('Invalid plan selected');
       }
 
-      console.log('Initializing payment:', { email, planId, plan: plan.name, amount: plan.price });
+      console.log('Initializing payment with backend Paystack keys:', { 
+        email, 
+        planId, 
+        plan: plan.name, 
+        amount: plan.price,
+        planCode: plan.paystackPlanCode,
+        currency: plan.currency
+      });
 
-      // Try our API route first
+      // Use frontend API route which forwards to backend with your Paystack keys
       const response = await fetch('/api/payments/initialize', {
         method: 'POST',
         headers: {
@@ -111,11 +119,13 @@ class PaystackService {
           email,
           planId,
           planCode: plan.paystackPlanCode,
-          amount: plan.price,
+          amount: plan.price * 100, // Convert to kobo/cents for Paystack
           currency: plan.currency,
           userId,
           metadata: {
             planName: plan.name,
+            interval: plan.interval,
+            frontend: true,
             ...metadata
           },
           callback_url: `${window.location.origin}/payment/success`,

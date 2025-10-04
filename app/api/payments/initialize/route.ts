@@ -14,7 +14,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log("Payment initialization request:", { email, planId, amount, userId });
+    console.log("Payment initialization request with backend Paystack keys:", { 
+      email, 
+      planId, 
+      planCode,
+      amount, 
+      currency,
+      userId,
+      callback_url: callback_url || `${req.nextUrl.origin}/payment/success`
+    });
 
     const authHeader = req.headers.get('authorization');
     
@@ -30,11 +38,14 @@ export async function POST(req: NextRequest) {
         planId,
         planCode,
         amount,
-        currency,
+        currency: currency || 'USD',
         userId,
-        metadata,
-        callback_url,
-        timestamp: new Date().toISOString()
+        metadata: {
+          ...metadata,
+          source: 'frontend',
+          timestamp: new Date().toISOString()
+        },
+        callback_url: callback_url || `${req.nextUrl.origin}/payment/success`
       })
     });
 
