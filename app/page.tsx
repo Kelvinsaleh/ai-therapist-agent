@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 export default function Home() {
   const router = useRouter();
   useEffect(() => {
-    router.replace("/therapy/memory-enhanced");
+    router.replace("/therapy");
   }, [router]);
   return null;
 }
