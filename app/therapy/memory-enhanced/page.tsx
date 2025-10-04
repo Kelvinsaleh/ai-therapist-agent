@@ -357,11 +357,12 @@ export default function MemoryEnhancedTherapyPage() {
 
     } catch (error) {
       logger.error("Error in chat", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content: "I apologize, but I'm having trouble connecting right now. Please try again in a moment.",
+          content: `I apologize, but I'm having trouble connecting right now. Error: ${errorMessage}. Please try again in a moment.`,
           timestamp: new Date(),
         },
       ]);
@@ -390,25 +391,30 @@ export default function MemoryEnhancedTherapyPage() {
         }
       };
 
+      const token = localStorage.getItem('token');
+      logger.debug('Sending message with token:', token ? 'Token present' : 'No token');
+      
       const response = await fetch('/api/chat/memory-enhanced', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(requestPayload)
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
       }
 
       const data = await response.json();
       return data;
     } catch (error) {
       logger.error('Error sending memory-enhanced message:', error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
       return {
-        response: "I'm here to support you. Your thoughts and feelings are important. Please try again in a moment.",
+        response: `I'm here to support you. Your thoughts and feelings are important. Please try again in a moment. (Error: ${errorMessage})`,
         techniques: [],
         breakthroughs: []
       };
