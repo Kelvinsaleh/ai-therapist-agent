@@ -27,8 +27,8 @@ export function Header() {
   }
   
   const navItems = [
-    { href: "/features", label: "Features" },
-    { href: "/pricing", label: "Pricing" },
+    { href: "/features", label: "Mental Health Features" },
+    { href: "/pricing", label: "Therapy Plans" },
     { href: "/matching", label: "Find Support" },
     { href: "/about", label: "About HOPE" },
   ];
@@ -48,7 +48,7 @@ export function Header() {
                 HOPE AI
               </span>
               <span className="text-xs dark:text-muted-foreground">
-                Your mental health Companion{" "}
+                Your mental health Companion - AI Therapy & Support{" "}
               </span>
             </div>
           </Link>
@@ -93,7 +93,7 @@ export function Header() {
                   >
                     <Link href="/therapy">
                       <MessageCircle className="w-4 h-4 mr-1" />
-                      Start Chat
+                      Start Therapy
                     </Link>
                   </Button>
                   <Button
@@ -144,7 +144,7 @@ export function Header() {
                   >
                     <Link href="/therapy" onClick={() => setIsMenuOpen(false)}>
                       <MessageCircle className="w-4 h-4" />
-                      <span>Start Chat</span>
+                      <span>Start Therapy</span>
                     </Link>
                   </Button>
                   {user?.email === "knsalee@gmail.com" && (

@@ -386,12 +386,12 @@ export default function UnifiedTherapyPage() {
           <CardHeader>
             <CardTitle className="flex items-center justify-center gap-2">
               <Brain className="w-6 h-6 text-primary" />
-              Therapy Session
+              AI Chat Session
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground mb-4">
-              Please log in to start your therapy session
+              Please log in to start your AI chat session
             </p>
             <Button onClick={() => router.push('/login')} className="w-full">
               Go to Login
@@ -419,7 +419,7 @@ export default function UnifiedTherapyPage() {
                 <div className="absolute inset-0 bg-primary/20 rounded-full blur-md" />
               </motion.div>
               <div>
-                <h1 className="text-xl font-bold">AI Therapy Session</h1>
+                <h1 className="text-xl font-bold">AI Chat Session</h1>
                 <p className="text-sm text-muted-foreground">
                   {useMemoryEnhanced ? "Memory-Enhanced" : "Standard"} Mode
                 </p>
@@ -472,7 +472,7 @@ export default function UnifiedTherapyPage() {
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm flex items-center gap-2">
                     <Database className="w-4 h-4" />
-                    Database Stats
+                    Chat Stats
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -544,7 +544,7 @@ export default function UnifiedTherapyPage() {
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
                     <Bot className="w-5 h-5 text-primary" />
-                    Therapy Chat
+                    AI Chat
                     {useMemoryEnhanced && (
                       <Badge variant="secondary" className="text-xs">
                         <Database className="w-3 h-3 mr-1" />
@@ -570,9 +570,9 @@ export default function UnifiedTherapyPage() {
                         <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mb-4">
                           <Brain className="w-12 h-12 text-primary" />
                         </div>
-                        <h2 className="text-2xl font-bold mb-2">Welcome to AI Therapy</h2>
+                        <h2 className="text-2xl font-bold mb-2">Welcome to AI Chat</h2>
                         <p className="text-muted-foreground max-w-md">
-                          I'm here to help you work through your thoughts and feelings. 
+                          I'm here to help you with your questions and conversations. 
                           Choose a suggested question below or start with your own message.
                         </p>
                       </motion.div>
