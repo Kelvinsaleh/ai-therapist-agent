@@ -190,7 +190,7 @@ class UserMemoryManager {
     this.memory.journalEntries.push(journalMemory);
     
     // Update mood patterns
-    this.updateMoodPattern(entry.date, entry.mood, entry.tags);
+    this.updateMoodPattern(new Date(entry.date), entry.mood, entry.tags);
     
     // Generate new insights
     await this.generateUserInsights();
@@ -201,7 +201,7 @@ class UserMemoryManager {
       if (typeof window !== 'undefined') {
         const { backendService } = await import("@/lib/api/backend-service");
         await backendService.createJournalEntry({
-          title: `Entry ${entry.date.toLocaleDateString()}`,
+          title: `Entry ${new Date(entry.date).toLocaleDateString()}`,
           content: entry.content,
           mood: entry.mood,
           tags: entry.tags,
@@ -252,7 +252,7 @@ class UserMemoryManager {
 
     const recentEntries = this.memory.journalEntries
       .slice(-5)
-      .map(entry => `Journal (${entry.date.toLocaleDateString()}): Mood ${entry.mood}/6 - ${entry.content.substring(0, 200)}...`)
+      .map(entry => `Journal (${new Date(entry.date).toLocaleDateString()}): Mood ${entry.mood}/6 - ${entry.content.substring(0, 200)}...`)
       .join('\n');
 
     const recentMeditations = this.memory.meditationHistory
@@ -404,11 +404,11 @@ USER PREFERENCES:
     return insights;
   }
 
-  private updateMoodPattern(date: Date, mood: number, tags: string[]): void {
+  private updateMoodPattern(date: Date | string, mood: number, tags: string[]): void {
     if (!this.memory) return;
 
     this.memory.moodPatterns.push({
-      date,
+      date: new Date(date),
       mood,
       triggers: tags,
       activities: [],
