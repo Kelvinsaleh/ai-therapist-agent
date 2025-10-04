@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -91,7 +91,7 @@ export function Header() {
                     asChild
                     className="hidden md:flex gap-2 bg-primary/90 hover:bg-primary"
                   >
-                    <Link href="/therapy/memory-enhanced">
+                    <Link href="/therapy">
                       <MessageCircle className="w-4 h-4 mr-1" />
                       Start Chat
                     </Link>
@@ -142,7 +142,7 @@ export function Header() {
                     asChild
                     className="mt-2 mx-4 gap-2 bg-primary/90 hover:bg-primary"
                   >
-                    <Link href="/therapy/memory-enhanced" onClick={() => setIsMenuOpen(false)}>
+                    <Link href="/therapy" onClick={() => setIsMenuOpen(false)}>
                       <MessageCircle className="w-4 h-4" />
                       <span>Start Chat</span>
                     </Link>

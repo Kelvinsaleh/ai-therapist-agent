@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { backendService } from "@/lib/api/backend-service";
 
 interface User {
@@ -45,7 +45,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [userTier, setUserTier] = useState<"free" | "premium">("free");
   const [isLoading, setIsLoading] = useState(true);
 
-  const checkAuthStatus = async () => {
+  const checkAuthStatus = useCallback(async () => {
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
       
@@ -106,7 +106,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
@@ -201,7 +201,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     checkAuthStatus();
-  }, []);
+  }, [checkAuthStatus]);
 
   const value: SessionContextType = {
     user,

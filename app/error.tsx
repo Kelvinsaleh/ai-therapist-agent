@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle, RefreshCw, Home, MessageCircle } from "lucide-react";
 import Link from "next/link";
+import { logger } from "@/lib/utils/logger";
 
 interface ErrorProps {
   error: Error & { digest?: string };
@@ -15,7 +16,7 @@ interface ErrorProps {
 export default function Error({ error, reset }: ErrorProps) {
   useEffect(() => {
     // Log the error to an error reporting service
-    console.error("Application error:", error);
+    logger.error("Application error:", error);
   }, [error]);
 
   return (
@@ -77,7 +78,7 @@ export default function Error({ error, reset }: ErrorProps) {
                   </Link>
                 </Button>
                 <Button variant="ghost" size="sm" asChild>
-                  <Link href="/therapy/memory-enhanced">
+                  <Link href="/therapy">
                     <MessageCircle className="w-4 h-4 mr-2" />
                     Contact AI Support
                   </Link>

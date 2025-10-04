@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { useSession } from "@/lib/contexts/session-context";
 import { LoadingDots } from "@/components/ui/loading-dots";
 
-export default function PaymentSuccessPage() {
+function PaymentSuccessForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { refreshUserTier } = useSession();
@@ -139,5 +139,13 @@ export default function PaymentSuccessPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function PaymentSuccessPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <PaymentSuccessForm />
+    </Suspense>
   );
 }

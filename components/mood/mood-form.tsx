@@ -7,6 +7,7 @@ import { Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useSession } from "@/lib/contexts/session-context";
 import { useRouter } from "next/navigation";
+import { logger } from "@/lib/utils/logger";
 
 interface MoodFormProps {
   onSuccess?: () => void;
@@ -31,11 +32,11 @@ export function MoodForm({ onSuccess }: MoodFormProps) {
     emotions.find((em) => Math.abs(moodScore - em.value) < 15) || emotions[2];
 
   const handleSubmit = async () => {
-    console.log("MoodForm: Starting submission");
-    console.log("MoodForm: Auth state:", { isAuthenticated, loading, user });
+    logger.log("MoodForm: Starting submission");
+    logger.log("MoodForm: Auth state:", { isAuthenticated, loading, user });
 
     if (!isAuthenticated) {
-      console.log("MoodForm: User not authenticated");
+      logger.log("MoodForm: User not authenticated");
       toast({
         title: "Authentication required",
         description: "Please log in to track your mood",
@@ -48,7 +49,7 @@ export function MoodForm({ onSuccess }: MoodFormProps) {
     try {
       setIsLoading(true);
       const token = localStorage.getItem("token");
-      console.log(
+      logger.log(
         "MoodForm: Token from localStorage:",
         token ? "exists" : "not found"
       );
@@ -62,16 +63,16 @@ export function MoodForm({ onSuccess }: MoodFormProps) {
         body: JSON.stringify({ score: moodScore }),
       });
 
-      console.log("MoodForm: Response status:", response.status);
+      logger.log("MoodForm: Response status:", response.status);
 
       if (!response.ok) {
         const error = await response.json();
-        console.error("MoodForm: Error response:", error);
+        logger.error("MoodForm: Error response:", error);
         throw new Error(error.error || "Failed to track mood");
       }
 
       const data = await response.json();
-      console.log("MoodForm: Success response:", data);
+      logger.log("MoodForm: Success response:", data);
 
       toast({
         title: "Mood tracked successfully!",

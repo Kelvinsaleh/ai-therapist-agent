@@ -220,7 +220,7 @@ export default function DashboardPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {recentActivity.slice(0, 5).map((activity, index) => (
+                    {recentActivity?.slice(0, 5).map((activity, index) => (
                       <div key={activity.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                         <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                           {activity.type === 'session' && <MessageSquare className="w-4 h-4 text-primary" />}
@@ -265,7 +265,7 @@ export default function DashboardPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {chatHistory.slice(0, 5).map((message, index) => (
+                    {chatHistory?.slice(0, 5).map((message, index) => (
                       <div key={message.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                           message.role === 'user' ? 'bg-primary/10' : 'bg-secondary/10'
@@ -309,7 +309,7 @@ export default function DashboardPage() {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Button 
-                  onClick={() => router.push("/therapy/new")}
+                  onClick={() => router.push("/therapy")}
                   className="h-20 flex flex-col gap-2"
                 >
                   <MessageSquare className="w-6 h-6" />
