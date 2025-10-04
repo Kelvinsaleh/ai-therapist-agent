@@ -46,6 +46,18 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [userTier, setUserTier] = useState<"free" | "premium">("free");
   const [isLoading, setIsLoading] = useState(true);
 
+  // Fallback timeout to prevent endless loading
+  useEffect(() => {
+    const fallbackTimeout = setTimeout(() => {
+      if (isLoading) {
+        logger.warn("Auth check timeout - forcing loading to false");
+        setIsLoading(false);
+      }
+    }, 15000); // 15 second maximum loading time
+
+    return () => clearTimeout(fallbackTimeout);
+  }, [isLoading]);
+
   const checkAuthStatus = useCallback(async () => {
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
@@ -58,12 +70,18 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // Check if user is authenticated
+      // Check if user is authenticated with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
       const response = await fetch('/api/auth/session', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         const data = await response.json();

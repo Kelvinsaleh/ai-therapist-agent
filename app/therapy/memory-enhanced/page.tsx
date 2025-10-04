@@ -78,7 +78,7 @@ export default function MemoryEnhancedTherapyPage() {
   const params = useParams();
   const router = useRouter();
   const { user, loading: authLoading, isAuthenticated } = useSession();
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   
   // Chat state
   const [message, setMessage] = useState("");
