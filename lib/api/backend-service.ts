@@ -1,6 +1,8 @@
 // Backend Service Layer for Hope Backend Integration
 // This service handles all communication with your backend API
 
+import { isPremiumBypassEmail } from "@/lib/utils/premium-bypass";
+
 const BACKEND_BASE_URL = "https://hope-backend-2.onrender.com";
 
 export interface ApiResponse<T = any> {
@@ -484,6 +486,63 @@ class BackendService {
     return this.makeRequest('/crisis/escalate', {
       method: 'POST',
       body: JSON.stringify({ details, timestamp: new Date().toISOString() }),
+    });
+  }
+
+  // Premium bypass check
+  async getUserTierWithBypass(userEmail?: string): Promise<{ userTier: "free" | "premium" }> {
+    // Check for premium bypass email first
+    if (userEmail && isPremiumBypassEmail(userEmail)) {
+      return { userTier: "premium" };
+    }
+
+    // Otherwise, check subscription status
+    try {
+      const response = await this.makeRequest('/subscription/status');
+      if (response.success && response.data) {
+        return { userTier: (response.data as any).userTier || "free" };
+      }
+    } catch (error) {
+      console.error("Error fetching user tier:", error);
+    }
+
+    return { userTier: "free" };
+  }
+
+  // Additional missing methods
+  async createChatSession(sessionData: any): Promise<ApiResponse> {
+    return this.makeRequest('/chat/sessions', {
+      method: 'POST',
+      body: JSON.stringify(sessionData),
+    });
+  }
+
+  async sendChatMessage(messageData: any): Promise<ApiResponse> {
+    return this.makeRequest('/chat/messages', {
+      method: 'POST',
+      body: JSON.stringify(messageData),
+    });
+  }
+
+  async getMoodEntries(): Promise<ApiResponse> {
+    return this.makeRequest('/mood/entries');
+  }
+
+  async getMeditationSessions(): Promise<ApiResponse> {
+    return this.makeRequest('/meditations/sessions');
+  }
+
+  async createActivity(activityData: any): Promise<ApiResponse> {
+    return this.makeRequest('/activities', {
+      method: 'POST',
+      body: JSON.stringify(activityData),
+    });
+  }
+
+  async updateMatchingPreferences(preferences: any): Promise<ApiResponse> {
+    return this.makeRequest('/matching/preferences', {
+      method: 'PUT',
+      body: JSON.stringify(preferences),
     });
   }
 }

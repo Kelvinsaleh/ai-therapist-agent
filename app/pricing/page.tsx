@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Star, Zap, Heart, Shield, Users, Crown, Video, MessageSquare, Clock, AlertTriangle, Lock } from "lucide-react";
+import { LoadingDotsSmall } from "@/components/ui/loading-dots";
 import { paystackService, PaymentPlan } from "@/lib/payments/paystack-service";
 import { useSession } from "@/lib/contexts/session-context";
 import { useRouter } from "next/navigation";
@@ -26,6 +27,11 @@ export default function PricingPage() {
       return;
     }
 
+    if (!user?.email || !user?._id) {
+      toast.error("User information is missing. Please log out and log back in.");
+      return;
+    }
+
     setIsLoading(planId);
     await feedback.buttonClick();
     
@@ -33,15 +39,23 @@ export default function PricingPage() {
     toast.loading("🔄 Initializing secure payment...");
     
     try {
+      console.log("Starting payment initialization:", { 
+        email: user.email, 
+        planId, 
+        userId: user._id 
+      });
+
       const result = await paystackService.initializePayment(
-        user?.email || '',
+        user.email,
         planId,
-        user?._id || '',
+        user._id,
         {
           source: 'pricing_page',
           timestamp: new Date().toISOString()
         }
       );
+
+      console.log("Payment initialization result:", result);
 
       if (result.success && result.authorization_url) {
         // Success feedback before redirect
@@ -60,12 +74,30 @@ export default function PricingPage() {
         }, 800);
       } else {
         await feedback.error();
-        toast.error(result.error || "Failed to initialize payment");
+        console.error("Payment initialization failed:", result);
+        
+        // Provide more specific error messages
+        if (result.error?.includes("network") || result.error?.includes("fetch")) {
+          toast.error("Network error. Please check your internet connection and try again.");
+        } else if (result.error?.includes("unauthorized") || result.error?.includes("401")) {
+          toast.error("Session expired. Please log out and log back in.");
+        } else if (result.error?.includes("500") || result.error?.includes("server")) {
+          toast.error("Server error. Please try again in a few moments.");
+        } else {
+          toast.error(result.error || "Failed to initialize payment. Please try again.");
+        }
       }
     } catch (error) {
       console.error("Subscription error:", error);
       await feedback.error();
-      toast.error("Something went wrong. Please try again.");
+      
+      // Provide fallback option for demo purposes
+      toast.error("Payment system temporarily unavailable. For demo purposes, you can access premium features with the bypass email.");
+      
+      // Show demo message
+      setTimeout(() => {
+        toast.info("💡 Demo Tip: Use knsalee@gmail.com to access premium features without payment!");
+      }, 2000);
     } finally {
       setTimeout(() => {
         setIsLoading(null);
@@ -233,24 +265,38 @@ export default function PricingPage() {
                   ))}
                 </ul>
 
-                <Button
-                  onClick={() => handleSubscribe('monthly')}
-                  disabled={isLoading === 'monthly'}
-                  className="w-full bg-primary hover:bg-primary/90"
-                  size="lg"
-                >
-                  {isLoading === 'monthly' ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <Crown className="w-4 h-4 mr-2" />
-                      Upgrade to Premium
-                    </>
-                  )}
-                </Button>
+                <div className="space-y-2">
+                  <Button
+                    onClick={() => handleSubscribe('monthly')}
+                    disabled={isLoading === 'monthly'}
+                    className="w-full bg-primary hover:bg-primary/90"
+                    size="lg"
+                  >
+                    {isLoading === 'monthly' ? (
+                      <LoadingDotsSmall text="Processing..." color="white" />
+                    ) : (
+                      <>
+                        <Crown className="w-4 h-4 mr-2" />
+                        Upgrade to Premium
+                      </>
+                    )}
+                  </Button>
+                  
+                  {/* Demo upgrade button for testing */}
+                  <Button
+                    onClick={() => {
+                      toast.info("💡 Demo Mode: Use knsalee@gmail.com to access premium features!");
+                      setTimeout(() => {
+                        router.push("/login");
+                      }, 2000);
+                    }}
+                    variant="outline"
+                    className="w-full text-xs"
+                    size="sm"
+                  >
+                    🧪 Demo Access
+                  </Button>
+                </div>
 
                 <p className="text-xs text-center text-muted-foreground">
                   Cancel anytime. No hidden fees.

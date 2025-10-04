@@ -106,7 +106,7 @@ export function SessionHistory({ params, onNewSession, onSessionSelect }: Sessio
         await onNewSession();
       } else {
         // Create a new session via backend
-        const response = await backendService.createChatSession();
+        const response = await backendService.createChatSession({});
         
         if (response.success && response.data) {
           const sessionId = response.data.id;

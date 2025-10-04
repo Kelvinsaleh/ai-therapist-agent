@@ -16,11 +16,16 @@ import {
   Clock,
   Users,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Crown,
+  Video,
+  Filter,
+  Zap
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { LoadingDotsCentered } from "@/components/ui/loading-dots";
 
 export default function DashboardPage() {
   const { user, isAuthenticated, userTier, isLoading } = useSession();
@@ -63,10 +68,7 @@ export default function DashboardPage() {
   if (isLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="flex items-center gap-2">
-          <Loader2 className="w-6 h-6 animate-spin" />
-          <span>Loading dashboard...</span>
-        </div>
+        <LoadingDotsCentered text="Loading dashboard..." />
       </div>
     );
   }
@@ -112,9 +114,17 @@ export default function DashboardPage() {
               Here's your mental health journey overview
             </p>
           </div>
-          <Badge variant={userTier === "premium" ? "default" : "secondary"} className="text-sm">
-            {userTier === "premium" ? "Premium" : "Free"} Plan
-          </Badge>
+          <div className="flex items-center gap-3">
+            <Badge variant={userTier === "premium" ? "default" : "secondary"} className="text-sm">
+              {userTier === "premium" ? "Premium" : "Free"} Plan
+            </Badge>
+            {userTier === "premium" && (
+              <Badge variant="outline" className="text-sm">
+                <Crown className="w-3 h-3 mr-1" />
+                Unlimited Access
+              </Badge>
+            )}
+          </div>
         </div>
 
         {/* Stats Grid */}
@@ -220,7 +230,7 @@ export default function DashboardPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {recentActivity.slice(0, 5).map((activity, index) => (
+                    {recentActivity?.slice(0, 5).map((activity, index) => (
                       <div key={activity.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                         <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                           {activity.type === 'session' && <MessageSquare className="w-4 h-4 text-primary" />}
@@ -265,7 +275,7 @@ export default function DashboardPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {chatHistory.slice(0, 5).map((message, index) => (
+                    {chatHistory?.slice(0, 5).map((message, index) => (
                       <div key={message.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                           message.role === 'user' ? 'bg-primary/10' : 'bg-secondary/10'
@@ -296,6 +306,51 @@ export default function DashboardPage() {
           </motion.div>
         </div>
 
+        {/* Premium Features Showcase */}
+        {userTier === "premium" && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+          >
+            <Card className="border-primary/20 bg-primary/5">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Crown className="w-5 h-5 text-primary" />
+                  Premium Features Active
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  You have access to all premium features
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center">
+                    <Users className="w-8 h-8 text-primary mx-auto mb-2" />
+                    <p className="text-sm font-medium">Unlimited Matches</p>
+                    <p className="text-xs text-muted-foreground">Find unlimited support partners</p>
+                  </div>
+                  <div className="text-center">
+                    <Video className="w-8 h-8 text-primary mx-auto mb-2" />
+                    <p className="text-sm font-medium">Video Calls</p>
+                    <p className="text-xs text-muted-foreground">Face-to-face support sessions</p>
+                  </div>
+                  <div className="text-center">
+                    <Filter className="w-8 h-8 text-primary mx-auto mb-2" />
+                    <p className="text-sm font-medium">Advanced Filters</p>
+                    <p className="text-xs text-muted-foreground">Find perfect matches</p>
+                  </div>
+                  <div className="text-center">
+                    <Zap className="w-8 h-8 text-primary mx-auto mb-2" />
+                    <p className="text-sm font-medium">Priority Support</p>
+                    <p className="text-xs text-muted-foreground">24/7 crisis assistance</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
         {/* Quick Actions */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -309,7 +364,7 @@ export default function DashboardPage() {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Button 
-                  onClick={() => router.push("/therapy/new")}
+                  onClick={() => router.push("/therapy")}
                   className="h-20 flex flex-col gap-2"
                 >
                   <MessageSquare className="w-6 h-6" />

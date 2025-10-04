@@ -165,7 +165,7 @@ export function StartSessionModal({ open, onOpenChange, onNewSession }: StartSes
       }
 
       // Create a new session via backend
-      const sessionResponse = await backendService.createChatSession();
+      const sessionResponse = await backendService.createChatSession({});
       
       if (sessionResponse.success && sessionResponse.data) {
         const sessionId = sessionResponse.data.id;

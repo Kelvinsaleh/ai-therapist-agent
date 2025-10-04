@@ -1,4 +1,5 @@
 export interface ChatMessage {
+  id?: string;
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
@@ -17,10 +18,12 @@ export interface ChatMessage {
 }
 
 export interface ChatSession {
+  id?: string;
   sessionId: string;
   messages: ChatMessage[];
   createdAt: Date;
   updatedAt: Date;
+  messageCount?: number;
 }
 
 export interface ApiResponse {
@@ -40,21 +43,9 @@ export interface ApiResponse {
   };
 }
 
-const API_BASE = "https://hope-backend-2.onrender.com";
+import { API_CONFIG, getAuthHeaders } from '../config/api';
 
-// Helper function to get auth headers
-const getAuthHeaders = () => {
-  let token: string | null = null;
-  try {
-    token =
-      localStorage.getItem("token") ||
-      localStorage.getItem("authToken");
-  } catch {}
-  return {
-    "Content-Type": "application/json",
-    Authorization: token ? `Bearer ${token}` : "",
-  };
-};
+const API_BASE = API_CONFIG.BASE_URL;
 
 export const createChatSession = async (): Promise<string> => {
   try {
@@ -82,7 +73,7 @@ export const createChatSession = async (): Promise<string> => {
 export const sendChatMessage = async (
   sessionId: string,
   message: string
-): Promise<ApiResponse> => {
+): Promise<ChatMessage> => {
   try {
     console.log(`Sending message to session ${sessionId}:`, message);
     const response = await fetch(
@@ -90,21 +81,97 @@ export const sendChatMessage = async (
       {
         method: "POST",
         headers: getAuthHeaders(),
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ 
+          message,
+          timestamp: new Date().toISOString()
+        }),
       }
     );
 
     if (!response.ok) {
-      const error = await response.json();
-      console.error("Failed to send message:", error);
-      throw new Error(error.error || "Failed to send message");
+      const error = await response.json().catch(() => ({}));
+      console.error("Failed to send message:", { status: response.status, error });
+      throw new Error(error.error || `Failed to send message: ${response.status}`);
     }
 
     const data = await response.json();
     console.log("Message sent successfully:", data);
-    return data;
+
+    // Handle different response formats
+    const aiResponse = data.response || data.message || data.content || data.answer;
+    
+    if (!aiResponse) {
+      console.error("No AI response found in data:", data);
+      
+      // Provide a fallback response if the AI doesn't respond
+      const fallbackResponses = [
+        "I'm here to listen and help. Could you tell me more about what's on your mind?",
+        "I understand you're reaching out. What would you like to talk about today?",
+        "I'm ready to support you. What's been going on lately?",
+        "Thank you for sharing. How can I help you feel better today?",
+        "I'm listening. What's been weighing on your mind?"
+      ];
+      
+      const randomResponse = fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
+      
+      return {
+        id: Date.now().toString(),
+        role: "assistant",
+        content: randomResponse,
+        timestamp: new Date(),
+        metadata: { 
+          technique: "supportive_response",
+          goal: "provide_comfort",
+          progress: []
+        },
+      };
+    }
+
+    return {
+      id: Date.now().toString(),
+      role: "assistant",
+      content: aiResponse,
+      timestamp: new Date(),
+      metadata: data.metadata || data.analysis,
+    };
   } catch (error) {
     console.error("Error sending chat message:", error);
+    
+    // Try Gemini as fallback
+    try {
+      console.log("Trying Gemini as fallback...");
+      const geminiResponse = await fetch('/api/chat/gemini', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message,
+          mode: 'therapy',
+          context: { sessionId }
+        })
+      });
+
+      if (geminiResponse.ok) {
+        const geminiData = await geminiResponse.json();
+        console.log("Gemini fallback successful:", geminiData);
+        
+        return {
+          id: Date.now().toString(),
+          role: "assistant",
+          content: geminiData.response || geminiData.message || geminiData.content,
+          timestamp: new Date(),
+          metadata: {
+            technique: "gemini_fallback",
+            goal: "provide_support",
+            progress: []
+          },
+        };
+      }
+    } catch (geminiError) {
+      console.error("Gemini fallback also failed:", geminiError);
+    }
+    
     throw error;
   }
 };

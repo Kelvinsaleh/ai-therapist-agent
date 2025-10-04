@@ -122,7 +122,7 @@ export default function MeditationsPage() {
       console.log('Loaded meditations:', normalized);
       
       // Check if any meditations have valid audio URLs
-      const validMeditations = normalized.filter(m => m.audioUrl);
+      const validMeditations = normalized.filter((m: any) => m.audioUrl);
       console.log('Meditations with valid audio URLs:', validMeditations.length, 'out of', normalized.length);
       if (validMeditations.length > 0) {
         console.log('First valid meditation:', validMeditations[0]);

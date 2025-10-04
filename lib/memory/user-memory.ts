@@ -1,6 +1,8 @@
 // User Memory System for AI Therapist
 // This system stores and retrieves user context from journals, meditations, and therapy sessions
 
+import { ChatMessage } from '../api/chat';
+
 export interface UserMemory {
   userId: string;
   profile: {
@@ -18,6 +20,7 @@ export interface UserMemory {
   therapySessions: TherapyMemory[];
   moodPatterns: MoodPattern[];
   insights: UserInsight[];
+  concerns?: string[];
   lastUpdated: Date;
 }
 
@@ -56,6 +59,7 @@ export interface TherapyMemory {
   goals: string[];
   mood: number;
   summary: string;
+  messages?: ChatMessage[];
 }
 
 export interface MoodPattern {

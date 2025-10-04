@@ -37,7 +37,7 @@ export default function LoginPage() {
         
         // Wait a moment for state to update, then redirect to AI chat
         setTimeout(() => {
-          router.push("/therapy/memory-enhanced");
+          router.push("/therapy");
         }, 1000);
       } else {
         setError("Invalid email or password. Please check your credentials.");
@@ -57,6 +57,44 @@ export default function LoginPage() {
       }
       
       toast.error("Login failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDemoLogin = async () => {
+    setLoading(true);
+    setError("");
+    
+    try {
+      console.log("Attempting demo login...");
+      
+      // Try demo credentials first
+      const success = await login("demo@hope.ai", "demo123");
+      
+      if (success) {
+        toast.success("Welcome! Demo login successful. Redirecting to AI Chat...");
+        setTimeout(() => {
+          router.push("/therapy");
+        }, 1000);
+      } else {
+        // If demo fails, try with premium bypass email
+        const premiumSuccess = await login("knsalee@gmail.com", "demo123");
+        
+        if (premiumSuccess) {
+          toast.success("Welcome! Premium demo login successful. Redirecting to AI Chat...");
+          setTimeout(() => {
+            router.push("/therapy");
+          }, 1000);
+        } else {
+          setError("Demo login failed. Please try registering a new account or check if the server is running.");
+          toast.error("Demo login failed. Please try registering a new account.");
+        }
+      }
+    } catch (err) {
+      console.error("Demo login error:", err);
+      setError("Demo login failed. Please try registering a new account or check if the server is running.");
+      toast.error("Demo login failed. Please try registering a new account.");
     } finally {
       setLoading(false);
     }
@@ -137,6 +175,27 @@ export default function LoginPage() {
                 "Sign In"
               )}
             </Button>
+            
+            <div className="text-center">
+              <span className="text-muted-foreground text-sm">or</span>
+            </div>
+            
+            <Button
+              className="w-full py-2 text-base rounded-xl font-bold bg-gradient-to-r from-secondary to-secondary/80 shadow-md hover:from-secondary/80 hover:to-secondary"
+              size="lg"
+              type="button"
+              onClick={handleDemoLogin}
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Demo Login...
+                </>
+              ) : (
+                "Try Demo Account"
+              )}
+            </Button>
           </form>
           <div className="my-6 border-t border-primary/10" />
           <div className="flex flex-col items-center gap-2">
@@ -157,6 +216,15 @@ export default function LoginPage() {
               >
                 Forgot password?
               </Link>
+            </div>
+            
+            <div className="mt-4 p-3 bg-muted/50 rounded-lg text-center">
+              <p className="text-xs text-muted-foreground">
+                <strong>Demo Credentials:</strong><br/>
+                Email: demo@hope.ai | Password: demo123<br/>
+                <strong>Premium Demo:</strong><br/>
+                Email: knsalee@gmail.com | Password: demo123
+              </p>
             </div>
           </div>
         </Card>

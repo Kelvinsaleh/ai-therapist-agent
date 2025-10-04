@@ -239,7 +239,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
             }
           };
 
-          audioRef.current.addEventListener('canplay', handleCanPlay);
+          audioRef.current?.addEventListener('canplay', handleCanPlay);
           
           // Fallback timeout in case canplay doesn't fire
           setTimeout(() => {

@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, XCircle, Loader2, Crown } from "lucide-react";
+import { CheckCircle, XCircle, Crown } from "lucide-react";
+import { LoadingDotsCentered } from "@/components/ui/loading-dots";
 import { toast } from "sonner";
 import { useSession } from "@/lib/contexts/session-context";
 import { LoadingDots } from "@/components/ui/loading-dots";
 
-export default function PaymentSuccessPage() {
+function PaymentSuccessForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { refreshUserTier } = useSession();
@@ -74,9 +75,9 @@ export default function PaymentSuccessPage() {
               });
             }, 2500);
             
-            // Redirect to matching page after 4 seconds to show premium features
+            // Redirect to rescue pairs page after 4 seconds to show premium features
             setTimeout(() => {
-              router.push('/matching');
+              router.push('/rescue-pairs');
             }, 4000);
           }, 1000);
         } else {
@@ -106,7 +107,7 @@ export default function PaymentSuccessPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="flex items-center justify-center gap-2">
-            {status === 'loading' && <Loader2 className="w-6 h-6 animate-spin" />}
+            {status === 'loading' && <LoadingDotsCentered />}
             {status === 'success' && <CheckCircle className="w-6 h-6 text-green-500" />}
             {status === 'error' && <XCircle className="w-6 h-6 text-red-500" />}
             Payment {status === 'loading' ? 'Processing' : status === 'success' ? 'Successful' : 'Failed'}
@@ -139,5 +140,13 @@ export default function PaymentSuccessPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function PaymentSuccessPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <PaymentSuccessForm />
+    </Suspense>
   );
 }
