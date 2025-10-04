@@ -22,41 +22,54 @@ class GeminiService {
     const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
     
     if (!apiKey) {
-      throw new Error('GOOGLE_GEMINI_API_KEY is not configured');
+      console.warn('GOOGLE_GEMINI_API_KEY is not configured - Gemini AI will not be available');
+      // Don't throw error during build, just log warning
+      return;
     }
 
-    this.genAI = new GoogleGenerativeAI(apiKey);
-    this.model = this.genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
-      generationConfig: {
-        temperature: 0.7,
-        topK: 40,
-        topP: 0.95,
-        maxOutputTokens: 1024,
-      },
-      safetySettings: [
-        {
-          category: "HARM_CATEGORY_HARASSMENT",
-          threshold: "BLOCK_MEDIUM_AND_ABOVE",
+    try {
+      this.genAI = new GoogleGenerativeAI(apiKey);
+      this.model = this.genAI.getGenerativeModel({ 
+        model: "gemini-1.5-flash",
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 1024,
         },
-        {
-          category: "HARM_CATEGORY_HATE_SPEECH",
-          threshold: "BLOCK_MEDIUM_AND_ABOVE",
-        },
-        {
-          category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-          threshold: "BLOCK_MEDIUM_AND_ABOVE",
-        },
-        {
-          category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-          threshold: "BLOCK_MEDIUM_AND_ABOVE",
-        },
-      ],
-    });
+        safetySettings: [
+          {
+            category: "HARM_CATEGORY_HARASSMENT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE",
+          },
+          {
+            category: "HARM_CATEGORY_HATE_SPEECH",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE",
+          },
+          {
+            category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE",
+          },
+          {
+            category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE",
+          },
+        ],
+      });
+    } catch (error) {
+      console.error('Failed to initialize Gemini AI:', error);
+    }
   }
 
   // Generate AI response for therapy/mental health chat
   async generateTherapyResponse(userMessage: string, context?: any): Promise<GeminiResponse> {
+    if (!this.model) {
+      return {
+        success: false,
+        error: 'Gemini AI is not configured. Please set GOOGLE_GEMINI_API_KEY environment variable.'
+      };
+    }
+
     try {
       console.log('Generating Gemini therapy response for:', userMessage.substring(0, 50) + '...');
 
@@ -109,6 +122,13 @@ User message: ${userMessage}`;
 
   // Generate AI response for general chat
   async generateChatResponse(userMessage: string, context?: any): Promise<GeminiResponse> {
+    if (!this.model) {
+      return {
+        success: false,
+        error: 'Gemini AI is not configured. Please set GOOGLE_GEMINI_API_KEY environment variable.'
+      };
+    }
+
     try {
       console.log('Generating Gemini chat response for:', userMessage.substring(0, 50) + '...');
 
@@ -148,6 +168,11 @@ User message: ${userMessage}`;
 
   // Test the Gemini API connection
   async testConnection(): Promise<boolean> {
+    if (!this.model) {
+      console.warn('Gemini AI is not configured - cannot test connection');
+      return false;
+    }
+
     try {
       const result = await this.model.generateContent("Hello, this is a test message.");
       const response = await result.response;
