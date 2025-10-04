@@ -4,7 +4,8 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, XCircle, Loader2, Crown } from "lucide-react";
+import { CheckCircle, XCircle, Crown } from "lucide-react";
+import { LoadingDotsCentered } from "@/components/ui/loading-dots";
 import { toast } from "sonner";
 import { useSession } from "@/lib/contexts/session-context";
 import { LoadingDots } from "@/components/ui/loading-dots";
@@ -106,7 +107,7 @@ function PaymentSuccessForm() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="flex items-center justify-center gap-2">
-            {status === 'loading' && <Loader2 className="w-6 h-6 animate-spin" />}
+            {status === 'loading' && <LoadingDotsCentered />}
             {status === 'success' && <CheckCircle className="w-6 h-6 text-green-500" />}
             {status === 'error' && <XCircle className="w-6 h-6 text-red-500" />}
             Payment {status === 'loading' ? 'Processing' : status === 'success' ? 'Successful' : 'Failed'}

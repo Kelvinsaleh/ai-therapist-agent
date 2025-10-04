@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Star, Zap, Heart, Shield, Users, Crown, Video, MessageSquare, Clock, AlertTriangle, Lock } from "lucide-react";
+import { LoadingDotsSmall } from "@/components/ui/loading-dots";
 import { paystackService, PaymentPlan } from "@/lib/payments/paystack-service";
 import { useSession } from "@/lib/contexts/session-context";
 import { useRouter } from "next/navigation";
@@ -240,10 +241,7 @@ export default function PricingPage() {
                   size="lg"
                 >
                   {isLoading === 'monthly' ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                      Processing...
-                    </>
+                    <LoadingDotsSmall text="Processing..." color="white" />
                   ) : (
                     <>
                       <Crown className="w-4 h-4 mr-2" />

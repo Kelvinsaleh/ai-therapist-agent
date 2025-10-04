@@ -30,6 +30,7 @@ import {
   Settings,
   Database
 } from "lucide-react";
+import { LoadingDotsSmall, LoadingDotsCentered } from "@/components/ui/loading-dots";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import { userMemoryManager, UserMemory } from "@/lib/memory/user-memory";

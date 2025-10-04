@@ -16,6 +16,7 @@ import {
   CheckCircle,
   AlertCircle
 } from "lucide-react";
+import { LoadingDotsSmall } from "@/components/ui/loading-dots";
 import { toast } from "sonner";
 import { 
   getPremiumBypassEmails, 
@@ -184,7 +185,7 @@ export default function PremiumBypassPage() {
                 onClick={handleAddEmail}
                 disabled={isLoading || !newEmail.trim()}
               >
-                {isLoading ? "Adding..." : "Add Email"}
+                {isLoading ? <LoadingDotsSmall text="Adding..." /> : "Add Email"}
               </Button>
             </div>
           </CardContent>
