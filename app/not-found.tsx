@@ -62,7 +62,7 @@ export default function NotFound() {
               </p>
               <div className="flex flex-wrap gap-2 mt-3">
                 <Button variant="ghost" size="sm" asChild>
-                  <Link href="/therapy/memory-enhanced">AI Therapist</Link>
+                  <Link href="/therapy">AI Therapist</Link>
                 </Button>
                 <Button variant="ghost" size="sm" asChild>
                   <Link href="/journaling">Journal</Link>
