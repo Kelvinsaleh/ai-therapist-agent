@@ -16,7 +16,11 @@ import {
   Clock,
   Users,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Crown,
+  Video,
+  Filter,
+  Zap
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -112,9 +116,17 @@ export default function DashboardPage() {
               Here's your mental health journey overview
             </p>
           </div>
-          <Badge variant={userTier === "premium" ? "default" : "secondary"} className="text-sm">
-            {userTier === "premium" ? "Premium" : "Free"} Plan
-          </Badge>
+          <div className="flex items-center gap-3">
+            <Badge variant={userTier === "premium" ? "default" : "secondary"} className="text-sm">
+              {userTier === "premium" ? "Premium" : "Free"} Plan
+            </Badge>
+            {userTier === "premium" && (
+              <Badge variant="outline" className="text-sm">
+                <Crown className="w-3 h-3 mr-1" />
+                Unlimited Access
+              </Badge>
+            )}
+          </div>
         </div>
 
         {/* Stats Grid */}
@@ -295,6 +307,51 @@ export default function DashboardPage() {
             </Card>
           </motion.div>
         </div>
+
+        {/* Premium Features Showcase */}
+        {userTier === "premium" && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+          >
+            <Card className="border-primary/20 bg-primary/5">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Crown className="w-5 h-5 text-primary" />
+                  Premium Features Active
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  You have access to all premium features
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center">
+                    <Users className="w-8 h-8 text-primary mx-auto mb-2" />
+                    <p className="text-sm font-medium">Unlimited Matches</p>
+                    <p className="text-xs text-muted-foreground">Find unlimited support partners</p>
+                  </div>
+                  <div className="text-center">
+                    <Video className="w-8 h-8 text-primary mx-auto mb-2" />
+                    <p className="text-sm font-medium">Video Calls</p>
+                    <p className="text-xs text-muted-foreground">Face-to-face support sessions</p>
+                  </div>
+                  <div className="text-center">
+                    <Filter className="w-8 h-8 text-primary mx-auto mb-2" />
+                    <p className="text-sm font-medium">Advanced Filters</p>
+                    <p className="text-xs text-muted-foreground">Find perfect matches</p>
+                  </div>
+                  <div className="text-center">
+                    <Zap className="w-8 h-8 text-primary mx-auto mb-2" />
+                    <p className="text-sm font-medium">Priority Support</p>
+                    <p className="text-xs text-muted-foreground">24/7 crisis assistance</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
 
         {/* Quick Actions */}
         <motion.div

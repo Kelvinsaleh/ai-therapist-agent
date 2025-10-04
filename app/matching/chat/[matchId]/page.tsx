@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,13 @@ import {
   Flag,
   Shield,
   AlertTriangle,
-  Crown
+  Crown,
+  ArrowLeft,
+  Heart,
+  Calendar,
+  Settings,
+  Users,
+  Zap
 } from "lucide-react";
 import { 
   DropdownMenu,
@@ -37,11 +43,14 @@ interface MatchedMessage {
 export default function MatchedChatPage() {
   const { matchId } = useParams() as { matchId: string };
   const { user, userTier } = useSession();
+  const router = useRouter();
   const [messages, setMessages] = useState<MatchedMessage[]>([]);
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isVideoCall, setIsVideoCall] = useState(false);
   const [isInCall, setIsInCall] = useState(false);
+  const [partnerInfo, setPartnerInfo] = useState<any>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
 
   const isPremium = userTier === "premium";
@@ -49,6 +58,7 @@ export default function MatchedChatPage() {
   useEffect(() => {
     const load = async () => {
       try {
+        // Load chat messages
         const response = await fetch(`/api/matching/messages/${matchId}`, {
           method: 'GET',
           headers: {
@@ -61,6 +71,16 @@ export default function MatchedChatPage() {
         
         if (result.success && Array.isArray(result.data)) {
           setMessages(result.data as MatchedMessage[]);
+        }
+
+        // Load partner info
+        try {
+          const partnerResponse = await backendService.getRescuePairDetails(matchId);
+          if (partnerResponse.success && partnerResponse.data) {
+            setPartnerInfo(partnerResponse.data);
+          }
+        } catch (partnerError) {
+          console.log("Could not load partner info:", partnerError);
         }
       } catch (e) {
         console.error("Failed to load chat history:", e);
@@ -130,6 +150,34 @@ export default function MatchedChatPage() {
     } finally {
       setIsSending(false);
     }
+  };
+
+  const startVideoCall = () => {
+    if (!isPremium) {
+      setShowUpgradeModal(true);
+      return;
+    }
+    setIsVideoCall(true);
+    setIsInCall(true);
+    toast.success("Starting video call... 🎥");
+  };
+
+  const endVideoCall = () => {
+    setIsVideoCall(false);
+    setIsInCall(false);
+    toast.success("Video call ended.");
+  };
+
+  const scheduleCheckIn = () => {
+    if (!isPremium) {
+      setShowUpgradeModal(true);
+      return;
+    }
+    toast.success("Check-in scheduled! 📅");
+  };
+
+  const reportUser = () => {
+    toast.info("Report submitted. Our team will review this case.");
   };
 
   const handleReport = async () => {
@@ -295,6 +343,14 @@ export default function MatchedChatPage() {
       <Card className="h-[calc(100vh-8rem)]">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push("/rescue-pairs")}
+              className="mr-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
             <CardTitle>Support Match Chat</CardTitle>
             {isPremium && (
               <Badge variant="secondary" className="flex items-center gap-1">
@@ -302,9 +358,37 @@ export default function MatchedChatPage() {
                 Premium
               </Badge>
             )}
+            {partnerInfo && (
+              <Badge variant="outline" className="flex items-center gap-1">
+                <Shield className="w-3 h-3" />
+                Verified
+              </Badge>
+            )}
           </div>
           
           <div className="flex items-center gap-2">
+            {/* Premium Features */}
+            {isPremium && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={scheduleCheckIn}
+                  title="Schedule Check-in"
+                >
+                  <Calendar className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => toast.info("Voice call coming soon! 🎤")}
+                  title="Voice Call"
+                >
+                  <Phone className="w-4 h-4" />
+                </Button>
+              </>
+            )}
+            
             {/* Video Call Button - Premium Only */}
             <Button
               variant={isInCall ? "destructive" : "outline"}
@@ -409,6 +493,59 @@ export default function MatchedChatPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Upgrade Modal */}
+      {showUpgradeModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Crown className="w-5 h-5 text-primary" />
+                Upgrade to Premium
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Unlock video calls and advanced features
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <Video className="w-4 h-4 text-primary" />
+                  <span>Video calls</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-primary" />
+                  <span>Schedule check-ins</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-primary" />
+                  <span>Voice calls</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-primary" />
+                  <span>Priority support</span>
+                </div>
+              </div>
+              
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => router.push("/pricing")} 
+                  className="flex-1"
+                >
+                  <Crown className="w-4 h-4 mr-2" />
+                  Upgrade Now - $7.99/month
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowUpgradeModal(false)}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

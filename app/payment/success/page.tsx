@@ -74,9 +74,9 @@ function PaymentSuccessForm() {
               });
             }, 2500);
             
-            // Redirect to matching page after 4 seconds to show premium features
+            // Redirect to rescue pairs page after 4 seconds to show premium features
             setTimeout(() => {
-              router.push('/matching');
+              router.push('/rescue-pairs');
             }, 4000);
           }, 1000);
         } else {
