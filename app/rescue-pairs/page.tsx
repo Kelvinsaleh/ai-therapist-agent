@@ -15,7 +15,6 @@ import {
   Clock, 
   Shield, 
   Crown,
-  Loader2,
   AlertCircle,
   Plus,
   Search,
@@ -35,6 +34,7 @@ import {
   Target,
   Sparkles
 } from "lucide-react";
+import { LoadingDotsCentered, LoadingDotsSmall } from "@/components/ui/loading-dots";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { logger } from "@/lib/utils/logger";
@@ -398,13 +398,13 @@ export default function RescuePairsPage() {
               className="flex items-center gap-2"
             >
               {isFindingMatch ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <LoadingDotsSmall />
               ) : isPremium ? (
                 <Plus className="w-4 h-4" />
               ) : (
                 <Crown className="w-4 h-4" />
               )}
-              {isPremium ? "Find Match" : "Upgrade for Unlimited"}
+              {isFindingMatch ? "Finding..." : isPremium ? "Find Match" : "Upgrade for Unlimited"}
             </Button>
           </div>
         </div>
@@ -566,10 +566,7 @@ export default function RescuePairsPage() {
         {/* Content */}
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="flex items-center gap-2">
-              <Loader2 className="w-6 h-6 animate-spin" />
-              <span>Finding your support matches...</span>
-            </div>
+            <LoadingDotsCentered text="Finding your support matches..." />
           </div>
         ) : error ? (
           <div className="flex items-center justify-center py-12">
@@ -812,10 +809,7 @@ export default function RescuePairsPage() {
                     disabled={isCreatingProfile}
                   >
                     {isCreatingProfile ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Creating...
-                      </>
+                      <LoadingDotsSmall text="Creating..." />
                     ) : (
                       "Create Profile"
                     )}

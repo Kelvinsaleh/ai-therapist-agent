@@ -23,6 +23,7 @@ import {
   Users,
   Zap
 } from "lucide-react";
+import { LoadingDotsSmall } from "@/components/ui/loading-dots";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -482,7 +483,11 @@ export default function MatchedChatPage() {
                 disabled={isSending}
               />
               <Button type="submit" disabled={isSending || !message.trim()}>
-                <Send className="w-4 h-4" />
+                {isSending ? (
+                  <LoadingDotsSmall />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
               </Button>
             </form>
             
