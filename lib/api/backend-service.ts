@@ -509,26 +509,7 @@ class BackendService {
     return { userTier: "free" };
   }
 
-  // Create user profile for rescue pairs
-  async createUserProfile(profileData: any): Promise<ApiResponse> {
-    return this.makeRequest('/users/profile', {
-      method: 'POST',
-      body: JSON.stringify(profileData),
-    });
-  }
-
-  // Update user profile
-  async updateUserProfile(profileData: any): Promise<ApiResponse> {
-    return this.makeRequest('/users/profile', {
-      method: 'PUT',
-      body: JSON.stringify(profileData),
-    });
-  }
-
-  // Get user profile
-  async getUserProfile(): Promise<ApiResponse> {
-    return this.makeRequest('/users/profile');
-  }
+  // Note: createUserProfile, updateUserProfile, and getUserProfile methods are already defined above
 }
 
 export const backendService = new BackendService();

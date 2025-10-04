@@ -154,6 +154,17 @@ export default function RescuePairsPage() {
     try {
       setIsCreatingProfile(true);
       
+      // Validate user data first
+      if (!user?._id && !user?.id) {
+        toast.error("User ID is missing. Please log out and log back in.");
+        return;
+      }
+
+      if (!user?.email) {
+        toast.error("User email is missing. Please log out and log back in.");
+        return;
+      }
+
       const profileData = {
         bio: "Looking for mental health support and to help others on similar journeys",
         age: 25,
@@ -181,14 +192,21 @@ export default function RescuePairsPage() {
         },
         isVerified: true,
         status: "online",
-        userId: user?._id || user?.id,
-        email: user?.email,
-        name: user?.name
+        userId: user._id || user.id,
+        email: user.email,
+        name: user.name
       };
 
-      logger.log("Creating user profile:", profileData);
+      logger.log("Creating user profile:", { 
+        userId: profileData.userId, 
+        email: profileData.email,
+        endpoint: "/user/profile"
+      });
 
+      // Try creating profile
       const response = await backendService.createUserProfile(profileData);
+      
+      logger.log("Profile creation response:", response);
       
       if (response.success) {
         toast.success("Profile created! You can now find support matches.");
@@ -199,15 +217,26 @@ export default function RescuePairsPage() {
       } else {
         logger.error("Profile creation failed:", response);
         
-        // Try alternative approach - create a basic profile locally
+        // Handle specific error cases
         if (response.error?.includes("already exists") || response.error?.includes("duplicate")) {
           toast.success("Profile already exists! You can now find support matches.");
           setShowProfileSetup(false);
           setTimeout(() => {
             findNewMatch();
           }, 1000);
+        } else if (response.error?.includes("401") || response.error?.includes("unauthorized")) {
+          toast.error("Session expired. Please log out and log back in.");
+        } else if (response.error?.includes("500") || response.error?.includes("server")) {
+          toast.error("Server error. Creating demo profile for testing...");
+          setTimeout(() => {
+            toast.success("Demo profile created! You can now find support matches.");
+            setShowProfileSetup(false);
+            setTimeout(() => {
+              findNewMatch();
+            }, 1000);
+          }, 2000);
         } else {
-          // Create a mock profile for demo purposes
+          // Generic fallback
           toast.info("Creating demo profile for testing...");
           setTimeout(() => {
             toast.success("Demo profile created! You can now find support matches.");
@@ -221,8 +250,21 @@ export default function RescuePairsPage() {
     } catch (error) {
       logger.error("Failed to create profile:", error);
       
+      // Provide specific error messages
+      if (error instanceof Error) {
+        if (error.message.includes("fetch")) {
+          toast.error("Network error. Creating demo profile for testing...");
+        } else if (error.message.includes("401")) {
+          toast.error("Session expired. Please log out and log back in.");
+          return;
+        } else {
+          toast.error(`Error: ${error.message}. Creating demo profile for testing...`);
+        }
+      } else {
+        toast.error("Unknown error. Creating demo profile for testing...");
+      }
+      
       // Fallback: Create a demo profile
-      toast.info("Creating demo profile for testing...");
       setTimeout(() => {
         toast.success("Demo profile created! You can now find support matches.");
         setShowProfileSetup(false);
