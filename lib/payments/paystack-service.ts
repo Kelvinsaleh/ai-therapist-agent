@@ -98,10 +98,14 @@ class PaystackService {
         throw new Error('Invalid plan selected');
       }
 
-      const response = await fetch(`${this.backendUrl}/payments/initialize`, {
+      console.log('Initializing payment:', { email, planId, plan: plan.name, amount: plan.price });
+
+      // Try our API route first
+      const response = await fetch('/api/payments/initialize', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token') || localStorage.getItem('authToken')}`,
         },
         body: JSON.stringify({
           email,
@@ -117,6 +121,14 @@ class PaystackService {
           callback_url: `${window.location.origin}/payment/success`,
         })
       });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Payment initialization failed:', { status: response.status, error: errorData });
+        
+        // Try direct backend call as fallback
+        return await this.initializePaymentDirect(email, planId, userId, metadata);
+      }
 
       const data = await response.json();
 
@@ -136,9 +148,66 @@ class PaystackService {
       }
     } catch (error) {
       console.error('Payment initialization error:', error);
+      
+      // Try direct backend call as fallback
+      try {
+        return await this.initializePaymentDirect(email, planId, userId, metadata);
+      } catch (fallbackError) {
+        console.error('Fallback payment initialization also failed:', fallbackError);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Payment initialization failed'
+        };
+      }
+    }
+  }
+
+  // Direct backend payment initialization (fallback)
+  private async initializePaymentDirect(
+    email: string,
+    planId: string,
+    userId: string,
+    metadata?: Record<string, any>
+  ): Promise<PaymentResponse> {
+    const plan = this.getPlans().find(p => p.id === planId);
+    if (!plan) {
+      throw new Error('Invalid plan selected');
+    }
+
+    const response = await fetch(`${this.backendUrl}/payments/initialize`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        planId,
+        planCode: plan.paystackPlanCode,
+        amount: plan.price,
+        currency: plan.currency,
+        userId,
+        metadata: {
+          planName: plan.name,
+          ...metadata
+        },
+        callback_url: `${window.location.origin}/payment/success`,
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      return {
+        success: true,
+        reference: data.reference,
+        authorization_url: data.authorization_url,
+        access_code: data.access_code,
+        message: 'Payment initialized successfully'
+      };
+    } else {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Payment initialization failed'
+        error: data.error || 'Failed to initialize payment'
       };
     }
   }
