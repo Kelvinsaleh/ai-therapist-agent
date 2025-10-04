@@ -10,6 +10,7 @@ import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Lock, Mail } from "lucide-react";
 import { useSession } from "@/lib/contexts/session-context";
+import { logger } from "@/lib/utils/logger";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -27,7 +28,7 @@ export default function LoginPage() {
     setError("");
     
     try {
-      console.log("Attempting login...");
+      logger.debug("Attempting login...");
       
       // Use the session context login method
       const success = await login(email, password);
