@@ -188,8 +188,8 @@ export default function UnifiedTherapyPage() {
 
   const createNewSession = async () => {
     try {
-      const newSession = await createChatSession();
-      setSessionId(newSession.id);
+      const newSessionId = await createChatSession();
+      setSessionId(newSessionId);
       setMessages([]);
       setShowWelcome(false);
       await loadSessions();
@@ -247,8 +247,8 @@ export default function UnifiedTherapyPage() {
         response = await sendMemoryEnhancedMessage(currentMessage);
       } else {
         if (!sessionId) {
-          const newSession = await createChatSession();
-          setSessionId(newSession.id);
+          const newSessionId = await createChatSession();
+          setSessionId(newSessionId);
         }
         response = await sendChatMessage(sessionId, currentMessage);
       }
@@ -258,9 +258,15 @@ export default function UnifiedTherapyPage() {
       // Update memory if using memory-enhanced mode
       if (useMemoryEnhanced && userId) {
         await userMemoryManager.addTherapySession({
-          sessionId: sessionId || "memory-enhanced",
+          date: new Date(),
+          topics: [],
+          techniques: [],
+          breakthroughs: [],
+          concerns: [],
+          goals: [],
+          mood: 5,
+          summary: "Therapy session",
           messages: [userMessage, response],
-          timestamp: new Date(),
         });
         await loadUserMemory();
       }
@@ -797,25 +803,25 @@ export default function UnifiedTherapyPage() {
               <div className="space-y-2">
                 {sessions.map((session) => (
                   <Card
-                    key={session.id}
+                    key={session.id || session.sessionId}
                     className={cn(
                       "cursor-pointer transition-colors",
-                      sessionId === session.id && "bg-primary/10 border-primary"
+                      sessionId === (session.id || session.sessionId) && "bg-primary/10 border-primary"
                     )}
-                    onClick={() => handleSessionSelect(session.id)}
+                    onClick={() => handleSessionSelect(session.id || session.sessionId)}
                   >
                     <CardContent className="p-3">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm font-medium">
-                            Session {session.id.slice(0, 8)}...
+                            Session {(session.id || session.sessionId).slice(0, 8)}...
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {formatDistanceToNow(new Date(session.createdAt), { addSuffix: true })}
                           </p>
                         </div>
                         <Badge variant="secondary" className="text-xs">
-                          {session.messageCount || 0} msgs
+                          {session.messageCount || session.messages?.length || 0} msgs
                         </Badge>
                       </div>
                     </CardContent>

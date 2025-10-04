@@ -179,7 +179,7 @@ class DashboardService {
           createdAt: new Date(session.createdAt),
           updatedAt: new Date(session.updatedAt)
         }))
-        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+        .sort((a: any, b: any) => b.createdAt.getTime() - a.createdAt.getTime())
         .slice(0, 5);
     } catch (error) {
       console.error('Error getting recent sessions:', error);
@@ -287,7 +287,7 @@ class DashboardService {
   // Add new chat message
   async addChatMessage(sessionId: string, message: string): Promise<boolean> {
     try {
-      const response = await backendService.sendChatMessage(sessionId, message);
+      const response = await backendService.sendChatMessage({ sessionId, message });
       return response.success;
     } catch (error) {
       console.error('Error adding chat message:', error);

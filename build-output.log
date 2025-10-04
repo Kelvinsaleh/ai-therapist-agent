@@ -1,0 +1,78 @@
+
+> shadcn-landing-page@0.1.0 build
+> next build
+
+  ▲ Next.js 14.2.3
+  - Experiments (use with caution):
+    · missingSuspenseWithCSRBailout
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Skipping validation of types
+   Skipping linting
+   Collecting page data ...
+   Generating static pages (0/41) ...
+   Generating static pages (10/41) 
+   Generating static pages (20/41) 
+   Generating static pages (30/41) 
+ ✓ Generating static pages (41/41)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                  Size     First Load JS
+┌ ○ /                                        1.14 kB          95 kB
+├ ○ /_not-found                              142 B          87.2 kB
+├ ○ /about                                   2.35 kB         132 kB
+├ ○ /admin/meditations                       14.1 kB         186 kB
+├ ○ /admin/premium-bypass                    3.65 kB         107 kB
+├ ƒ /api/activity                            0 B                0 B
+├ ƒ /api/auth/login                          0 B                0 B
+├ ƒ /api/auth/me                             0 B                0 B
+├ ƒ /api/auth/register                       0 B                0 B
+├ ƒ /api/auth/session                        0 B                0 B
+├ ƒ /api/chat/memory-enhanced                0 B                0 B
+├ ƒ /api/chat/sessions                       0 B                0 B
+├ ƒ /api/chat/sessions/[sessionId]           0 B                0 B
+├ ƒ /api/chat/sessions/[sessionId]/history   0 B                0 B
+├ ƒ /api/chat/sessions/[sessionId]/messages  0 B                0 B
+├ ƒ /api/crisis/escalate                     0 B                0 B
+├ ƒ /api/health                              0 B                0 B
+├ ƒ /api/matching/accept                     0 B                0 B
+├ ƒ /api/matching/find                       0 B                0 B
+├ ƒ /api/matching/messages/[matchId]         0 B                0 B
+├ ƒ /api/meditations                         0 B                0 B
+├ ƒ /api/meditations/search                  0 B                0 B
+├ ƒ /api/meditations/upload                  0 B                0 B
+├ ƒ /api/mood                                0 B                0 B
+├ ƒ /api/payments/initialize                 0 B                0 B
+├ ƒ /api/payments/verify                     0 B                0 B
+├ ƒ /api/realtime/poll                       0 B                0 B
+├ ƒ /api/realtime/websocket                  0 B                0 B
+├ ƒ /api/safety/block                        0 B                0 B
+├ ƒ /api/safety/report                       0 B                0 B
+├ ƒ /api/video/initiate                      0 B                0 B
+├ ○ /config                                  6.51 kB         100 kB
+├ ○ /dashboard                               5.69 kB         145 kB
+├ ○ /features                                3.56 kB         133 kB
+├ ○ /forgot-password                         3.11 kB         110 kB
+├ ○ /journaling                              13.1 kB         152 kB
+├ ○ /login                                   2.38 kB         112 kB
+├ ○ /matching                                8.01 kB         143 kB
+├ ƒ /matching/chat/[matchId]                 15.5 kB         135 kB
+├ ○ /meditations                             6.69 kB         159 kB
+├ ○ /payment/failure                         3.89 kB         140 kB
+├ ○ /payment/success                         2.24 kB         106 kB
+├ ○ /pricing                                 7.66 kB         147 kB
+├ ○ /rescue-pairs                            10 kB           149 kB
+├ ○ /reset-password                          3.63 kB         110 kB
+├ ○ /signup                                  4.38 kB         105 kB
+└ ○ /therapy                                 44.4 kB         194 kB
++ First Load JS shared by all                87.1 kB
+  ├ chunks/7023-306f86bb549d4ee7.js          31.5 kB
+  ├ chunks/fd9d1056-81423d4800536f0b.js      53.6 kB
+  └ other shared chunks (total)              1.97 kB
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

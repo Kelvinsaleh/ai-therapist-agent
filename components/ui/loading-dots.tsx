@@ -76,8 +76,8 @@ export function LoadingDots({
 }
 
 // Convenience components for common use cases
-export function LoadingDotsSmall({ text, className }: { text?: string; className?: string }) {
-  return <LoadingDots size="sm" text={text} className={className} />;
+export function LoadingDotsSmall({ text, className, color }: { text?: string; className?: string; color?: "primary" | "muted" | "white" | "secondary" | "destructive" }) {
+  return <LoadingDots size="sm" text={text} className={className} color={color} />;
 }
 
 export function LoadingDotsMedium({ text, className }: { text?: string; className?: string }) {

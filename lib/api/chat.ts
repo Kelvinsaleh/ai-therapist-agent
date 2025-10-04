@@ -1,4 +1,5 @@
 export interface ChatMessage {
+  id?: string;
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
@@ -17,10 +18,12 @@ export interface ChatMessage {
 }
 
 export interface ChatSession {
+  id?: string;
   sessionId: string;
   messages: ChatMessage[];
   createdAt: Date;
   updatedAt: Date;
+  messageCount?: number;
 }
 
 export interface ApiResponse {
@@ -128,7 +131,11 @@ export const sendChatMessage = async (
         role: "assistant",
         content: randomResponse,
         timestamp: new Date(),
-        metadata: { fallback: true },
+        metadata: { 
+          technique: "supportive_response",
+          goal: "provide_comfort",
+          progress: []
+        },
       };
     }
 

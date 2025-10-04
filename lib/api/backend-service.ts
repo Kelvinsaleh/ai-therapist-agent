@@ -500,7 +500,7 @@ class BackendService {
     try {
       const response = await this.makeRequest('/subscription/status');
       if (response.success && response.data) {
-        return { userTier: response.data.userTier || "free" };
+        return { userTier: (response.data as any).userTier || "free" };
       }
     } catch (error) {
       console.error("Error fetching user tier:", error);
@@ -509,7 +509,42 @@ class BackendService {
     return { userTier: "free" };
   }
 
-  // Note: createUserProfile, updateUserProfile, and getUserProfile methods are already defined above
+  // Additional missing methods
+  async createChatSession(sessionData: any): Promise<ApiResponse> {
+    return this.makeRequest('/chat/sessions', {
+      method: 'POST',
+      body: JSON.stringify(sessionData),
+    });
+  }
+
+  async sendChatMessage(messageData: any): Promise<ApiResponse> {
+    return this.makeRequest('/chat/messages', {
+      method: 'POST',
+      body: JSON.stringify(messageData),
+    });
+  }
+
+  async getMoodEntries(): Promise<ApiResponse> {
+    return this.makeRequest('/mood/entries');
+  }
+
+  async getMeditationSessions(): Promise<ApiResponse> {
+    return this.makeRequest('/meditations/sessions');
+  }
+
+  async createActivity(activityData: any): Promise<ApiResponse> {
+    return this.makeRequest('/activities', {
+      method: 'POST',
+      body: JSON.stringify(activityData),
+    });
+  }
+
+  async updateMatchingPreferences(preferences: any): Promise<ApiResponse> {
+    return this.makeRequest('/matching/preferences', {
+      method: 'PUT',
+      body: JSON.stringify(preferences),
+    });
+  }
 }
 
 export const backendService = new BackendService();

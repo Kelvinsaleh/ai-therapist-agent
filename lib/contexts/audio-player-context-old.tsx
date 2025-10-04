@@ -143,6 +143,59 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     }
   }, [playlist]);
 
+  const stop = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      setIsPlaying(false);
+      setCurrentTime(0);
+      setCurrentTrack(null);
+      setCurrentIndex(-1);
+    }
+  };
+
+  const play = useCallback((meditation: Meditation) => {
+    if (!audioRef.current) return;
+
+    if (currentTrack?._id === meditation._id && audioRef.current.src) {
+      audioRef.current.play();
+      setIsPlaying(true);
+      return;
+    }
+
+    audioRef.current.src = meditation.audioUrl;
+    audioRef.current.load();
+    audioRef.current.play()
+      .then(() => {
+        setCurrentTrack(meditation);
+        setIsPlaying(true);
+        
+        // Update current index if track is in playlist
+        const index = playlist.findIndex(m => m._id === meditation._id);
+        if (index !== -1) {
+          setCurrentIndex(index);
+        }
+      })
+      .catch((error) => {
+        console.error('Error playing meditation:', error);
+        setIsPlaying(false);
+        toast.error('Failed to play meditation. Please check your internet connection.');
+      });
+  }, [playlist]);
+
+  const playNext = useCallback(() => {
+    if (playlist.length === 0) return;
+    
+    const nextIndex = currentIndex + 1;
+    if (nextIndex < playlist.length) {
+      setCurrentIndex(nextIndex);
+      play(playlist[nextIndex]);
+    } else {
+      toast.info('End of playlist');
+      stop();
+    }
+  }, [playlist, currentIndex, play, stop]);
+
   useEffect(() => {
     audioRef.current = new Audio();
     audioRef.current.volume = volume;
@@ -179,34 +232,6 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     };
   }, [playlist, currentIndex, playNext]);
 
-  const play = useCallback((meditation: Meditation) => {
-    if (!audioRef.current) return;
-
-    if (currentTrack?._id === meditation._id && audioRef.current.src) {
-      audioRef.current.play();
-      setIsPlaying(true);
-      return;
-    }
-
-    audioRef.current.src = meditation.audioUrl;
-    audioRef.current.load();
-    audioRef.current.play()
-      .then(() => {
-        setCurrentTrack(meditation);
-        setIsPlaying(true);
-        
-        // Update current index if track is in playlist
-        const index = playlist.findIndex(m => m._id === meditation._id);
-        if (index !== -1) {
-          setCurrentIndex(index);
-        }
-      })
-      .catch((error) => {
-        console.error('Play failed:', error);
-        setIsPlaying(false);
-        toast.error('Failed to play meditation');
-      });
-  }, [currentTrack, playlist]);
 
   const pause = () => {
     if (audioRef.current) {
@@ -223,17 +248,6 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
           console.error('Resume failed:', error);
           toast.error('Failed to resume playback');
         });
-    }
-  };
-
-  const stop = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-      setIsPlaying(false);
-      setCurrentTime(0);
-      setCurrentTrack(null);
-      setCurrentIndex(-1);
     }
   };
 
@@ -300,19 +314,6 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     }
     toast.success('Playlist cleared');
   };
-
-  const playNext = useCallback(() => {
-    if (playlist.length === 0) return;
-    
-    const nextIndex = currentIndex + 1;
-    if (nextIndex < playlist.length) {
-      setCurrentIndex(nextIndex);
-      play(playlist[nextIndex]);
-    } else {
-      toast.info('End of playlist');
-      stop();
-    }
-  }, [playlist, currentIndex, play, stop]);
 
   const playPrevious = useCallback(() => {
     if (playlist.length === 0) return;

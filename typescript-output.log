@@ -1,0 +1,138 @@
+error TS6053: File '/workspace/.next/types/app/about/page.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/admin/meditations/page.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/admin/premium-bypass/page.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/api/activity/route.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/api/auth/login/route.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/api/auth/me/route.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/api/auth/register/route.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/api/auth/session/route.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/api/chat/memory-enhanced/route.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/api/chat/sessions/[sessionId]/history/route.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/api/chat/sessions/[sessionId]/messages/route.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/api/chat/sessions/[sessionId]/route.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/api/chat/sessions/route.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/api/crisis/escalate/route.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/api/health/route.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/api/matching/accept/route.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/api/matching/find/route.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/api/matching/messages/[matchId]/route.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/api/meditations/route.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/api/meditations/search/route.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/api/meditations/upload/route.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/api/mood/route.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/api/payments/initialize/route.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/api/payments/verify/route.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/api/realtime/poll/route.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/api/realtime/websocket/route.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/api/safety/block/route.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/api/safety/report/route.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/api/video/initiate/route.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/config/page.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/dashboard/page.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/features/page.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/forgot-password/page.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/journaling/page.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/login/page.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/matching/chat/[matchId]/page.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/matching/page.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/meditations/page.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/page.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/payment/failure/page.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/payment/success/page.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/pricing/page.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/rescue-pairs/page.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/reset-password/page.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/signup/page.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
+error TS6053: File '/workspace/.next/types/app/therapy/page.ts' not found.
+  The file is in the program because:
+    Matched by include pattern '.next/types/**/*.ts' in '/workspace/tsconfig.json'
