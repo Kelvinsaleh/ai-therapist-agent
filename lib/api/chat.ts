@@ -136,6 +136,42 @@ export const sendChatMessage = async (
     };
   } catch (error) {
     console.error("Error sending chat message:", error);
+    
+    // Try Gemini as fallback
+    try {
+      console.log("Trying Gemini as fallback...");
+      const geminiResponse = await fetch('/api/chat/gemini', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message,
+          mode: 'therapy',
+          context: { sessionId }
+        })
+      });
+
+      if (geminiResponse.ok) {
+        const geminiData = await geminiResponse.json();
+        console.log("Gemini fallback successful:", geminiData);
+        
+        return {
+          id: Date.now().toString(),
+          role: "assistant",
+          content: geminiData.response || geminiData.message || geminiData.content,
+          timestamp: new Date(),
+          metadata: {
+            technique: "gemini_fallback",
+            goal: "provide_support",
+            progress: []
+          },
+        };
+      }
+    } catch (geminiError) {
+      console.error("Gemini fallback also failed:", geminiError);
+    }
+    
     throw error;
   }
 };

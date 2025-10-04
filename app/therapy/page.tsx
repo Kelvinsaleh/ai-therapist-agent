@@ -305,67 +305,108 @@ export default function UnifiedTherapyPage() {
   const sendMemoryEnhancedMessage = async (message: string) => {
     if (!userId) throw new Error("User not authenticated");
 
-    const userMemory = await userMemoryManager.loadUserMemory(userId);
-    const context = userMemoryManager.getTherapyContext();
+    try {
+      const userMemory = await userMemoryManager.loadUserMemory(userId);
+      const context = userMemoryManager.getTherapyContext();
 
-    logger.log("Sending memory-enhanced message:", { message, userId });
+      logger.log("Sending memory-enhanced message:", { message, userId });
 
-    const response = await fetch('/api/chat/memory-enhanced', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      },
-      body: JSON.stringify({
-        message,
-        userId,
-        userMemory,
-        context,
-      }),
-    });
+      const response = await fetch('/api/chat/memory-enhanced', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({
+          message,
+          userId,
+          userMemory,
+          context,
+        }),
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      logger.error("Memory-enhanced message failed:", { status: response.status, error: errorData });
-      throw new Error(`Failed to send message: ${response.status} ${errorData.error || 'Unknown error'}`);
-    }
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        logger.error("Memory-enhanced message failed:", { status: response.status, error: errorData });
+        throw new Error(`Failed to send message: ${response.status} ${errorData.error || 'Unknown error'}`);
+      }
 
-    const data = await response.json();
-    logger.log("Memory-enhanced response received:", data);
+      const data = await response.json();
+      logger.log("Memory-enhanced response received:", data);
 
-    // Handle different response formats
-    const aiResponse = data.response || data.message || data.content || data.answer;
-    
-    if (!aiResponse) {
-      logger.error("No AI response found in data:", data);
+      // Handle different response formats
+      const aiResponse = data.response || data.message || data.content || data.answer;
       
-      // Provide a fallback response if the AI doesn't respond
-      const fallbackResponses = [
-        "I'm here to listen and help. Could you tell me more about what's on your mind?",
-        "I understand you're reaching out. What would you like to talk about today?",
-        "I'm ready to support you. What's been going on lately?",
-        "Thank you for sharing. How can I help you feel better today?",
-        "I'm listening. What's been weighing on your mind?"
-      ];
-      
-      const randomResponse = fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
-      
+      if (!aiResponse) {
+        logger.error("No AI response found in data:", data);
+        
+        // Provide a fallback response if the AI doesn't respond
+        const fallbackResponses = [
+          "I'm here to listen and help. Could you tell me more about what's on your mind?",
+          "I understand you're reaching out. What would you like to talk about today?",
+          "I'm ready to support you. What's been going on lately?",
+          "Thank you for sharing. How can I help you feel better today?",
+          "I'm listening. What's been weighing on your mind?"
+        ];
+        
+        const randomResponse = fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
+        
+        return {
+          id: Date.now().toString(),
+          role: "assistant" as const,
+          content: randomResponse,
+          timestamp: new Date(),
+          metadata: { fallback: true },
+        };
+      }
+
       return {
         id: Date.now().toString(),
         role: "assistant" as const,
-        content: randomResponse,
+        content: aiResponse,
         timestamp: new Date(),
-        metadata: { fallback: true },
+        metadata: data.metadata || data.analysis,
       };
-    }
+    } catch (error) {
+      logger.error("Memory-enhanced message error:", error);
+      
+      // Try Gemini as fallback
+      try {
+        logger.log("Trying Gemini as fallback for memory-enhanced chat...");
+        const geminiResponse = await fetch('/api/chat/gemini', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message,
+            mode: 'therapy',
+            context: { userId, memoryEnhanced: true }
+          })
+        });
 
-    return {
-      id: Date.now().toString(),
-      role: "assistant" as const,
-      content: aiResponse,
-      timestamp: new Date(),
-      metadata: data.metadata || data.analysis,
-    };
+        if (geminiResponse.ok) {
+          const geminiData = await geminiResponse.json();
+          logger.log("Gemini fallback successful for memory-enhanced chat:", geminiData);
+          
+          return {
+            id: Date.now().toString(),
+            role: "assistant" as const,
+            content: geminiData.response || geminiData.message || geminiData.content,
+            timestamp: new Date(),
+            metadata: {
+              technique: "gemini_fallback",
+              goal: "provide_support",
+              progress: []
+            },
+          };
+        }
+      } catch (geminiError) {
+        logger.error("Gemini fallback also failed:", geminiError);
+      }
+      
+      throw error;
+    }
   };
 
   // Voice recognition setup
