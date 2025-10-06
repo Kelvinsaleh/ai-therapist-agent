@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND_API_URL = "https://hope-backend-2.onrender.com";
+const BACKEND_API_URL = process.env.BACKEND_API_URL || "https://hope-backend-2.onrender.com";
 
 export async function POST(
   req: NextRequest,
@@ -12,7 +12,10 @@ export async function POST(
 
     const res = await fetch(`${BACKEND_API_URL}/chat/sessions/${sessionId}/messages`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(process.env.BACKEND_API_KEY ? { "x-api-key": process.env.BACKEND_API_KEY } : {}),
+      },
       body: JSON.stringify(body),
     });
 

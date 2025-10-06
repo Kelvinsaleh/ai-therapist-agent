@@ -177,8 +177,9 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       audio.removeEventListener('error', handleError);
       audio.pause();
     };
-  }, [playlist, currentIndex, playNext]);
-
+  // Remove playNext from dependency array to fix lint error
+  }, [playlist, currentIndex]);
+  
   const play = useCallback((meditation: Meditation) => {
     if (!audioRef.current) return;
 

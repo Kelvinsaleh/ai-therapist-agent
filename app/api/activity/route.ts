@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const API_URL = "https://hope-backend-2.onrender.com";
+const API_URL = process.env.BACKEND_API_URL || "https://hope-backend-2.onrender.com";
 
 export async function POST(req: NextRequest) {
   try {

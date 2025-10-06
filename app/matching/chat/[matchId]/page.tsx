@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { backendService } from "@/lib/api/backend-service";
 import { useSession } from "@/lib/contexts/session-context";
+import { logger } from "@/lib/utils/logger";
 import { toast } from "sonner";
 
 interface MatchedMessage {
@@ -271,7 +272,7 @@ export default function MatchedChatPage() {
           toast.success("Video call initiated! Waiting for participant to join.");
           
           // In a real implementation, initialize WebRTC here
-          console.log('WebRTC signaling data:', result.data?.signaling);
+          logger.debug('WebRTC signaling data:', result.data?.signaling);
         } else {
           if (result.requiresPremium) {
             toast.error("Video calls require Premium subscription.");

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
-  const backendUrl = "https://hope-backend-2.onrender.com";
+  const backendUrl = process.env.BACKEND_API_URL || "https://hope-backend-2.onrender.com";
 
   try {
     const res = await fetch(`${backendUrl}/health`, { cache: "no-store" });

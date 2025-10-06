@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND_API_URL = "https://hope-backend-2.onrender.com";
+const BACKEND_API_URL = process.env.BACKEND_API_URL || "https://hope-backend-2.onrender.com";
 
 export async function GET(
   req: NextRequest,
@@ -35,6 +35,7 @@ export async function POST(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        ...(process.env.BACKEND_API_KEY ? { "x-api-key": process.env.BACKEND_API_KEY } : {}),
       },
       body: JSON.stringify({ message }),
     });
@@ -46,7 +47,6 @@ export async function POST(
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
-    console.error("Error in chat API:", error);
     return NextResponse.json(
       { error: "Failed to process chat message" },
       { status: 500 }

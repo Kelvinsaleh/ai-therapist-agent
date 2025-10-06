@@ -1,7 +1,8 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { backendService } from "@/lib/api/backend-service";
+import { logger } from "@/lib/utils/logger";
 
 interface User {
   id: string;
@@ -45,7 +46,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [userTier, setUserTier] = useState<"free" | "premium">("free");
   const [isLoading, setIsLoading] = useState(true);
 
-  const checkAuthStatus = async () => {
+  const checkAuthStatus = useCallback(async () => {
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
       
@@ -72,7 +73,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           
           // Get user tier/subscription status
           try {
-            const tierResponse = await fetch('https://hope-backend-2.onrender.com/subscription/status', {
+            const tierResponse = await fetch((process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.BACKEND_API_URL || 'https://hope-backend-2.onrender.com') + '/subscription/status', {
               headers: {
                 'Authorization': `Bearer ${token}`,
               },
@@ -85,7 +86,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
               setUserTier("free");
             }
           } catch (error) {
-            console.error("Error fetching user tier:", error);
+            logger.error("Error fetching user tier:", error);
             setUserTier("free");
           }
         } else {
@@ -99,14 +100,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         setUserTier("free");
       }
     } catch (error) {
-      console.error("Error checking auth status:", error);
+      logger.error("Error checking auth status:", error);
       setIsAuthenticated(false);
       setUser(null);
       setUserTier("free");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
@@ -118,7 +119,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         
         // Get user tier after login
         try {
-          const tierResponse = await fetch('https://hope-backend-2.onrender.com/subscription/status', {
+          const tierResponse = await fetch((process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.BACKEND_API_URL || 'https://hope-backend-2.onrender.com') + '/subscription/status', {
             headers: {
               'Authorization': `Bearer ${response.data.token}`,
             },
@@ -131,7 +132,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
             setUserTier("free");
           }
         } catch (error) {
-          console.error("Error fetching user tier:", error);
+          logger.error("Error fetching user tier:", error);
           setUserTier("free");
         }
         
@@ -142,7 +143,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       
       return false;
     } catch (error) {
-      console.error("Login error:", error);
+      logger.error("Login error:", error);
       return false;
     }
   };
@@ -163,7 +164,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       
       return false;
     } catch (error) {
-      console.error("Registration error:", error);
+      logger.error("Registration error:", error);
       return false;
     }
   };
@@ -180,7 +181,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
       if (!token) return;
 
-      const tierResponse = await fetch('https://hope-backend-2.onrender.com/subscription/status', {
+      const tierResponse = await fetch((process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.BACKEND_API_URL || 'https://hope-backend-2.onrender.com') + '/subscription/status', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -191,7 +192,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         setUserTier(tierData.userTier || "free");
       }
     } catch (error) {
-      console.error("Error refreshing user tier:", error);
+      logger.error("Error refreshing user tier:", error);
     }
   };
 
@@ -201,7 +202,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     checkAuthStatus();
-  }, []);
+  }, [checkAuthStatus]);
 
   const value: SessionContextType = {
     user,

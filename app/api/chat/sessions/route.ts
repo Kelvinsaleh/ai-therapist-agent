@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND_API_URL = "https://hope-backend-2.onrender.com";
+const BACKEND_API_URL = process.env.BACKEND_API_URL || "https://hope-backend-2.onrender.com";
 
 export async function GET() {
   try {
@@ -20,6 +20,7 @@ export async function POST(req: NextRequest) {
       headers: {
         "Content-Type": "application/json",
         ...(authHeader && { Authorization: authHeader }),
+        ...(process.env.BACKEND_API_KEY ? { "x-api-key": process.env.BACKEND_API_KEY } : {}),
       },
     });
 

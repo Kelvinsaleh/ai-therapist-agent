@@ -1,7 +1,7 @@
 // Backend Service Layer for Hope Backend Integration
 // This service handles all communication with your backend API
 
-const BACKEND_BASE_URL = "https://hope-backend-2.onrender.com";
+const BACKEND_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.BACKEND_API_URL || "https://hope-backend-2.onrender.com";
 
 export interface ApiResponse<T = any> {
   success: boolean;

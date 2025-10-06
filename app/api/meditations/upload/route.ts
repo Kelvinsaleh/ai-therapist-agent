@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Step 2: Save metadata to MongoDB backend
-    const backendUrl = 'https://hope-backend-2.onrender.com';
+    const backendUrl = process.env.BACKEND_API_URL || 'https://hope-backend-2.onrender.com';
 
     // Get auth token from Next.js request
     const authHeader = request.headers.get('authorization');

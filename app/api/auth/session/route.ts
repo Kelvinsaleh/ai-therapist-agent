@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
 
     const token = authHeader.substring(7);
 
-    const backendResponse = await fetch('https://hope-backend-2.onrender.com/auth/me', {
+    const backendResponse = await fetch((process.env.BACKEND_API_URL || 'https://hope-backend-2.onrender.com') + '/auth/me', {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,

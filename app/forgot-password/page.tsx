@@ -20,7 +20,7 @@ export default function ForgotPasswordPage() {
     setLoading(true);
     
     try {
-      const response = await fetch('https://hope-backend-2.onrender.com/auth/forgot-password', {
+      const response = await fetch((process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.BACKEND_API_URL || 'https://hope-backend-2.onrender.com') + '/auth/forgot-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

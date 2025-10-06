@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     const limit = searchParams.get('limit') || '50';
     
     // Fetch from backend - FIXED: using /meditation (singular)
-    const backendUrl = 'https://hope-backend-2.onrender.com';
+    const backendUrl = process.env.BACKEND_API_URL || 'https://hope-backend-2.onrender.com';
     const params = new URLSearchParams();
     if (search) params.append('search', search);
     if (category) params.append('category', category);

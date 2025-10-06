@@ -21,6 +21,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import { userMemoryManager, UserMemory } from "@/lib/memory/user-memory";
+import { LoadingDots } from "@/components/ui/loading-dots";
 
 interface MemoryEnhancedChatProps {
   sessionId: string;
@@ -385,7 +386,7 @@ export function MemoryEnhancedChat({ sessionId, userId }: MemoryEnhancedChatProp
             </div>
             <div className="bg-muted/50 rounded-lg p-3">
               <div className="flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <LoadingDots size="sm" color="primary" />
                 <span className="text-sm text-muted-foreground">AI is thinking...</span>
               </div>
             </div>

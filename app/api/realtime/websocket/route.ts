@@ -122,7 +122,7 @@ async function broadcastToMatch(matchId: string, message: WebSocketMessage, excl
     // In a real implementation, this would send to WebSocket connections
     // For now, we'll use Server-Sent Events or polling as fallback
     
-    const BACKEND_API_URL = "https://hope-backend-2.onrender.com";
+    const BACKEND_API_URL = process.env.BACKEND_API_URL || "https://hope-backend-2.onrender.com";
     
     await fetch(`${BACKEND_API_URL}/realtime/broadcast`, {
       method: 'POST',
@@ -141,7 +141,7 @@ async function broadcastToMatch(matchId: string, message: WebSocketMessage, excl
 
 async function sendToUser(userId: string, message: WebSocketMessage) {
   try {
-    const BACKEND_API_URL = "https://hope-backend-2.onrender.com";
+    const BACKEND_API_URL = process.env.BACKEND_API_URL || "https://hope-backend-2.onrender.com";
     
     await fetch(`${BACKEND_API_URL}/realtime/send-to-user`, {
       method: 'POST',
@@ -159,7 +159,7 @@ async function sendToUser(userId: string, message: WebSocketMessage) {
 
 async function updateUserStatus(userId: string, status: string) {
   try {
-    const BACKEND_API_URL = "https://hope-backend-2.onrender.com";
+    const BACKEND_API_URL = process.env.BACKEND_API_URL || "https://hope-backend-2.onrender.com";
     
     await fetch(`${BACKEND_API_URL}/users/${userId}/status`, {
       method: 'PUT',
