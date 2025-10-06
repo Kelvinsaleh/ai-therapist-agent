@@ -98,8 +98,8 @@ export default function MemoryEnhancedTherapyPage() {
   const [voiceSupported, setVoiceSupported] = useState(false);
   const recognitionRef = useRef<any>(null);
 
-  // Use authenticated user id
-  const userId = user?._id || "";
+  // Use authenticated user id (support both _id and id)
+  const userId = (user?._id as unknown as string) || (user?.id as unknown as string) || "";
 
   useEffect(() => {
     setMounted(true);
@@ -307,6 +307,13 @@ export default function MemoryEnhancedTherapyPage() {
         toast.error("Please sign in to continue the conversation.");
         setIsTyping(false);
         router.push('/login');
+        return;
+      }
+
+      // Ensure we have a valid user id
+      if (!userId) {
+        toast.error("Session not fully loaded. Please refresh or sign in again.");
+        setIsTyping(false);
         return;
       }
 
