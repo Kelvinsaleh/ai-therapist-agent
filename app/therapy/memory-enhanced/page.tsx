@@ -399,8 +399,25 @@ export default function MemoryEnhancedTherapyPage() {
         body: JSON.stringify(requestPayload)
       });
 
+      // Graceful handling for rate limiting and auth errors
+      if (response.status === 429) {
+        const data = await response.json();
+        return {
+          response: data.fallbackResponse || "I understand you'd like to continue our conversation. Please wait a moment before sending your next message.",
+          techniques: [],
+          breakthroughs: [],
+          isRateLimit: true
+        };
+      }
+
+      if (response.status === 401) {
+        toast.error("Your session expired. Please sign in again.");
+        throw new Error('Unauthorized');
+      }
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errBody = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errBody}`);
       }
 
       const data = await response.json();
