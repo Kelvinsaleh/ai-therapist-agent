@@ -301,6 +301,15 @@ export default function MemoryEnhancedTherapyPage() {
     setIsTyping(true);
 
     try {
+      // Require auth token before sending to backend
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      if (!token) {
+        toast.error("Please sign in to continue the conversation.");
+        setIsTyping(false);
+        router.push('/login');
+        return;
+      }
+
       // Add user message
       const userMessage: ChatMessage = {
         role: "user",
