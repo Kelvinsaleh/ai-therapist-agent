@@ -394,7 +394,7 @@ export default function MemoryEnhancedTherapyPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('token') || localStorage.getItem('authToken') || ''}`
         },
         body: JSON.stringify(requestPayload)
       });
@@ -412,6 +412,7 @@ export default function MemoryEnhancedTherapyPage() {
 
       if (response.status === 401) {
         toast.error("Your session expired. Please sign in again.");
+        router.push('/login');
         throw new Error('Unauthorized');
       }
 
