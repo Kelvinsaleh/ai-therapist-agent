@@ -163,10 +163,10 @@ export function MemoryEnhancedChat({ sessionId, userId }: MemoryEnhancedChatProp
     } catch (error) {
       console.error("Error sending message:", error);
       
-      // Provide context-aware error message
-      const errorMessage = error instanceof Error && error.message.includes('Rate limit') 
-        ? "I'm receiving a lot of requests right now. Please wait a moment before trying again. Your mental health is important, and I want to give you my full attention."
-        : "I'm experiencing some technical difficulties right now, but I want you to know that I'm here to support you. Your thoughts and feelings are important. Please try again in a moment, and if the issue persists, consider reaching out to a mental health professional for immediate support.";
+      // Show actual error message instead of hardcoded response
+      const errorMessage = error instanceof Error 
+        ? `Error: ${error.message}` 
+        : "Unknown error occurred";
 
       setMessages(prev => [...prev, {
         role: "assistant",
