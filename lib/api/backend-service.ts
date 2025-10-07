@@ -215,10 +215,13 @@ class BackendService {
 
   // Memory-enhanced chat method
   async sendMemoryEnhancedMessage(messageData: any): Promise<ApiResponse> {
-    return this.makeRequest('/memory-enhanced-chat', {
+    console.log('Backend service: sending memory enhanced message', messageData);
+    const result = await this.makeRequest('/memory-enhanced-chat', {
       method: 'POST',
       body: JSON.stringify(messageData),
     });
+    console.log('Backend service: received response', result);
+    return result;
   }
 
   // User Profile methods (needed for rescue pair matching)

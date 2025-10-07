@@ -326,7 +326,9 @@ export default function MemoryEnhancedTherapyPage() {
       setMessages((prev) => [...prev, userMessage]);
 
       // Send message with memory context
+      console.log('Sending message to AI:', currentMessage);
       const response = await sendMemoryEnhancedMessage(currentMessage);
+      console.log('Received response from AI:', response);
       
       const assistantMessage: ChatMessage = {
         role: "assistant",
@@ -349,6 +351,7 @@ export default function MemoryEnhancedTherapyPage() {
         },
       };
 
+      console.log('Created assistant message:', assistantMessage);
       setMessages((prev) => [...prev, assistantMessage]);
       setIsTyping(false);
       scrollToBottom();
@@ -387,9 +390,37 @@ export default function MemoryEnhancedTherapyPage() {
 
   const sendMemoryEnhancedMessage = async (message: string) => {
     try {
+      console.log('Starting sendMemoryEnhancedMessage with:', { message, userId, sessionId });
+      
+      // First try the regular chat API
+      try {
+        const chatResponse = await sendChatMessage(sessionId, message);
+        console.log('Regular chat API response:', chatResponse);
+        
+        if (chatResponse.response) {
+          return {
+            response: chatResponse.response,
+            techniques: [],
+            breakthroughs: [],
+            analysis: chatResponse.analysis,
+            metadata: chatResponse.metadata
+          };
+        }
+      } catch (chatError) {
+        console.log('Regular chat API failed, trying memory-enhanced approach:', chatError);
+      }
+      
+      // If regular chat fails, try memory-enhanced approach
       const userMemory = await userMemoryManager.loadUserMemory(userId);
       const context = userMemoryManager.getTherapyContext();
       const suggestions = userMemoryManager.getTherapySuggestions();
+
+      console.log('User memory loaded:', { 
+        journalEntries: userMemory.journalEntries.length,
+        meditationHistory: userMemory.meditationHistory.length,
+        moodPatterns: userMemory.moodPatterns.length,
+        insights: userMemory.insights.length
+      });
 
       const requestPayload = {
         message,
@@ -406,46 +437,172 @@ export default function MemoryEnhancedTherapyPage() {
         }
       };
 
-      const response = await fetch('/api/chat/memory-enhanced', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token') || localStorage.getItem('authToken') || ''}`
-        },
-        body: JSON.stringify(requestPayload)
+      console.log('Sending request to backend service...');
+      
+      // Use the backend service directly instead of going through API route
+      const response = await backendService.sendMemoryEnhancedMessage(requestPayload);
+
+      console.log('Backend response:', response);
+
+      if (!response.success) {
+        console.log('Backend request failed:', response.error);
+        
+        if (response.error?.includes('401') || response.error?.includes('Unauthorized')) {
+          toast.error("Your session expired. Please sign in again.");
+          router.push('/login');
+          throw new Error('Unauthorized');
+        }
+        
+        if (response.error?.includes('429') || response.error?.includes('rate limit')) {
+          return {
+            response: "I understand you'd like to continue our conversation. Please wait a moment before sending your next message.",
+            techniques: [],
+            breakthroughs: [],
+            isRateLimit: true
+          };
+        }
+
+        throw new Error(response.error || 'Failed to get response');
+      }
+
+      console.log('Backend response successful, returning data:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error in sendMemoryEnhancedMessage:', error);
+      logger.error('Error sending memory-enhanced message:', error);
+      
+      // Fallback to local response generation
+      console.log('Falling back to local response generation...');
+      return await generateLocalResponse(message, userId);
+    }
+  };
+
+  // Fallback local response generation
+  const generateLocalResponse = async (message: string, userId: string) => {
+    try {
+      console.log('Generating local response for:', message);
+      
+      const userMemory = await userMemoryManager.loadUserMemory(userId);
+      const context = userMemoryManager.getTherapyContext();
+      const suggestions = userMemoryManager.getTherapySuggestions();
+
+      console.log('Local response context:', { 
+        context: context.substring(0, 100) + '...',
+        suggestions: suggestions.length,
+        userMemory: {
+          journalEntries: userMemory.journalEntries.length,
+          meditationHistory: userMemory.meditationHistory.length,
+          moodPatterns: userMemory.moodPatterns.length,
+          insights: userMemory.insights.length
+        }
       });
 
-      // Graceful handling for rate limiting and auth errors
-      if (response.status === 429) {
-        const data = await response.json();
-        return {
-          response: data.fallbackResponse || "I understand you'd like to continue our conversation. Please wait a moment before sending your next message.",
-          techniques: [],
-          breakthroughs: [],
-          isRateLimit: true
-        };
+      const lowerMessage = message.toLowerCase();
+      let response = "";
+      let insights: string[] = [];
+      let techniques: string[] = [];
+      let breakthroughs: string[] = [];
+      let personalizedSuggestions: string[] = [];
+
+      // Check if user mentioned something from their journal
+      if (userMemory.journalEntries.length > 0) {
+        const recentEntry = userMemory.journalEntries[userMemory.journalEntries.length - 1];
+        if (lowerMessage.includes('mood') || lowerMessage.includes('feeling')) {
+          response += `I notice from your recent journal entry that you've been feeling ${recentEntry.emotionalState} (mood: ${recentEntry.mood}/6). `;
+          insights.push(`Referenced recent journal mood: ${recentEntry.mood}/6`);
+        }
       }
 
-      if (response.status === 401) {
-        toast.error("Your session expired. Please sign in again.");
-        router.push('/login');
-        throw new Error('Unauthorized');
+      // Check meditation history
+      if (userMemory.meditationHistory.length > 0) {
+        const recentMeditation = userMemory.meditationHistory[userMemory.meditationHistory.length - 1];
+        if (lowerMessage.includes('stress') || lowerMessage.includes('anxiety')) {
+          response += `I see you've been practicing ${recentMeditation.type} meditation recently. `;
+          if (recentMeditation.effectiveness > 0.7) {
+            response += `It seems to be working well for you (effectiveness: ${Math.round(recentMeditation.effectiveness * 100)}%). `;
+            techniques.push(recentMeditation.type);
+          }
+        }
       }
 
-      if (!response.ok) {
-        const errBody = await response.text();
-        throw new Error(`HTTP ${response.status}: ${errBody}`);
+      // Add personalized suggestions
+      if (suggestions.length > 0) {
+        response += suggestions[0] + " ";
+        personalizedSuggestions = suggestions;
       }
 
-      const data = await response.json();
-      return data;
+      // Generate contextual response based on message content
+      if (lowerMessage.includes('anxiety') || lowerMessage.includes('worried')) {
+        response += "Let's work through this anxiety together. I'd like to try a grounding technique with you. Can you tell me 5 things you can see around you right now?";
+        techniques.push("grounding technique");
+      } else if (lowerMessage.includes('sad') || lowerMessage.includes('depressed')) {
+        response += "I hear that you're feeling down. This is a difficult time, and I want you to know that your feelings are valid. Let's explore what might be contributing to these feelings.";
+        techniques.push("validation and exploration");
+      } else if (lowerMessage.includes('grateful') || lowerMessage.includes('thankful')) {
+        response += "I love that you're practicing gratitude! This is such a powerful tool for mental well-being. What specifically are you feeling grateful for today?";
+        techniques.push("gratitude practice");
+        breakthroughs.push("Positive mindset shift");
+      } else {
+        response += "Thank you for sharing that with me. I'm here to listen and support you. Can you tell me more about how this is affecting you?";
+      }
+
+      // Add memory-based insights
+      if (userMemory.insights.length > 0) {
+        const recentInsight = userMemory.insights[userMemory.insights.length - 1];
+        if (recentInsight.type === 'concern') {
+          response += ` I've noticed this theme coming up in our conversations. Let's explore this pattern together.`;
+          insights.push(`Pattern recognition: ${recentInsight.content}`);
+        }
+      }
+
+      const result = {
+        response,
+        insights,
+        techniques,
+        breakthroughs,
+        moodAnalysis: {
+          current: userMemory.moodPatterns[userMemory.moodPatterns.length - 1]?.mood || 3,
+          trend: getMoodTrend(userMemory),
+          triggers: extractTopics(message)
+        },
+        personalizedSuggestions
+      };
+
+      console.log('Generated local response:', result);
+      return result;
     } catch (error) {
-      logger.error('Error sending memory-enhanced message:', error);
+      console.error('Error generating local response:', error);
+      logger.error('Error generating local response:', error);
       return {
         response: "I'm here to support you. Your thoughts and feelings are important. Please try again in a moment.",
         techniques: [],
         breakthroughs: []
       };
+    }
+  };
+
+  // Helper function for mood trend analysis
+  const getMoodTrend = (userMemory: any): string => {
+    if (!userMemory.moodPatterns || userMemory.moodPatterns.length < 2) {
+      return 'Insufficient data for mood trend analysis';
+    }
+
+    const recent = userMemory.moodPatterns.slice(-7);
+    const older = userMemory.moodPatterns.slice(-14, -7);
+
+    if (recent.length === 0 || older.length === 0) {
+      return 'Insufficient data for mood trend analysis';
+    }
+
+    const recentAvg = recent.reduce((sum: number, p: any) => sum + p.mood, 0) / recent.length;
+    const olderAvg = older.reduce((sum: number, p: any) => sum + p.mood, 0) / older.length;
+
+    if (recentAvg > olderAvg + 0.5) {
+      return 'Mood is improving over the past week';
+    } else if (recentAvg < olderAvg - 0.5) {
+      return 'Mood has declined over the past week';
+    } else {
+      return 'Mood has been relatively stable';
     }
   };
 
