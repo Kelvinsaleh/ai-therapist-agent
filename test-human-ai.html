@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Human AI Chat Test - Real Human Communication</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { text-align: center; margin-bottom: 30px; }
+        .header h1 { color: #007bff; margin-bottom: 10px; }
+        .header p { color: #6c757d; font-size: 18px; }
+        .test-section { margin: 20px 0; padding: 20px; background: #f8f9fa; border-radius: 8px; }
+        .test-message { margin: 10px 0; padding: 15px; background: #e9ecef; border-radius: 5px; cursor: pointer; border: 2px solid transparent; }
+        .test-message:hover { background: #dee2e6; border-color: #007bff; }
+        .test-message h4 { margin: 0 0 8px 0; color: #495057; }
+        .test-message p { margin: 0; color: #6c757d; font-style: italic; }
+        .form-group { margin: 15px 0; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; color: #333; }
+        textarea { padding: 12px; width: 100%; border: 2px solid #ddd; border-radius: 5px; font-size: 16px; }
+        input:focus, textarea:focus { border-color: #007bff; outline: none; }
+        button { padding: 12px 24px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin: 10px 5px; }
+        button:hover { background: #0056b3; }
+        .response { margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #007bff; }
+        .error { color: #dc3545; background: #f8d7da; border-left-color: #dc3545; }
+        .success { color: #155724; background: #d4edda; border-left-color: #28a745; }
+        .ai-response { white-space: pre-line; line-height: 1.6; margin: 15px 0; font-size: 16px; }
+        .human-style { background: #e8f5e8; padding: 15px; border-radius: 5px; margin: 15px 0; }
+        .human-style h4 { margin: 0 0 10px 0; color: #2e7d32; }
+        .suggestions { background: #e3f2fd; padding: 15px; border-radius: 5px; margin: 15px 0; }
+        .suggestions h4 { margin: 0 0 10px 0; color: #1976d2; }
+        .suggestions ul { margin: 0; padding-left: 20px; }
+        .suggestions li { margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Human AI Chat Test</h1>
+            <p>Testing REAL human-like AI communication - no more clinical responses!</p>
+        </div>
+        
+        <div class="test-section">
+            <h3>🧪 Test Human-Like Responses (Click to test):</h3>
+            
+            <div class="test-message" onclick="testMessage('I had a really bad day at work today')">
+                <h4>😔 Bad Day</h4>
+                <p>"I had a really bad day at work today"</p>
+            </div>
+            
+            <div class="test-message" onclick="testMessage('I feel so anxious about everything')">
+                <h4>😰 Anxiety</h4>
+                <p>"I feel so anxious about everything"</p>
+            </div>
+            
+            <div class="test-message" onclick="testMessage('I broke up with my boyfriend yesterday')">
+                <h4>💔 Breakup</h4>
+                <p>"I broke up with my boyfriend yesterday"</p>
+            </div>
+            
+            <div class="test-message" onclick="testMessage('I dont know what to do with my life')">
+                <h4>🤷 Life Confusion</h4>
+                <p>"I don't know what to do with my life"</p>
+            </div>
+            
+            <div class="test-message" onclick="testMessage('I feel so alone and isolated')">
+                <h4>😢 Loneliness</h4>
+                <p>"I feel so alone and isolated"</p>
+            </div>
+            
+            <div class="test-message" onclick="testMessage('I cant sleep because my mind wont stop racing')">
+                <h4>😴 Sleep Issues</h4>
+                <p>"I can't sleep because my mind won't stop racing"</p>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>✍️ Custom Message Test:</h3>
+            <form id="testForm">
+                <div class="form-group">
+                    <label for="message">Type your own message:</label>
+                    <textarea id="message" rows="4" placeholder="Type your message here..."></textarea>
+                </div>
+                <button type="submit">Test Human AI Response</button>
+                <button type="button" onclick="clearResults()">Clear Results</button>
+            </form>
+        </div>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        function testMessage(message) {
+            document.getElementById('message').value = message;
+            testHumanAI(message);
+        }
+
+        function clearResults() {
+            document.getElementById('result').innerHTML = '';
+        }
+
+        document.getElementById('testForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const message = document.getElementById('message').value;
+            testHumanAI(message);
+        });
+
+        async function testHumanAI(message) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<div class="response">🔄 Testing human-like AI response...</div>';
+            
+            try {
+                console.log('Testing human AI with message:', message);
+                
+                const response = await fetch('/api/chat/memory-enhanced', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer test-token'
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        sessionId: 'test-session-' + Date.now(),
+                        userId: '68e4f2373d3f422e5ef3f71c',
+                        context: 'Human conversation',
+                        suggestions: ['friendly approach'],
+                        userMemory: {
+                            journalEntries: [],
+                            meditationHistory: [],
+                            moodPatterns: [],
+                            insights: [],
+                            profile: { name: 'Test User' }
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                console.log('Human AI response received:', data);
+                
+                if (data.success && data.response && data.response.length > 20) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h3>✅ Human AI Response Generated!</h3>
+                            <div class="response">
+                                <h4>Your Message:</h4>
+                                <p style="font-style: italic; color: #666;">"${message}"</p>
+                                
+                                <div class="human-style">
+                                    <h4>🤖 Hope's Human Response:</h4>
+                                    <div class="ai-response">${data.response}</div>
+                                </div>
+                                
+                                <div class="suggestions">
+                                    <h4>💡 Friendly Suggestions:</h4>
+                                    <ul>${data.personalizedSuggestions ? data.personalizedSuggestions.map(s => `<li>${s}</li>`).join('') : '<li>None</li>'}</ul>
+                                </div>
+                                
+                                <p><strong>Success:</strong> ${data.success}</p>
+                                <p><strong>Session ID:</strong> ${data.sessionId}</p>
+                            </div>
+                        </div>
+                    `;
+                } else if (data.error) {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h3>❌ AI Error (Backend might not be running)</h3>
+                            <div class="response">
+                                <h4>Error Response:</h4>
+                                <p>${data.error}</p>
+                                <p><strong>Message:</strong> ${data.message || 'No additional message'}</p>
+                                <p><strong>This means:</strong> The system is working correctly - it's trying to use real AI but the backend might not be running or the API key needs to be configured.</p>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h3>❌ Unexpected Response Format</h3>
+                            <div class="response">
+                                <h4>Response:</h4>
+                                <p>${data.response || 'No response'}</p>
+                                <h4>Full Data:</h4>
+                                <pre>${JSON.stringify(data, null, 2)}</pre>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                console.error('Error in human AI test:', error);
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Network Error</h3>
+                        <div class="response">
+                            <p>Error: ${error.message}</p>
+                            <p><strong>This means:</strong> The frontend cannot reach the backend. Make sure the backend is running on port 3002.</p>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
