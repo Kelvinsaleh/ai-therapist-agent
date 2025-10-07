@@ -81,15 +81,20 @@ class UserMemoryManager {
 
   // Load user memory (with backend sync)
   async loadUserMemory(userId: string): Promise<UserMemory> {
+    console.log('UserMemoryManager: Loading user memory for userId:', userId);
+    
     if (this.memory && this.memory.userId === userId) {
+      console.log('UserMemoryManager: Returning cached memory');
       return this.memory;
     }
 
     // Try to load from backend first
     try {
       if (typeof window !== 'undefined') {
+        console.log('UserMemoryManager: Attempting to load from backend');
         const { backendService } = await import("@/lib/api/backend-service");
         const journalResponse = await backendService.getJournalEntries();
+        console.log('UserMemoryManager: Backend journal response:', journalResponse);
         
         if (journalResponse.success && journalResponse.data) {
           // Create memory from backend data
@@ -129,18 +134,23 @@ class UserMemoryManager {
         }
       }
     } catch (error) {
-      console.log("Backend sync failed, using local storage:", error);
+      console.log("UserMemoryManager: Backend sync failed, using local storage:", error);
     }
 
     // Fallback to localStorage
+    console.log('UserMemoryManager: Checking localStorage for user memory');
     const stored = localStorage.getItem(`userMemory_${userId}`);
     if (stored) {
+      console.log('UserMemoryManager: Found stored memory in localStorage');
       this.memory = JSON.parse(stored);
       this.memory!.lastUpdated = new Date(this.memory!.lastUpdated);
       return this.memory!;
+    } else {
+      console.log('UserMemoryManager: No stored memory found in localStorage');
     }
 
     // Create new memory
+    console.log('UserMemoryManager: Creating new memory for user');
     this.memory = {
       userId,
       profile: {
@@ -161,7 +171,9 @@ class UserMemoryManager {
       lastUpdated: new Date(),
     };
 
+    console.log('UserMemoryManager: New memory created:', this.memory);
     await this.saveUserMemory();
+    console.log('UserMemoryManager: Memory saved, returning new memory');
     return this.memory;
   }
 
