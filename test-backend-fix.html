@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Backend Fix - Real AI Responses</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .form-group { margin: 10px 0; }
+        label { display: block; margin-bottom: 5px; }
+        input, textarea { padding: 8px; width: 300px; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer; }
+        .response { margin-top: 20px; padding: 15px; background: #f5f5f5; border-radius: 5px; }
+        .error { color: red; }
+        .success { color: green; }
+        .ai-response { white-space: pre-line; }
+    </style>
+</head>
+<body>
+    <h1>Test Backend Fix - Real AI Responses</h1>
+    <p>Testing the backend API integration with proper authentication</p>
+    
+    <form id="testForm">
+        <div class="form-group">
+            <label for="message">Message:</label>
+            <textarea id="message" rows="3" placeholder="Type your message here...">I am feeling anxious about work</textarea>
+        </div>
+        <button type="submit">Get Real AI Response from Backend</button>
+    </form>
+    
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('testForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const message = document.getElementById('message').value;
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                console.log('Testing backend API...');
+                
+                // First login to get a token
+                const loginResponse = await fetch('https://hope-backend-2.onrender.com/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'test@example.com',
+                        password: 'testpassword123'
+                    })
+                });
+                
+                const loginData = await loginResponse.json();
+                console.log('Login response:', loginData);
+                
+                if (!loginData.success) {
+                    throw new Error('Login failed: ' + loginData.message);
+                }
+                
+                const token = loginData.token;
+                console.log('Got token:', token);
+                
+                // Now call the memory-enhanced-chat endpoint
+                const chatResponse = await fetch('https://hope-backend-2.onrender.com/memory-enhanced-chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        sessionId: 'test-session-' + Date.now(),
+                        userId: loginData.user.id,
+                        context: 'Therapy session',
+                        suggestions: ['supportive approach'],
+                        userMemory: {
+                            journalEntries: [],
+                            meditationHistory: [],
+                            moodPatterns: [],
+                            insights: [],
+                            profile: { name: loginData.user.name }
+                        }
+                    })
+                });
+                
+                const chatData = await chatResponse.json();
+                console.log('Chat response:', chatData);
+                
+                if (chatData.success && chatData.response) {
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ SUCCESS! Backend AI Response working!</div>
+                        <div class="response">
+                            <h3>Real AI Response from Backend:</h3>
+                            <div class="ai-response">${chatData.response}</div>
+                            <h3>Suggestions:</h3>
+                            <ul>${chatData.suggestions ? chatData.suggestions.map(s => `<li>${s}</li>`).join('') : '<li>None</li>'}</ul>
+                            <h3>Memory Context:</h3>
+                            <p>Journal Entries: ${chatData.memoryContext?.hasJournalEntries ? 'Yes' : 'No'}</p>
+                            <p>Meditation History: ${chatData.memoryContext?.hasMeditationHistory ? 'Yes' : 'No'}</p>
+                            <p>Mood Data: ${chatData.memoryContext?.hasMoodData ? 'Yes' : 'No'}</p>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">❌ Backend response failed</div>
+                        <div class="response">
+                            <h3>Response:</h3>
+                            <pre>${JSON.stringify(chatData, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                console.error('Error in backend test:', error);
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        });
+    </script>
+</body>
+</html>
