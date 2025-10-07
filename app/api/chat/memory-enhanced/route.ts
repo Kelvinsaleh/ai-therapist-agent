@@ -58,7 +58,24 @@ export async function POST(req: NextRequest) {
       if (res.ok) {
         const data = await res.json();
         console.log('Backend response received:', data);
-        return NextResponse.json(data, { status: res.status });
+        
+        // Convert backend response format to frontend expected format
+        const frontendResponse = {
+          response: data.response,
+          techniques: data.suggestions || [],
+          breakthroughs: [],
+          moodAnalysis: {
+            current: 3,
+            trend: "AI analysis",
+            triggers: []
+          },
+          personalizedSuggestions: data.suggestions || [],
+          success: data.success,
+          sessionId: data.sessionId,
+          memoryContext: data.memoryContext
+        };
+        
+        return NextResponse.json(frontendResponse, { status: res.status });
       } else {
         console.log('Backend API failed, falling back to local response generation');
         throw new Error(`Backend API failed with status ${res.status}`);
