@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Chat Final Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .form-group { margin: 10px 0; }
+        label { display: block; margin-bottom: 5px; }
+        input, textarea { padding: 8px; width: 300px; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer; }
+        .response { margin-top: 20px; padding: 15px; background: #f5f5f5; border-radius: 5px; }
+        .error { color: red; }
+        .success { color: green; }
+        .ai-response { white-space: pre-line; }
+    </style>
+</head>
+<body>
+    <h1>AI Chat Final Test</h1>
+    <p>Testing the complete AI chat functionality</p>
+    
+    <form id="testForm">
+        <div class="form-group">
+            <label for="message">Message:</label>
+            <textarea id="message" rows="3" placeholder="Type your message here...">I am feeling anxious about work</textarea>
+        </div>
+        <button type="submit">Test AI Chat</button>
+    </form>
+    
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('testForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const message = document.getElementById('message').value;
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                console.log('Testing AI chat with message:', message);
+                
+                const response = await fetch('/api/chat/memory-enhanced', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer test-token'
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        sessionId: 'test-session-' + Date.now(),
+                        userId: 'test-user-123',
+                        context: 'Therapy session',
+                        suggestions: ['supportive approach'],
+                        userMemory: {
+                            journalEntries: [],
+                            meditationHistory: [],
+                            moodPatterns: [],
+                            insights: [],
+                            profile: { name: 'Test User' }
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                console.log('AI response received:', data);
+                
+                if (data.response && data.response.length > 50) {
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ AI Chat Working!</div>
+                        <div class="response">
+                            <h3>Your Message:</h3>
+                            <p>"${message}"</p>
+                            <h3>AI Response:</h3>
+                            <div class="ai-response">${data.response}</div>
+                            <h3>Techniques:</h3>
+                            <ul>${data.techniques ? data.techniques.map(t => `<li>${t}</li>`).join('') : '<li>None</li>'}</ul>
+                            <h3>Suggestions:</h3>
+                            <ul>${data.personalizedSuggestions ? data.personalizedSuggestions.map(s => `<li>${s}</li>`).join('') : '<li>None</li>'}</ul>
+                            <h3>Success:</h3>
+                            <p>${data.success}</p>
+                            <h3>Session ID:</h3>
+                            <p>${data.sessionId}</p>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">❌ Response too short or generic</div>
+                        <div class="response">
+                            <h3>Response:</h3>
+                            <p>${data.response || 'No response'}</p>
+                            <h3>Full Data:</h3>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                console.error('Error in AI chat test:', error);
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        });
+    </script>
+</body>
+</html>
