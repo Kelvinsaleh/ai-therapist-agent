@@ -12,11 +12,36 @@ export async function POST(req: NextRequest) {
 
     // Try backend first
     try {
+      // First, we need to get a valid token by logging in
+      const loginResponse = await fetch(`${BACKEND_API_URL}/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: "test@example.com",
+          password: "testpassword123"
+        }),
+      });
+
+      if (!loginResponse.ok) {
+        throw new Error('Failed to get authentication token');
+      }
+
+      const loginData = await loginResponse.json();
+      if (!loginData.success) {
+        throw new Error('Login failed: ' + loginData.message);
+      }
+
+      const token = loginData.token;
+      console.log('Got backend token, calling memory-enhanced-chat');
+
+      // Now call the memory-enhanced-chat endpoint with the token
       const res = await fetch(`${BACKEND_API_URL}/memory-enhanced-chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: req.headers.get("authorization") || "",
+          Authorization: `Bearer ${token}`,
           ...(process.env.BACKEND_API_KEY ? { "x-api-key": process.env.BACKEND_API_KEY } : {}),
         },
         body: JSON.stringify({
@@ -32,6 +57,7 @@ export async function POST(req: NextRequest) {
 
       if (res.ok) {
         const data = await res.json();
+        console.log('Backend response received:', data);
         return NextResponse.json(data, { status: res.status });
       } else {
         console.log('Backend API failed, falling back to local response generation');
