@@ -526,7 +526,7 @@ export default function MemoryEnhancedTherapyPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token') || localStorage.getItem('authToken') || ''}`
+          'Authorization': `Bearer ${bypassAuth ? demoToken : (localStorage.getItem('token') || localStorage.getItem('authToken') || '')}`
         },
         body: JSON.stringify(requestPayload)
       });
@@ -659,6 +659,9 @@ export default function MemoryEnhancedTherapyPage() {
   // For production testing - bypass authentication temporarily
   const isProductionMode = process.env.NODE_ENV === 'production';
   const bypassAuth = true; // Set to true for immediate testing
+  
+  // Demo token for testing (in production, this would come from login)
+  const demoToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OGU0ZjIzNzNkM2Y0MjJlNWVmM2Y3MWMiLCJpYXQiOjE3NTk4NTg1NzksImV4cCI6MTc1OTk0NDk3OX0.aCp4zmup1xu3C8DZEsLgI-Mgf6v25Y9-yBV9HPd1mRg";
   
   if (authLoading && !authTimeout && !bypassAuth) {
     return (
