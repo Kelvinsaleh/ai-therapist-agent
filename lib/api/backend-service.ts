@@ -109,6 +109,19 @@ class BackendService {
       }
 
       const data = await response.json();
+      
+      // Handle login/register responses that have success field
+      if (data.success !== undefined) {
+        return {
+          success: data.success,
+          data: data.success ? {
+            user: data.user,
+            token: data.token
+          } : undefined,
+          error: data.success ? undefined : (data.message || data.error)
+        };
+      }
+      
       return {
         success: true,
         data,
