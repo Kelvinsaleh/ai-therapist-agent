@@ -477,7 +477,10 @@ export default function MemoryEnhancedTherapyPage() {
       
       // Fallback to local response generation
       console.log('Falling back to local response generation...');
-      return await generateLocalResponse(message, userId);
+      console.log('About to call generateLocalResponse with:', { message, userId });
+      const localResponse = await generateLocalResponse(message, userId);
+      console.log('Local response generated:', localResponse);
+      return localResponse;
     }
   };
 
@@ -485,10 +488,16 @@ export default function MemoryEnhancedTherapyPage() {
   const generateLocalResponse = async (message: string, userId: string) => {
     try {
       console.log('Generating local response for:', message);
+      console.log('User ID for memory loading:', userId);
       
       const userMemory = await userMemoryManager.loadUserMemory(userId);
+      console.log('User memory loaded:', userMemory);
+      
       const context = userMemoryManager.getTherapyContext();
+      console.log('Therapy context:', context);
+      
       const suggestions = userMemoryManager.getTherapySuggestions();
+      console.log('Therapy suggestions:', suggestions);
 
       console.log('Local response context:', { 
         context: context.substring(0, 100) + '...',
@@ -635,6 +644,7 @@ export default function MemoryEnhancedTherapyPage() {
       return result;
     } catch (error) {
       console.error('Error generating local response:', error);
+      console.error('Error stack:', error.stack);
       logger.error('Error generating local response:', error);
       return {
         response: "I'm here to support you. Your thoughts and feelings are important. Please try again in a moment.",

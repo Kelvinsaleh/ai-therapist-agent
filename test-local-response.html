@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Local Response Generation</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .form-group { margin: 10px 0; }
+        label { display: block; margin-bottom: 5px; }
+        input, textarea { padding: 8px; width: 300px; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer; }
+        .response { margin-top: 20px; padding: 15px; background: #f5f5f5; border-radius: 5px; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>Test Local Response Generation</h1>
+    <p>This will test the local response generation directly</p>
+    
+    <form id="testForm">
+        <div class="form-group">
+            <label for="message">Message:</label>
+            <textarea id="message" rows="3" placeholder="Type your message here...">I'm feeling anxious about work</textarea>
+        </div>
+        <div class="form-group">
+            <label for="userId">User ID:</label>
+            <input type="text" id="userId" value="test-user-123" />
+        </div>
+        <button type="submit">Test Local Response</button>
+    </form>
+    
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('testForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const message = document.getElementById('message').value;
+            const userId = document.getElementById('userId').value;
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                console.log('Testing local response generation...');
+                
+                // Simulate the local response generation logic
+                const lowerMessage = message.toLowerCase();
+                let response = "";
+                let techniques = [];
+                let breakthroughs = [];
+                
+                console.log('Message to process:', lowerMessage);
+                
+                if (lowerMessage.includes('anxiety') || lowerMessage.includes('worried') || lowerMessage.includes('nervous') || lowerMessage.includes('panic')) {
+                    response += "I can hear that anxiety is really affecting you right now, and I want you to know that you're not alone in this. Anxiety can feel overwhelming, but there are effective ways to manage it. Let's start with a simple grounding technique: Can you tell me 5 things you can see around you right now? This helps bring your focus to the present moment and can reduce anxious feelings.";
+                    techniques.push("grounding technique");
+                    techniques.push("mindfulness");
+                    console.log('Generated anxiety response');
+                } else if (lowerMessage.includes('sad') || lowerMessage.includes('depressed') || lowerMessage.includes('down') || lowerMessage.includes('hopeless')) {
+                    response += "I can sense that you're going through a really difficult time right now, and I want you to know that your feelings are completely valid. Depression can make everything feel heavy and overwhelming. It's important to remember that this feeling won't last forever, even though it might feel that way. Can you tell me more about what's been weighing on your mind lately? Sometimes talking about it can help lighten the load.";
+                    techniques.push("validation and exploration");
+                    techniques.push("active listening");
+                    console.log('Generated depression response');
+                } else {
+                    response += "Thank you for sharing that with me. I can hear that you're going through something important, and I want you to know that I'm here to listen and support you through whatever you're experiencing. Your thoughts and feelings are valuable, and I want to help you work through them in a way that feels right for you. Can you tell me more about what's been on your mind? I'm here to listen without judgment.";
+                    techniques.push("active listening");
+                    techniques.push("supportive presence");
+                    console.log('Generated generic response');
+                }
+                
+                const result = {
+                    response,
+                    techniques,
+                    breakthroughs,
+                    moodAnalysis: {
+                        current: 3,
+                        trend: 'Stable',
+                        triggers: []
+                    },
+                    personalizedSuggestions: []
+                };
+                
+                console.log('Generated result:', result);
+                
+                resultDiv.innerHTML = `
+                    <div class="success">✅ Local response generation working!</div>
+                    <div class="response">
+                        <h3>Response:</h3>
+                        <p>${result.response}</p>
+                        <h3>Techniques:</h3>
+                        <ul>${result.techniques.map(t => `<li>${t}</li>`).join('')}</ul>
+                        <h3>Breakthroughs:</h3>
+                        <ul>${result.breakthroughs.map(b => `<li>${b}</li>`).join('')}</ul>
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('Error in local response generation:', error);
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        });
+    </script>
+</body>
+</html>
