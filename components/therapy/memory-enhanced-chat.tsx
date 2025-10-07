@@ -92,75 +92,63 @@ export function MemoryEnhancedChat({ sessionId, userId }: MemoryEnhancedChatProp
       // Get therapy context from memory
       const therapyContext = userMemoryManager.getTherapyContext();
       const therapySuggestions = userMemoryManager.getTherapySuggestions();
-
-      // Send to backend with memory context
-      const { backendService } = await import("@/lib/api/backend-service");
       const userMemory = await userMemoryManager.loadUserMemory(userId);
 
-      const memoryRequest = {
-        message: inputMessage,
-        sessionId,
-        userId,
-        context: therapyContext,
-        suggestions: therapySuggestions,
-        userMemory: {
-          journalEntries: userMemory.journalEntries.slice(-5),
-          meditationHistory: userMemory.meditationHistory.slice(-3),
-          moodPatterns: userMemory.moodPatterns.slice(-7),
-          insights: userMemory.insights.slice(-3),
-          profile: userMemory.profile
-        }
-      };
+      // Call the Next.js API route instead of backend directly
+      const response = await fetch('/api/chat/memory-enhanced', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token') || localStorage.getItem('authToken') || ''}`
+        },
+        body: JSON.stringify({
+          message: inputMessage,
+          sessionId,
+          userId,
+          context: therapyContext,
+          suggestions: therapySuggestions,
+          userMemory: {
+            journalEntries: userMemory.journalEntries.slice(-5),
+            meditationHistory: userMemory.meditationHistory.slice(-3),
+            moodPatterns: userMemory.moodPatterns.slice(-7),
+            insights: userMemory.insights.slice(-3),
+            profile: userMemory.profile
+          }
+        })
+      });
 
-      const response = await backendService.sendMemoryEnhancedMessage(memoryRequest);
-      
-      if (!response.success) {
-        // Handle rate limiting specifically
-        if (response.error?.includes('Rate limit exceeded')) {
-          const assistantMessage: ChatMessage = {
-            role: "assistant",
-            content: "I understand you'd like to continue our conversation. To ensure quality responses, please wait a moment before sending your next message. In the meantime, take a deep breath and know that I'm here to support you.",
-            timestamp: new Date(),
-            context: {
-              isRateLimit: true
-            }
-          };
-          setMessages(prev => [...prev, assistantMessage]);
-          return;
-        }
-        throw new Error(response.error || 'Failed to get AI response');
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
       }
 
-      const aiResponse = response.data!;
+      const aiResponse = await response.json();
 
       const assistantMessage: ChatMessage = {
         role: "assistant",
         content: aiResponse.response,
         timestamp: new Date(),
         context: {
-          insights: aiResponse.insights,
-          isFailover: aiResponse.isFailover || false
+          insights: aiResponse.insights || [],
+          isFailover: false // API route handles fallback internally
         }
       };
 
       setMessages(prev => [...prev, assistantMessage]);
 
-      // Update user memory with this therapy session (only if not a failover response)
-      if (!aiResponse.isFailover) {
-        await userMemoryManager.addTherapySession({
-          date: new Date(),
-          topics: extractThemes(inputMessage),
-          techniques: aiResponse.techniques || [],
-          breakthroughs: aiResponse.breakthroughs || [],
-          concerns: extractConcerns(inputMessage),
-          goals: [],
-          mood: userMessage.context?.mood || 3,
-          summary: `Discussed: ${extractThemes(inputMessage).join(', ')}`
-        });
+      // Update user memory with this therapy session
+      await userMemoryManager.addTherapySession({
+        date: new Date(),
+        topics: extractThemes(inputMessage),
+        techniques: aiResponse.techniques || [],
+        breakthroughs: aiResponse.breakthroughs || [],
+        concerns: extractConcerns(inputMessage),
+        goals: [],
+        mood: userMessage.context?.mood || 3,
+        summary: `Discussed: ${extractThemes(inputMessage).join(', ')}`
+      });
 
-        // Reload memory to get updated insights
-        await loadUserMemory();
-      }
+      // Reload memory to get updated insights
+      await loadUserMemory();
 
     } catch (error) {
       console.error("Error sending message:", error);
