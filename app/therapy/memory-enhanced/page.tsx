@@ -658,7 +658,7 @@ export default function MemoryEnhancedTherapyPage() {
         techniques,
         breakthroughs,
         moodAnalysis: {
-          current: userMemory.moodPatterns[userMemory.moodPatterns.length - 1]?.mood || 3,
+          current: userMemory.moodPatterns && userMemory.moodPatterns.length > 0 ? userMemory.moodPatterns[userMemory.moodPatterns.length - 1]?.mood || 3 : 3,
           trend: getMoodTrend(userMemory),
           triggers: extractTopics(message)
         },
@@ -666,15 +666,35 @@ export default function MemoryEnhancedTherapyPage() {
       };
 
       console.log('Generated local response:', result);
+      
+      // Ensure we always have a response
+      if (!result.response || result.response.trim() === '') {
+        result.response = "Thank you for sharing that with me. I'm here to listen and support you through whatever you're experiencing. Can you tell me more about what's on your mind?";
+      }
+      
       return result;
     } catch (error) {
       console.error('Error generating local response:', error);
       console.error('Error stack:', error.stack);
       logger.error('Error generating local response:', error);
+      
+      // Provide a more helpful fallback response
+      const fallbackResponse = message.toLowerCase().includes('anxiety') || message.toLowerCase().includes('worried') 
+        ? "I can hear that you're dealing with anxiety, and I want you to know that you're not alone. Anxiety can feel overwhelming, but there are effective ways to manage it. Can you tell me more about what's making you feel anxious?"
+        : message.toLowerCase().includes('sad') || message.toLowerCase().includes('depressed')
+        ? "I can sense that you're going through a difficult time, and I want you to know that your feelings are valid. It's important to remember that this feeling won't last forever. Can you tell me more about what's been weighing on your mind?"
+        : "Thank you for sharing that with me. I'm here to listen and support you through whatever you're experiencing. Your thoughts and feelings are important, and I want to help you work through them. Can you tell me more about what's been on your mind?";
+      
       return {
-        response: "I'm here to support you. Your thoughts and feelings are important. Please try again in a moment.",
-        techniques: [],
-        breakthroughs: []
+        response: fallbackResponse,
+        techniques: ["active listening", "supportive presence"],
+        breakthroughs: [],
+        moodAnalysis: {
+          current: 3,
+          trend: "Unable to analyze",
+          triggers: []
+        },
+        personalizedSuggestions: []
       };
     }
   };
