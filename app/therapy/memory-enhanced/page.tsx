@@ -395,39 +395,30 @@ export default function MemoryEnhancedTherapyPage() {
       };
       setMessages((prev) => [...prev, userMessage]);
 
-      // Demo mode - provide a demo response
+      // Demo mode - get real AI responses
       if (isDemoMode) {
-        setTimeout(() => {
-          const demoResponses = [
-            "I understand you're sharing that with me. In a real session, I would provide personalized support based on your mental health history and current needs. This is a demo response.",
-            "Thank you for opening up about that. As your AI therapist, I would normally remember our previous conversations and provide tailored guidance. This is a demonstration of how the chat would work.",
-            "I hear what you're saying, and I want you to know that your feelings are valid. In a full session, I would have access to your journal entries, mood patterns, and therapy history to provide more personalized support.",
-            "That sounds like it's been challenging for you. I would typically draw from your past sessions and mental health data to offer more specific guidance. This is a demo to show you how the interface works.",
-            "I appreciate you sharing that with me. In a real therapy session, I would have context from your previous conversations and be able to track your progress over time. This is a preview of the experience.",
-            "I'm here to support you. Your thoughts and feelings are important. Please try again in a moment.",
-            "Thank you for testing the demo! In a real session, I would provide more personalized responses based on your specific situation and mental health journey.",
-            "I can see you're exploring the chat interface. This demo shows how our AI therapist would interact with you in a real therapy session.",
-            "Your message has been received. In a full session, I would analyze your emotional state and provide targeted therapeutic techniques.",
-            "I'm listening and here to help. This demo mode gives you a preview of how our AI therapist would support your mental health journey."
-          ];
+        try {
+          // Use a demo user ID for demo mode
+          const demoUserId = "demo-user-123";
           
-          const randomResponse = demoResponses[Math.floor(Math.random() * demoResponses.length)];
+          // Send message with memory context using demo user
+          const response = await sendMemoryEnhancedMessage(currentMessage, demoUserId);
           
           const assistantMessage: ChatMessage = {
             role: "assistant",
-            content: randomResponse,
+            content: response.response || "I'm here to support you. Could you tell me more about what's on your mind?",
             timestamp: new Date(),
             metadata: {
-              analysis: {
+              analysis: response.analysis || {
                 emotionalState: "neutral",
                 riskLevel: 0,
                 themes: extractTopics(currentMessage),
                 recommendedApproach: "supportive",
                 progressIndicators: [],
               },
-              technique: "demo",
-              goal: "Demonstrate chat functionality",
-              progress: {
+              technique: response.metadata?.technique || "supportive",
+              goal: response.metadata?.currentGoal || "Provide support",
+              progress: response.metadata?.progress || {
                 emotionalState: "neutral",
                 riskLevel: 0,
               },
@@ -437,7 +428,43 @@ export default function MemoryEnhancedTherapyPage() {
           setMessages((prev) => [...prev, assistantMessage]);
           setIsTyping(false);
           scrollToBottom();
-        }, 1500); // Simulate thinking time
+
+          // In Voice Mode, auto-play assistant reply
+          if (isVoiceMode) {
+            speakText(assistantMessage.content);
+          }
+
+        } catch (error) {
+          logger.error("Error in demo mode chat", error);
+          
+          // Fallback to a demo response if AI fails
+          const fallbackResponse = "I'm here to support you. Your thoughts and feelings are important. Please try again in a moment.";
+          
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "assistant",
+              content: fallbackResponse,
+              timestamp: new Date(),
+              metadata: {
+                analysis: {
+                  emotionalState: "neutral",
+                  riskLevel: 0,
+                  themes: extractTopics(currentMessage),
+                  recommendedApproach: "supportive",
+                  progressIndicators: [],
+                },
+                technique: "demo",
+                goal: "Provide support",
+                progress: {
+                  emotionalState: "neutral",
+                  riskLevel: 0,
+                },
+              },
+            },
+          ]);
+          setIsTyping(false);
+        }
         return;
       }
 
@@ -535,9 +562,10 @@ export default function MemoryEnhancedTherapyPage() {
     }
   };
 
-  const sendMemoryEnhancedMessage = async (message: string) => {
+  const sendMemoryEnhancedMessage = async (message: string, overrideUserId?: string) => {
     try {
-      const userMemory = await userMemoryManager.loadUserMemory(userId);
+      const currentUserId = overrideUserId || userId;
+      const userMemory = await userMemoryManager.loadUserMemory(currentUserId);
       const context = userMemoryManager.getTherapyContext();
       const suggestions = userMemoryManager.getTherapySuggestions();
 
