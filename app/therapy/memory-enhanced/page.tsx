@@ -95,7 +95,6 @@ export default function MemoryEnhancedTherapyPage() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [isPremium, setIsPremium] = useState<boolean>(false);
   const [isVoiceMode, setIsVoiceMode] = useState<boolean>(false);
-  const [isDemoMode, setIsDemoMode] = useState<boolean>(false);
   
   // Voice controls
   const [isListening, setIsListening] = useState(false);
@@ -718,32 +717,12 @@ export default function MemoryEnhancedTherapyPage() {
   };
 
 
-  // Add a timeout for auth loading
-  useEffect(() => {
-    if (authLoading) {
-      const timeout = setTimeout(() => {
-        // Force stop loading after 5 seconds
-        if (authLoading) {
-          console.log("Auth loading timeout - forcing unauthenticated state");
-        }
-      }, 5000);
-      return () => clearTimeout(timeout);
-    }
-  }, [authLoading]);
-
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
+        <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
           <p className="text-muted-foreground">Checking your session...</p>
-          <Button 
-            variant="outline" 
-            onClick={() => setIsDemoMode(true)}
-            className="mt-4"
-          >
-            Skip to Demo Mode
-          </Button>
         </div>
       </div>
     );
