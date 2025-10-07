@@ -627,6 +627,31 @@ export default function MemoryEnhancedTherapyPage() {
         response += `\n\nLet's think about this: What aspects of work are most challenging for you? Are there any changes you could make to improve your work situation? What does work-life balance look like for you?`;
       }
 
+      // Helper function for mood trend analysis (moved inside to fix scope issue)
+      const getMoodTrend = (userMemory: any): string => {
+        if (!userMemory.moodPatterns || userMemory.moodPatterns.length < 2) {
+          return 'Insufficient data for mood trend analysis';
+        }
+
+        const recent = userMemory.moodPatterns.slice(-7);
+        const older = userMemory.moodPatterns.slice(-14, -7);
+
+        if (recent.length === 0 || older.length === 0) {
+          return 'Insufficient data for mood trend analysis';
+        }
+
+        const recentAvg = recent.reduce((sum: number, p: any) => sum + p.mood, 0) / recent.length;
+        const olderAvg = older.reduce((sum: number, p: any) => sum + p.mood, 0) / older.length;
+
+        if (recentAvg > olderAvg + 0.5) {
+          return 'Mood is improving over the past week';
+        } else if (recentAvg < olderAvg - 0.5) {
+          return 'Mood has declined over the past week';
+        } else {
+          return 'Mood has been relatively stable';
+        }
+      };
+
       const result = {
         response,
         insights,
@@ -654,30 +679,6 @@ export default function MemoryEnhancedTherapyPage() {
     }
   };
 
-  // Helper function for mood trend analysis
-  const getMoodTrend = (userMemory: any): string => {
-    if (!userMemory.moodPatterns || userMemory.moodPatterns.length < 2) {
-      return 'Insufficient data for mood trend analysis';
-    }
-
-    const recent = userMemory.moodPatterns.slice(-7);
-    const older = userMemory.moodPatterns.slice(-14, -7);
-
-    if (recent.length === 0 || older.length === 0) {
-      return 'Insufficient data for mood trend analysis';
-    }
-
-    const recentAvg = recent.reduce((sum: number, p: any) => sum + p.mood, 0) / recent.length;
-    const olderAvg = older.reduce((sum: number, p: any) => sum + p.mood, 0) / older.length;
-
-    if (recentAvg > olderAvg + 0.5) {
-      return 'Mood is improving over the past week';
-    } else if (recentAvg < olderAvg - 0.5) {
-      return 'Mood has declined over the past week';
-    } else {
-      return 'Mood has been relatively stable';
-    }
-  };
 
   const extractTopics = (text: string): string[] => {
     const topics = [];
