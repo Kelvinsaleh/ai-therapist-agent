@@ -390,28 +390,17 @@ export default function MemoryEnhancedTherapyPage() {
 
   const sendMemoryEnhancedMessage = async (message: string) => {
     try {
-      console.log('Sending message to memory-enhanced API:', message);
+      console.log('Sending message to AI chat API:', message);
       
-      // Call the API route directly
-      const response = await fetch('/api/chat/memory-enhanced', {
+      // Call the AI chat API directly
+      const response = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token') || localStorage.getItem('authToken') || ''}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           message,
-          sessionId,
-          userId,
-          context: 'Therapy session',
-          suggestions: ['supportive approach'],
-          userMemory: {
-            journalEntries: [],
-            meditationHistory: [],
-            moodPatterns: [],
-            insights: [],
-            profile: { name: 'User' }
-          }
+          context: 'Therapy session'
         })
       });
 
@@ -420,11 +409,11 @@ export default function MemoryEnhancedTherapyPage() {
       }
 
       const data = await response.json();
-      console.log('API response received:', data);
+      console.log('AI response received:', data);
       
       return data;
     } catch (error) {
-      console.error('Error calling memory-enhanced API:', error);
+      console.error('Error calling AI chat API:', error);
       
       // Simple fallback response
       const lowerMessage = message.toLowerCase();
