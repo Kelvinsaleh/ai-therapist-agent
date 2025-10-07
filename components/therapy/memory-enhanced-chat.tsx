@@ -94,31 +94,52 @@ export function MemoryEnhancedChat({ sessionId, userId }: MemoryEnhancedChatProp
       const therapySuggestions = userMemoryManager.getTherapySuggestions();
       const userMemory = await userMemoryManager.loadUserMemory(userId);
 
-      // Call the direct AI chat API
-      const response = await fetch('/api/ai/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          message: inputMessage,
-          context: therapyContext
-        })
-      });
+      // Call the backend API with proper authentication
+      const { backendService } = await import("@/lib/api/backend-service");
+      
+      const memoryRequest = {
+        message: inputMessage,
+        sessionId,
+        userId,
+        context: therapyContext,
+        suggestions: therapySuggestions,
+        userMemory: {
+          journalEntries: userMemory.journalEntries.slice(-5),
+          meditationHistory: userMemory.meditationHistory.slice(-3),
+          moodPatterns: userMemory.moodPatterns.slice(-7),
+          insights: userMemory.insights.slice(-3),
+          profile: userMemory.profile
+        }
+      };
 
-      if (!response.ok) {
-        throw new Error(`API request failed with status ${response.status}`);
+      const response = await backendService.sendMemoryEnhancedMessage(memoryRequest);
+      
+      if (!response.success) {
+        // Handle rate limiting specifically
+        if (response.error?.includes('Rate limit exceeded')) {
+          const assistantMessage: ChatMessage = {
+            role: "assistant",
+            content: "I understand you'd like to continue our conversation. To ensure quality responses, please wait a moment before sending your next message. In the meantime, take a deep breath and know that I'm here to support you.",
+            timestamp: new Date(),
+            context: {
+              isRateLimit: true
+            }
+          };
+          setMessages(prev => [...prev, assistantMessage]);
+          return;
+        }
+        throw new Error(response.error || 'Failed to get AI response');
       }
 
-      const aiResponse = await response.json();
+      const aiResponse = response.data!;
 
       const assistantMessage: ChatMessage = {
         role: "assistant",
         content: aiResponse.response,
         timestamp: new Date(),
         context: {
-          insights: aiResponse.insights || [],
-          isFailover: false // API route handles fallback internally
+          insights: aiResponse.suggestions || [],
+          isFailover: false
         }
       };
 
@@ -128,8 +149,8 @@ export function MemoryEnhancedChat({ sessionId, userId }: MemoryEnhancedChatProp
       await userMemoryManager.addTherapySession({
         date: new Date(),
         topics: extractThemes(inputMessage),
-        techniques: aiResponse.techniques || [],
-        breakthroughs: aiResponse.breakthroughs || [],
+        techniques: aiResponse.suggestions || [],
+        breakthroughs: [],
         concerns: extractConcerns(inputMessage),
         goals: [],
         mood: userMessage.context?.mood || 3,
