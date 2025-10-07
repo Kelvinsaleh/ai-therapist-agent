@@ -390,314 +390,66 @@ export default function MemoryEnhancedTherapyPage() {
 
   const sendMemoryEnhancedMessage = async (message: string) => {
     try {
-      console.log('Starting sendMemoryEnhancedMessage with:', { message, userId, sessionId });
+      console.log('Sending message to memory-enhanced API:', message);
       
-      // First try the regular chat API
-      try {
-        console.log('Trying regular chat API first...');
-        const chatResponse = await sendChatMessage(sessionId, message);
-        console.log('Regular chat API response:', chatResponse);
-        
-        if (chatResponse.response) {
-          console.log('Regular chat API succeeded, using response');
-          return {
-            response: chatResponse.response,
-            techniques: [],
-            breakthroughs: [],
-            analysis: chatResponse.analysis,
-            metadata: chatResponse.metadata
-          };
-        } else {
-          console.log('Regular chat API returned no response, trying memory-enhanced');
-        }
-      } catch (chatError) {
-        console.log('Regular chat API failed, trying memory-enhanced approach:', chatError);
-      }
-      
-      // If regular chat fails, try memory-enhanced approach
-      const userMemory = await userMemoryManager.loadUserMemory(userId);
-      const context = userMemoryManager.getTherapyContext();
-      const suggestions = userMemoryManager.getTherapySuggestions();
-
-      console.log('User memory loaded:', { 
-        journalEntries: userMemory.journalEntries.length,
-        meditationHistory: userMemory.meditationHistory.length,
-        moodPatterns: userMemory.moodPatterns.length,
-        insights: userMemory.insights.length
+      // Call the API route directly
+      const response = await fetch('/api/chat/memory-enhanced', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token') || localStorage.getItem('authToken') || ''}`
+        },
+        body: JSON.stringify({
+          message,
+          sessionId,
+          userId,
+          context: 'Therapy session',
+          suggestions: ['supportive approach'],
+          userMemory: {
+            journalEntries: [],
+            meditationHistory: [],
+            moodPatterns: [],
+            insights: [],
+            profile: { name: 'User' }
+          }
+        })
       });
 
-      const requestPayload = {
-        message,
-        sessionId,
-        userId,
-        context,
-        suggestions,
-        userMemory: {
-          journalEntries: userMemory.journalEntries.slice(-5),
-          meditationHistory: userMemory.meditationHistory.slice(-3),
-          moodPatterns: userMemory.moodPatterns.slice(-7),
-          insights: userMemory.insights.slice(-3),
-          profile: userMemory.profile
-        }
-      };
-
-      console.log('Sending request to backend service...');
-      
-      // Use the backend service directly instead of going through API route
-      const response = await backendService.sendMemoryEnhancedMessage(requestPayload);
-
-      console.log('Backend response:', response);
-
-      if (!response.success) {
-        console.log('Backend request failed:', response.error);
-        
-        if (response.error?.includes('401') || response.error?.includes('Unauthorized')) {
-          toast.error("Your session expired. Please sign in again.");
-          router.push('/login');
-          throw new Error('Unauthorized');
-        }
-        
-        if (response.error?.includes('429') || response.error?.includes('rate limit')) {
-          return {
-            response: "I understand you'd like to continue our conversation. Please wait a moment before sending your next message.",
-            techniques: [],
-            breakthroughs: [],
-            isRateLimit: true
-          };
-        }
-
-        throw new Error(response.error || 'Failed to get response');
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
       }
 
-      console.log('Backend response successful, returning data:', response.data);
-      return response.data;
+      const data = await response.json();
+      console.log('API response received:', data);
+      
+      return data;
     } catch (error) {
-      console.error('Error in sendMemoryEnhancedMessage:', error);
-      logger.error('Error sending memory-enhanced message:', error);
+      console.error('Error calling memory-enhanced API:', error);
       
-      // Fallback to local response generation
-      console.log('Falling back to local response generation...');
-      console.log('About to call generateLocalResponse with:', { message, userId });
-      const localResponse = await generateLocalResponse(message, userId);
-      console.log('Local response generated:', localResponse);
-      return localResponse;
-    }
-  };
-
-  // Fallback local response generation
-  const generateLocalResponse = async (message: string, userId: string) => {
-    try {
-      console.log('Generating local response for:', message);
-      console.log('User ID for memory loading:', userId);
-      
-      const userMemory = await userMemoryManager.loadUserMemory(userId);
-      console.log('User memory loaded:', userMemory);
-      
-      const context = userMemoryManager.getTherapyContext();
-      console.log('Therapy context:', context);
-      
-      const suggestions = userMemoryManager.getTherapySuggestions();
-      console.log('Therapy suggestions:', suggestions);
-
-      console.log('Local response context:', { 
-        context: context.substring(0, 100) + '...',
-        suggestions: suggestions.length,
-        userMemory: {
-          journalEntries: userMemory.journalEntries.length,
-          meditationHistory: userMemory.meditationHistory.length,
-          moodPatterns: userMemory.moodPatterns.length,
-          insights: userMemory.insights.length
-        }
-      });
-
+      // Simple fallback response
       const lowerMessage = message.toLowerCase();
       let response = "";
-      let insights: string[] = [];
-      let techniques: string[] = [];
-      let breakthroughs: string[] = [];
-      let personalizedSuggestions: string[] = [];
-
-      // Check if user mentioned something from their journal
-      if (userMemory.journalEntries.length > 0) {
-        const recentEntry = userMemory.journalEntries[userMemory.journalEntries.length - 1];
-        if (lowerMessage.includes('mood') || lowerMessage.includes('feeling')) {
-          response += `I notice from your recent journal entry that you've been feeling ${recentEntry.emotionalState} (mood: ${recentEntry.mood}/6). `;
-          insights.push(`Referenced recent journal mood: ${recentEntry.mood}/6`);
-        }
-      }
-
-      // Check meditation history
-      if (userMemory.meditationHistory.length > 0) {
-        const recentMeditation = userMemory.meditationHistory[userMemory.meditationHistory.length - 1];
-        if (lowerMessage.includes('stress') || lowerMessage.includes('anxiety')) {
-          response += `I see you've been practicing ${recentMeditation.type} meditation recently. `;
-          if (recentMeditation.effectiveness > 0.7) {
-            response += `It seems to be working well for you (effectiveness: ${Math.round(recentMeditation.effectiveness * 100)}%). `;
-            techniques.push(recentMeditation.type);
-          }
-        }
-      }
-
-      // Add personalized suggestions
-      if (suggestions.length > 0) {
-        response += suggestions[0] + " ";
-        personalizedSuggestions = suggestions;
-      }
-
-      // Generate contextual response based on message content
-      console.log('Generating contextual response for message:', lowerMessage);
       
-      if (lowerMessage.includes('anxiety') || lowerMessage.includes('worried') || lowerMessage.includes('nervous') || lowerMessage.includes('panic')) {
-        response += "I can hear that anxiety is really affecting you right now, and I want you to know that you're not alone in this. Anxiety can feel overwhelming, but there are effective ways to manage it. Let's start with a simple grounding technique: Can you tell me 5 things you can see around you right now? This helps bring your focus to the present moment and can reduce anxious feelings.";
-        techniques.push("grounding technique");
-        techniques.push("mindfulness");
-        console.log('Generated anxiety response');
-      } else if (lowerMessage.includes('sad') || lowerMessage.includes('depressed') || lowerMessage.includes('down') || lowerMessage.includes('hopeless')) {
-        response += "I can sense that you're going through a really difficult time right now, and I want you to know that your feelings are completely valid. Depression can make everything feel heavy and overwhelming. It's important to remember that this feeling won't last forever, even though it might feel that way. Can you tell me more about what's been weighing on your mind lately? Sometimes talking about it can help lighten the load.";
-        techniques.push("validation and exploration");
-        techniques.push("active listening");
-        console.log('Generated depression response');
-      } else if (lowerMessage.includes('grateful') || lowerMessage.includes('thankful') || lowerMessage.includes('appreciate')) {
-        response += "I love that you're practicing gratitude! This is such a powerful tool for mental well-being and can really shift your perspective. Gratitude has been shown to improve mood, reduce stress, and increase overall life satisfaction. What specifically are you feeling grateful for today? I'd love to hear more about what's bringing you joy or appreciation.";
-        techniques.push("gratitude practice");
-        techniques.push("positive reframing");
-        breakthroughs.push("Positive mindset shift");
-        console.log('Generated gratitude response');
-      } else if (lowerMessage.includes('stress') || lowerMessage.includes('stressed') || lowerMessage.includes('overwhelmed')) {
-        response += "It sounds like you're dealing with a lot of stress right now, and I can understand how overwhelming that must feel. Stress is our body's natural response to challenges, but when it becomes chronic, it can really take a toll on our mental and physical health. Let's work together to identify what's causing the most stress and find some healthy coping strategies. What's been the biggest source of stress for you lately?";
-        techniques.push("stress management");
-        techniques.push("problem-solving");
-        console.log('Generated stress response');
-      } else if (lowerMessage.includes('sleep') || lowerMessage.includes('insomnia') || lowerMessage.includes('tired')) {
-        response += "Sleep issues can really impact every aspect of our lives - our mood, energy, concentration, and overall well-being. Poor sleep can make everything else feel more difficult to handle. Let's talk about your sleep patterns and see if we can identify what might be affecting your rest. What's your typical bedtime routine like? Are there any specific thoughts or worries that keep you awake?";
-        techniques.push("sleep hygiene");
-        techniques.push("relaxation techniques");
-        console.log('Generated sleep response');
-      } else if (lowerMessage.includes('work') || lowerMessage.includes('job') || lowerMessage.includes('career')) {
-        response += "Work can be such a significant part of our lives and identity, so when we're struggling with work-related issues, it can feel like it's affecting everything. Whether it's job stress, career uncertainty, or workplace relationships, these challenges can really impact our mental health. I'm here to help you work through whatever work situation you're dealing with. What's been the most challenging aspect of work for you recently?";
-        techniques.push("work-life balance");
-        techniques.push("boundary setting");
-        console.log('Generated work response');
-      } else if (lowerMessage.includes('relationship') || lowerMessage.includes('partner') || lowerMessage.includes('family') || lowerMessage.includes('friend')) {
-        response += "Relationships can be both our greatest source of joy and our biggest challenges. Whether it's romantic relationships, family dynamics, or friendships, these connections deeply affect our emotional well-being. It's completely normal to struggle with relationship issues - they're complex and require ongoing work. I'm here to help you navigate whatever relationship challenges you're facing. What's been the most difficult aspect of your relationships lately?";
-        techniques.push("communication skills");
-        techniques.push("boundary setting");
-        console.log('Generated relationship response');
-      } else if (lowerMessage.includes('help') || lowerMessage.includes('need') || lowerMessage.includes('support')) {
-        response += "I'm so glad you reached out for help - that takes real courage and self-awareness. Seeking support is one of the most important steps you can take for your mental health. You don't have to face whatever you're going through alone. I'm here to listen, support you, and help you work through whatever challenges you're facing. Can you tell me more about what specific areas you'd like help with?";
-        techniques.push("support seeking");
-        techniques.push("active listening");
-        console.log('Generated help response');
-      } else if (lowerMessage.includes('feel') || lowerMessage.includes('feeling') || lowerMessage.includes('emotion')) {
-        response += "Thank you for sharing your feelings with me. It takes real courage to open up about what you're experiencing emotionally. Our feelings are valuable information about what's happening in our lives, even when they're difficult or uncomfortable. I'm here to listen and help you process whatever emotions you're working through. What's been the most prominent feeling for you lately?";
-        techniques.push("emotion regulation");
-        techniques.push("active listening");
-        console.log('Generated feelings response');
+      if (lowerMessage.includes('anxiety') || lowerMessage.includes('worried')) {
+        response = "I can hear that anxiety is affecting you. Let's try a grounding technique: Can you tell me 5 things you can see around you right now?";
+      } else if (lowerMessage.includes('sad') || lowerMessage.includes('depressed')) {
+        response = "I can sense you're going through a difficult time. Your feelings are valid. Can you tell me more about what's weighing on your mind?";
+      } else if (lowerMessage.includes('stress') || lowerMessage.includes('overwhelmed')) {
+        response = "It sounds like you're dealing with a lot of stress. Let's work together to identify what's causing the most stress. What's been the biggest source of stress lately?";
       } else {
-        // More contextual generic response based on message length and content
-        if (message.length < 20) {
-          response += "I can see you've shared something brief with me, and I appreciate you reaching out. Sometimes the most important things are hard to put into words. I'm here to listen and support you, no matter how much or how little you want to share. Could you tell me more about what's on your mind? I'd love to understand better so I can help you effectively.";
-        } else {
-          response += "Thank you for sharing that with me. I can hear that you're going through something important, and I want you to know that I'm here to listen and support you through whatever you're experiencing. Your thoughts and feelings are valuable, and I want to help you work through them in a way that feels right for you. Can you tell me more about what's been on your mind? I'm here to listen without judgment.";
-        }
-        techniques.push("active listening");
-        techniques.push("supportive presence");
-        console.log('Generated contextual generic response');
+        response = "Thank you for sharing that with me. I'm here to listen and support you. Can you tell me more about what's on your mind?";
       }
-
-      // Add memory-based insights
-      if (userMemory.insights.length > 0) {
-        const recentInsight = userMemory.insights[userMemory.insights.length - 1];
-        if (recentInsight.type === 'concern') {
-          response += ` I've noticed this theme coming up in our conversations. Let's explore this pattern together.`;
-          insights.push(`Pattern recognition: ${recentInsight.content}`);
-        }
-      }
-
-      // Add helpful follow-up questions based on the topic
-      if (lowerMessage.includes('anxiety') || lowerMessage.includes('worried') || lowerMessage.includes('nervous')) {
-        response += `\n\nSome questions to consider: What triggers your anxiety most often? Have you noticed any patterns in when it occurs? What has helped you feel calmer in the past?`;
-      } else if (lowerMessage.includes('sad') || lowerMessage.includes('depressed') || lowerMessage.includes('down')) {
-        response += `\n\nSome questions to reflect on: How long have you been feeling this way? Are there any activities that used to bring you joy that you might try again? What does a good day look like for you?`;
-      } else if (lowerMessage.includes('stress') || lowerMessage.includes('stressed') || lowerMessage.includes('overwhelmed')) {
-        response += `\n\nLet's explore this together: What are your main sources of stress right now? Are there any stressors you can control or influence? What helps you feel more centered when you're overwhelmed?`;
-      } else if (lowerMessage.includes('relationship') || lowerMessage.includes('partner') || lowerMessage.includes('family')) {
-        response += `\n\nSome things to consider: What would you like to see improve in this relationship? How do you typically communicate when there's conflict? What boundaries might be helpful to establish?`;
-      } else if (lowerMessage.includes('work') || lowerMessage.includes('job') || lowerMessage.includes('career')) {
-        response += `\n\nLet's think about this: What aspects of work are most challenging for you? Are there any changes you could make to improve your work situation? What does work-life balance look like for you?`;
-      }
-
-      // Helper function for mood trend analysis (moved inside to fix scope issue)
-      const getMoodTrend = (userMemory: any): string => {
-        if (!userMemory.moodPatterns || userMemory.moodPatterns.length < 2) {
-          return 'Insufficient data for mood trend analysis';
-        }
-
-        const recent = userMemory.moodPatterns.slice(-7);
-        const older = userMemory.moodPatterns.slice(-14, -7);
-
-        if (recent.length === 0 || older.length === 0) {
-          return 'Insufficient data for mood trend analysis';
-        }
-
-        const recentAvg = recent.reduce((sum: number, p: any) => sum + p.mood, 0) / recent.length;
-        const olderAvg = older.reduce((sum: number, p: any) => sum + p.mood, 0) / older.length;
-
-        if (recentAvg > olderAvg + 0.5) {
-          return 'Mood is improving over the past week';
-        } else if (recentAvg < olderAvg - 0.5) {
-          return 'Mood has declined over the past week';
-        } else {
-          return 'Mood has been relatively stable';
-        }
-      };
-
-      const result = {
-        response,
-        insights,
-        techniques,
-        breakthroughs,
-        moodAnalysis: {
-          current: userMemory.moodPatterns && userMemory.moodPatterns.length > 0 ? userMemory.moodPatterns[userMemory.moodPatterns.length - 1]?.mood || 3 : 3,
-          trend: getMoodTrend(userMemory),
-          triggers: extractTopics(message)
-        },
-        personalizedSuggestions
-      };
-
-      console.log('Generated local response:', result);
-      
-      // Ensure we always have a response
-      if (!result.response || result.response.trim() === '') {
-        result.response = "Thank you for sharing that with me. I'm here to listen and support you through whatever you're experiencing. Can you tell me more about what's on your mind?";
-      }
-      
-      return result;
-    } catch (error) {
-      console.error('Error generating local response:', error);
-      console.error('Error stack:', error.stack);
-      logger.error('Error generating local response:', error);
-      
-      // Provide a more helpful fallback response
-      const fallbackResponse = message.toLowerCase().includes('anxiety') || message.toLowerCase().includes('worried') 
-        ? "I can hear that you're dealing with anxiety, and I want you to know that you're not alone. Anxiety can feel overwhelming, but there are effective ways to manage it. Can you tell me more about what's making you feel anxious?"
-        : message.toLowerCase().includes('sad') || message.toLowerCase().includes('depressed')
-        ? "I can sense that you're going through a difficult time, and I want you to know that your feelings are valid. It's important to remember that this feeling won't last forever. Can you tell me more about what's been weighing on your mind?"
-        : "Thank you for sharing that with me. I'm here to listen and support you through whatever you're experiencing. Your thoughts and feelings are important, and I want to help you work through them. Can you tell me more about what's been on your mind?";
       
       return {
-        response: fallbackResponse,
-        techniques: ["active listening", "supportive presence"],
+        response,
+        techniques: ["active listening"],
         breakthroughs: [],
-        moodAnalysis: {
-          current: 3,
-          trend: "Unable to analyze",
-          triggers: []
-        },
+        moodAnalysis: { current: 3, trend: "Unable to analyze", triggers: [] },
         personalizedSuggestions: []
       };
     }
   };
+
 
 
   const extractTopics = (text: string): string[] => {
