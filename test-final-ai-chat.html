@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Final AI Chat Test - Complete Integration</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .form-group { margin: 10px 0; }
+        label { display: block; margin-bottom: 5px; }
+        input, textarea { padding: 8px; width: 300px; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer; }
+        .response { margin-top: 20px; padding: 15px; background: #f5f5f5; border-radius: 5px; }
+        .error { color: red; }
+        .success { color: green; }
+        .ai-response { white-space: pre-line; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Final AI Chat Test - Complete Integration</h1>
+    <p>Testing the complete AI chat flow from frontend to backend</p>
+    
+    <div class="test-section">
+        <h3>Test 1: Direct Backend API</h3>
+        <button onclick="testBackendDirect()">Test Backend Direct</button>
+        <div id="backend-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test 2: Frontend API Route</h3>
+        <button onclick="testFrontendAPI()">Test Frontend API Route</button>
+        <div id="frontend-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test 3: Different Messages</h3>
+        <form id="messageForm">
+            <div class="form-group">
+                <label for="message">Message:</label>
+                <textarea id="message" rows="3" placeholder="Type your message here...">I am feeling anxious about work</textarea>
+            </div>
+            <button type="submit">Test AI Response</button>
+        </form>
+        <div id="message-result"></div>
+    </div>
+
+    <script>
+        async function testBackendDirect() {
+            const resultDiv = document.getElementById('backend-result');
+            try {
+                console.log('Testing backend directly...');
+                
+                // Login
+                const loginResponse = await fetch('https://hope-backend-2.onrender.com/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'test@example.com',
+                        password: 'testpassword123'
+                    })
+                });
+                
+                const loginData = await loginResponse.json();
+                if (!loginData.success) throw new Error('Login failed');
+                
+                // Call memory-enhanced-chat
+                const chatResponse = await fetch('https://hope-backend-2.onrender.com/memory-enhanced-chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${loginData.token}`
+                    },
+                    body: JSON.stringify({
+                        message: 'I am feeling anxious about work',
+                        sessionId: 'test-session',
+                        userId: loginData.user.id,
+                        context: 'Therapy session',
+                        suggestions: ['supportive approach'],
+                        userMemory: {
+                            journalEntries: [],
+                            meditationHistory: [],
+                            moodPatterns: [],
+                            insights: [],
+                            profile: { name: loginData.user.name }
+                        }
+                    })
+                });
+                
+                const chatData = await chatResponse.json();
+                console.log('Backend response:', chatData);
+                
+                resultDiv.innerHTML = `
+                    <div class="success">✅ Backend Direct Test: SUCCESS!</div>
+                    <div class="response">
+                        <h4>Response:</h4>
+                        <div class="ai-response">${chatData.response}</div>
+                        <h4>Suggestions:</h4>
+                        <ul>${chatData.suggestions ? chatData.suggestions.map(s => `<li>${s}</li>`).join('') : '<li>None</li>'}</ul>
+                        <h4>Success:</h4>
+                        <p>${chatData.success}</p>
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('Backend test error:', error);
+                resultDiv.innerHTML = `<div class="error">❌ Backend Direct Test Failed: ${error.message}</div>`;
+            }
+        }
+
+        async function testFrontendAPI() {
+            const resultDiv = document.getElementById('frontend-result');
+            try {
+                console.log('Testing frontend API route...');
+                
+                const response = await fetch('/api/chat/memory-enhanced', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer test-token'
+                    },
+                    body: JSON.stringify({
+                        message: 'I am feeling anxious about work',
+                        sessionId: 'test-session',
+                        userId: 'test-user',
+                        context: 'Therapy session',
+                        suggestions: ['supportive approach'],
+                        userMemory: {
+                            journalEntries: [],
+                            meditationHistory: [],
+                            moodPatterns: [],
+                            insights: [],
+                            profile: { name: 'Test User' }
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                console.log('Frontend API response:', data);
+                
+                resultDiv.innerHTML = `
+                    <div class="success">✅ Frontend API Test: SUCCESS!</div>
+                    <div class="response">
+                        <h4>Response:</h4>
+                        <div class="ai-response">${data.response}</div>
+                        <h4>Success:</h4>
+                        <p>${data.success}</p>
+                        <h4>Is Failover:</h4>
+                        <p>${data.isFailover || false}</p>
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('Frontend API test error:', error);
+                resultDiv.innerHTML = `<div class="error">❌ Frontend API Test Failed: ${error.message}</div>`;
+            }
+        }
+
+        document.getElementById('messageForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const message = document.getElementById('message').value;
+            const resultDiv = document.getElementById('message-result');
+            
+            try {
+                console.log('Testing with message:', message);
+                
+                const response = await fetch('/api/chat/memory-enhanced', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer test-token'
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        sessionId: 'test-session',
+                        userId: 'test-user',
+                        context: 'Therapy session',
+                        suggestions: ['supportive approach'],
+                        userMemory: {
+                            journalEntries: [],
+                            meditationHistory: [],
+                            moodPatterns: [],
+                            insights: [],
+                            profile: { name: 'Test User' }
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                console.log('Message test response:', data);
+                
+                resultDiv.innerHTML = `
+                    <div class="success">✅ Message Test: SUCCESS!</div>
+                    <div class="response">
+                        <h4>Your Message:</h4>
+                        <p>"${message}"</p>
+                        <h4>AI Response:</h4>
+                        <div class="ai-response">${data.response}</div>
+                        <h4>Suggestions:</h4>
+                        <ul>${data.suggestions ? data.suggestions.map(s => `<li>${s}</li>`).join('') : '<li>None</li>'}</ul>
+                        <h4>Success:</h4>
+                        <p>${data.success}</p>
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('Message test error:', error);
+                resultDiv.innerHTML = `<div class="error">❌ Message Test Failed: ${error.message}</div>`;
+            }
+        });
+    </script>
+</body>
+</html>
