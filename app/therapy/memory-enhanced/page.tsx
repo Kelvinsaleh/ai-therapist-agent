@@ -91,6 +91,7 @@ export default function MemoryEnhancedTherapyPage() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [isPremium, setIsPremium] = useState<boolean>(false);
   const [isVoiceMode, setIsVoiceMode] = useState<boolean>(false);
+  const [isDemoMode, setIsDemoMode] = useState<boolean>(false);
   
   // Voice controls
   const [isListening, setIsListening] = useState(false);
@@ -382,6 +383,55 @@ export default function MemoryEnhancedTherapyPage() {
     setIsTyping(true);
 
     try {
+      // Add user message
+      const userMessage: ChatMessage = {
+        role: "user",
+        content: currentMessage,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, userMessage]);
+
+      // Demo mode - provide a demo response
+      if (isDemoMode) {
+        setTimeout(() => {
+          const demoResponses = [
+            "I understand you're sharing that with me. In a real session, I would provide personalized support based on your mental health history and current needs. This is a demo response.",
+            "Thank you for opening up about that. As your AI therapist, I would normally remember our previous conversations and provide tailored guidance. This is a demonstration of how the chat would work.",
+            "I hear what you're saying, and I want you to know that your feelings are valid. In a full session, I would have access to your journal entries, mood patterns, and therapy history to provide more personalized support.",
+            "That sounds like it's been challenging for you. I would typically draw from your past sessions and mental health data to offer more specific guidance. This is a demo to show you how the interface works.",
+            "I appreciate you sharing that with me. In a real therapy session, I would have context from your previous conversations and be able to track your progress over time. This is a preview of the experience."
+          ];
+          
+          const randomResponse = demoResponses[Math.floor(Math.random() * demoResponses.length)];
+          
+          const assistantMessage: ChatMessage = {
+            role: "assistant",
+            content: randomResponse,
+            timestamp: new Date(),
+            metadata: {
+              analysis: {
+                emotionalState: "neutral",
+                riskLevel: 0,
+                themes: extractTopics(currentMessage),
+                recommendedApproach: "supportive",
+                progressIndicators: [],
+              },
+              technique: "demo",
+              goal: "Demonstrate chat functionality",
+              progress: {
+                emotionalState: "neutral",
+                riskLevel: 0,
+              },
+            },
+          };
+
+          setMessages((prev) => [...prev, assistantMessage]);
+          setIsTyping(false);
+          scrollToBottom();
+        }, 1500); // Simulate thinking time
+        return;
+      }
+
       // Require auth token before sending to backend
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
       if (!token) {
@@ -397,14 +447,6 @@ export default function MemoryEnhancedTherapyPage() {
         setIsTyping(false);
         return;
       }
-
-      // Add user message
-      const userMessage: ChatMessage = {
-        role: "user",
-        content: currentMessage,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, userMessage]);
 
       // Send message with memory context
       const response = await sendMemoryEnhancedMessage(currentMessage);
@@ -639,23 +681,349 @@ export default function MemoryEnhancedTherapyPage() {
   };
 
 
+  // Add a timeout for auth loading
+  useEffect(() => {
+    if (authLoading) {
+      const timeout = setTimeout(() => {
+        // Force stop loading after 5 seconds
+        if (authLoading) {
+          console.log("Auth loading timeout - forcing unauthenticated state");
+        }
+      }, 5000);
+      return () => clearTimeout(timeout);
+    }
+  }, [authLoading]);
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
+        <div className="text-center space-y-4">
           <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
           <p className="text-muted-foreground">Checking your session...</p>
+          <Button 
+            variant="outline" 
+            onClick={() => setIsDemoMode(true)}
+            className="mt-4"
+          >
+            Skip to Demo Mode
+          </Button>
         </div>
       </div>
     );
   }
 
   if (!isAuthenticated || !userId) {
+    if (isDemoMode) {
+      // Demo mode - show the chat interface but with limited functionality
+      return (
+        <div className="min-h-screen bg-background">
+          {/* Demo mode banner */}
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800 px-4 py-2">
+            <div className="max-w-6xl mx-auto flex items-center justify-between">
+              <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                <strong>Demo Mode:</strong> Limited functionality. Sign in for full features.
+              </p>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setIsDemoMode(false)}
+              >
+                Exit Demo
+              </Button>
+            </div>
+          </div>
+
+          {/* Rest of the chat interface */}
+          <div className="flex h-[calc(100vh-4rem)] mt-16 gap-0">
+            {/* Sessions Sidebar - Hidden in demo */}
+            <div className="hidden md:block md:w-80 border-r bg-muted/30">
+              <div className="p-6 border-b">
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-primary" />
+                  Demo Session
+                </h2>
+                <p className="text-sm text-muted-foreground mt-2">
+                  This is a demo session. Sign in to save your conversations.
+                </p>
+              </div>
+            </div>
+
+            {/* Main chat area */}
+            <div className="flex-1 flex flex-col overflow-hidden bg-background">
+              {/* Chat header */}
+              <div className="p-6 border-b bg-muted/30 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center ring-1 ring-primary/20">
+                    <Bot className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h2 className="font-semibold text-lg">AI Therapist (Demo)</h2>
+                    <p className="text-sm text-muted-foreground">
+                      {messages.length} messages • Demo Mode
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {messages.length === 0 ? (
+                // Welcome screen with suggested questions
+                <div className="flex-1 flex items-center justify-center p-8">
+                  <div className="max-w-2xl w-full space-y-8">
+                    <div className="text-center space-y-6">
+                      <div className="relative inline-flex flex-col items-center">
+                        <motion.div
+                          className="absolute inset-0 bg-primary/20 blur-2xl rounded-full"
+                          initial="initial"
+                          animate="animate"
+                          variants={glowAnimation}
+                        />
+                        <div className="relative flex items-center gap-3 text-3xl font-semibold">
+                          <div className="relative">
+                            <Bot className="w-8 h-8 text-primary" />
+                            <motion.div
+                              className="absolute inset-0 text-primary"
+                              initial="initial"
+                              animate="animate"
+                              variants={glowAnimation}
+                            >
+                              <Bot className="w-8 h-8" />
+                            </motion.div>
+                          </div>
+                          <span className="bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent">
+                            AI Therapist Demo
+                          </span>
+                        </div>
+                        <p className="text-muted-foreground mt-3 text-lg">
+                          Try our AI therapist in demo mode
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 relative">
+                      <motion.div
+                        className="absolute -inset-4 bg-gradient-to-b from-primary/5 to-transparent blur-xl"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.5 }}
+                      />
+                      {SUGGESTED_QUESTIONS.map((q, index) => (
+                        <motion.div
+                          key={q.text}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.1 + 0.5 }}
+                        >
+                          <Button
+                            variant="outline"
+                            className="w-full h-auto py-6 px-8 text-left justify-start hover:bg-primary/5 hover:border-primary/50 transition-all duration-300 text-base"
+                            onClick={() => handleSuggestedQuestion(q.text)}
+                          >
+                            {q.text}
+                          </Button>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                // Chat messages
+                <div className="flex-1 overflow-y-auto scroll-smooth pb-32 overscroll-contain">
+                  <div className="max-w-4xl mx-auto px-4">
+                    <AnimatePresence initial={false}>
+                      {messages.map((msg) => (
+                        <motion.div
+                          key={msg.timestamp.toISOString()}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3 }}
+                          className={cn(
+                            "py-6",
+                            msg.role === "assistant"
+                              ? "bg-muted/20"
+                              : "bg-background"
+                          )}
+                        >
+                          <div className="flex gap-4 max-w-3xl mx-auto">
+                            <div className="w-10 h-10 shrink-0 mt-1">
+                              {msg.role === "assistant" ? (
+                                <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center ring-1 ring-primary/20">
+                                  <Bot className="w-6 h-6" />
+                                </div>
+                              ) : (
+                                <div className="w-10 h-10 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center">
+                                  <User className="w-6 h-6" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1 space-y-3 overflow-hidden min-h-[2.5rem]">
+                              <div className="flex items-center justify-between">
+                                <p className="font-medium text-base">
+                                  {msg.role === "assistant"
+                                    ? "AI Therapist"
+                                    : "You"}
+                                </p>
+                                {msg.metadata?.technique && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    {msg.metadata.technique}
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="prose prose-base dark:prose-invert leading-relaxed max-w-none">
+                                <ReactMarkdown>{msg.content}</ReactMarkdown>
+                              </div>
+                              {msg.metadata?.goal && (
+                                <p className="text-sm text-muted-foreground mt-3 p-2 bg-muted/30 rounded-md">
+                                  <strong>Goal:</strong> {msg.metadata.goal}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+
+                    {isTyping && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="py-6 bg-muted/20"
+                      >
+                        <div className="flex gap-4 max-w-3xl mx-auto px-4">
+                          <div className="w-10 h-10 shrink-0">
+                            <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center ring-1 ring-primary/20">
+                              <Loader2 className="w-6 h-6 animate-spin" />
+                            </div>
+                          </div>
+                          <div className="flex-1 space-y-3">
+                            <p className="font-medium text-base">AI Therapist</p>
+                            <div className="flex items-center gap-2">
+                              <LoadingDots size="sm" color="primary" />
+                              <span className="text-sm text-muted-foreground">Thinking...</span>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                    <div ref={messagesEndRef} />
+                  </div>
+                </div>
+              )}
+
+              {/* Input area */}
+              <div className="border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/95 p-6 relative z-[60] sticky bottom-0 left-0 right-0">
+                <form
+                  onSubmit={handleSubmit}
+                  className="max-w-4xl mx-auto flex gap-4 items-end relative"
+                >
+                  <div className="flex-1 relative group">
+                    <textarea
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      onFocus={() => {
+                        try { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); } catch {}
+                      }}
+                      placeholder="Share what's on your mind... (Demo Mode)"
+                      className={cn(
+                        "w-full resize-none rounded-2xl border bg-background",
+                        "p-4 pr-24 min-h-[56px] max-h-[200px]",
+                        "focus:outline-none focus:ring-2 focus:ring-primary/50",
+                        "transition-all duration-200",
+                        "placeholder:text-muted-foreground/70",
+                        isTyping && "opacity-50 cursor-not-allowed"
+                      )}
+                      rows={1}
+                      disabled={isTyping}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSubmit(e);
+                        }
+                      }}
+                    />
+                    
+                    <Button
+                      type="submit"
+                      size="icon"
+                      className={cn(
+                        "absolute right-2 bottom-4 h-[40px] w-[40px]",
+                        "rounded-xl transition-all duration-200",
+                        "bg-primary hover:bg-primary/90",
+                        "shadow-sm shadow-primary/20",
+                        (isTyping || !message.trim()) &&
+                          "opacity-50 cursor-not-allowed",
+                        "group-hover:scale-105 group-focus-within:scale-105"
+                      )}
+                      disabled={isTyping || !message.trim()}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleSubmit(e);
+                      }}
+                    >
+                      <Send className="w-5 h-5" />
+                    </Button>
+                  </div>
+                </form>
+                <div className="mt-3 text-xs text-center text-muted-foreground">
+                  Press <kbd className="px-2 py-1 rounded bg-muted text-xs">Enter ↵</kbd>{" "}
+                  to send,
+                  <kbd className="px-2 py-1 rounded bg-muted ml-1 text-xs">
+                    Shift + Enter
+                  </kbd>{" "}
+                  for new line
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-3">
-          <p className="text-muted-foreground">Please sign in to start a memory‑enhanced session.</p>
-          <Button variant="outline" onClick={() => router.push("/login")}>Go to Sign In</Button>
+        <div className="text-center space-y-6 max-w-md mx-auto px-4">
+          <div className="space-y-3">
+            <h2 className="text-2xl font-semibold">Memory-Enhanced AI Therapy</h2>
+            <p className="text-muted-foreground">
+              Sign in to access your personalized AI therapist with memory of your mental health journey.
+            </p>
+          </div>
+          
+          <div className="space-y-3">
+            <Button 
+              onClick={() => router.push("/login")} 
+              className="w-full"
+              size="lg"
+            >
+              Sign In to Continue
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              onClick={() => router.push("/signup")} 
+              className="w-full"
+              size="lg"
+            >
+              Create Account
+            </Button>
+            
+            <Button 
+              variant="ghost" 
+              onClick={() => setIsDemoMode(true)} 
+              className="w-full"
+              size="lg"
+            >
+              Try Demo Mode
+            </Button>
+          </div>
+          
+          <div className="text-sm text-muted-foreground">
+            <p>Features you'll get with an account:</p>
+            <ul className="mt-2 space-y-1 text-left">
+              <li>• Personalized therapy sessions</li>
+              <li>• Memory of your mental health journey</li>
+              <li>• Voice interaction (Premium)</li>
+              <li>• Session history and insights</li>
+            </ul>
+          </div>
         </div>
       </div>
     );

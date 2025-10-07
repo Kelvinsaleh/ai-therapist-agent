@@ -48,6 +48,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   const checkAuthStatus = useCallback(async () => {
     try {
+      // Check if we're in the browser
+      if (typeof window === 'undefined') {
+        setIsLoading(false);
+        return;
+      }
+
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
       
       if (!token) {
@@ -70,25 +76,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         if (data.isAuthenticated && data.user) {
           setUser(data.user);
           setIsAuthenticated(true);
-          
-          // Get user tier/subscription status
-          try {
-            const tierResponse = await fetch((process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.BACKEND_API_URL || 'https://hope-backend-2.onrender.com') + '/subscription/status', {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-              },
-            });
-            
-            if (tierResponse.ok) {
-              const tierData = await tierResponse.json();
-              setUserTier(tierData.userTier || "free");
-            } else {
-              setUserTier("free");
-            }
-          } catch (error) {
-            logger.error("Error fetching user tier:", error);
-            setUserTier("free");
-          }
+          setUserTier("free"); // Default to free for now
         } else {
           setIsAuthenticated(false);
           setUser(null);
@@ -201,8 +189,80 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    checkAuthStatus();
-  }, [checkAuthStatus]);
+    let mounted = true;
+    
+    const checkAuth = async () => {
+      try {
+        // Check if we're in the browser
+        if (typeof window === 'undefined') {
+          if (mounted) setIsLoading(false);
+          return;
+        }
+
+        const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+        
+        if (!token) {
+          if (mounted) {
+            setIsAuthenticated(false);
+            setUser(null);
+            setUserTier("free");
+            setIsLoading(false);
+          }
+          return;
+        }
+
+        // Check if user is authenticated
+        const response = await fetch('/api/auth/session', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (mounted) {
+          if (response.ok) {
+            const data = await response.json();
+            if (data.isAuthenticated && data.user) {
+              setUser(data.user);
+              setIsAuthenticated(true);
+              setUserTier("free");
+            } else {
+              setIsAuthenticated(false);
+              setUser(null);
+              setUserTier("free");
+            }
+          } else {
+            setIsAuthenticated(false);
+            setUser(null);
+            setUserTier("free");
+          }
+          setIsLoading(false);
+        }
+      } catch (error) {
+        logger.error("Error checking auth status:", error);
+        if (mounted) {
+          setIsAuthenticated(false);
+          setUser(null);
+          setUserTier("free");
+          setIsLoading(false);
+        }
+      }
+    };
+
+    // Add a timeout to prevent infinite loading
+    const timeout = setTimeout(() => {
+      if (mounted && isLoading) {
+        logger.warn("Auth check timeout, setting loading to false");
+        setIsLoading(false);
+      }
+    }, 3000); // 3 second timeout
+
+    checkAuth();
+
+    return () => {
+      mounted = false;
+      clearTimeout(timeout);
+    };
+  }, []); // Empty dependency array
 
   const value: SessionContextType = {
     user,
