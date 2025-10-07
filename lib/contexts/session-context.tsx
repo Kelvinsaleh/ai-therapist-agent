@@ -211,34 +211,55 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        // Check if user is authenticated
-        const response = await fetch('/api/auth/session', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
+        // Check if user is authenticated with timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
-        if (mounted) {
-          if (response.ok) {
-            const data = await response.json();
-            if (data.isAuthenticated && data.user) {
-              setUser(data.user);
-              setIsAuthenticated(true);
-              setUserTier("free");
+        try {
+          const response = await fetch('/api/auth/session', {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+            signal: controller.signal,
+          });
+
+          clearTimeout(timeoutId);
+
+          if (mounted) {
+            if (response.ok) {
+              const data = await response.json();
+              if (data.isAuthenticated && data.user) {
+                setUser(data.user);
+                setIsAuthenticated(true);
+                setUserTier("free");
+              } else {
+                setIsAuthenticated(false);
+                setUser(null);
+                setUserTier("free");
+              }
             } else {
               setIsAuthenticated(false);
               setUser(null);
               setUserTier("free");
             }
+            setIsLoading(false);
+          }
+        } catch (fetchError) {
+          clearTimeout(timeoutId);
+          if (fetchError.name === 'AbortError') {
+            logger.warn("Auth check timed out");
           } else {
+            logger.error("Error checking auth status:", fetchError);
+          }
+          if (mounted) {
             setIsAuthenticated(false);
             setUser(null);
             setUserTier("free");
+            setIsLoading(false);
           }
-          setIsLoading(false);
         }
       } catch (error) {
-        logger.error("Error checking auth status:", error);
+        logger.error("Error in auth check:", error);
         if (mounted) {
           setIsAuthenticated(false);
           setUser(null);
@@ -248,19 +269,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    // Add a timeout to prevent infinite loading
-    const timeout = setTimeout(() => {
-      if (mounted && isLoading) {
-        logger.warn("Auth check timeout, setting loading to false");
-        setIsLoading(false);
-      }
-    }, 3000); // 3 second timeout
-
     checkAuth();
 
     return () => {
       mounted = false;
-      clearTimeout(timeout);
     };
   }, []); // Empty dependency array
 
