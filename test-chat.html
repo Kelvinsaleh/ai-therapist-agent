@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test AI Chat</title>
+</head>
+<body>
+    <h1>Test AI Chat</h1>
+    <div id="messages"></div>
+    <input type="text" id="messageInput" placeholder="Type a message...">
+    <button onclick="sendMessage()">Send</button>
+
+    <script>
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value;
+            input.value = '';
+            
+            // Add user message
+            addMessage('user', message);
+            
+            try {
+                const response = await fetch('/api/chat/memory-enhanced', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer test-token'
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        sessionId: 'test-session',
+                        userId: 'test-user',
+                        context: 'Test context',
+                        suggestions: ['Test suggestion'],
+                        userMemory: {
+                            journalEntries: [],
+                            meditationHistory: [],
+                            moodPatterns: [],
+                            insights: [],
+                            profile: { name: 'Test User' }
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                console.log('Response:', data);
+                addMessage('assistant', data.response || 'No response');
+            } catch (error) {
+                console.error('Error:', error);
+                addMessage('assistant', 'Error: ' + error.message);
+            }
+        }
+        
+        function addMessage(role, content) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.innerHTML = `<strong>${role}:</strong> ${content}`;
+            messagesDiv.appendChild(messageDiv);
+        }
+    </script>
+</body>
+</html>

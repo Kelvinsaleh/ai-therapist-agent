@@ -8,7 +8,13 @@ export async function GET(
 ) {
   try {
     const { sessionId } = params;
-    const res = await fetch(`${BACKEND_API_URL}/chat/sessions/${sessionId}/history`, { cache: "no-store" });
+    const res = await fetch(`${BACKEND_API_URL}/chat/sessions/${sessionId}/history`, { 
+      cache: "no-store",
+      headers: {
+        Authorization: req.headers.get("authorization") || "",
+        ...(process.env.BACKEND_API_KEY ? { "x-api-key": process.env.BACKEND_API_KEY } : {}),
+      }
+    });
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
   } catch (error) {

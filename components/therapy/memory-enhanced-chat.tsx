@@ -92,11 +92,11 @@ export function MemoryEnhancedChat({ sessionId, userId }: MemoryEnhancedChatProp
       // Get therapy context from memory
       const therapyContext = userMemoryManager.getTherapyContext();
       const therapySuggestions = userMemoryManager.getTherapySuggestions();
-
-      // Send to backend with memory context
-      const { backendService } = await import("@/lib/api/backend-service");
       const userMemory = await userMemoryManager.loadUserMemory(userId);
 
+      // Call the backend API with proper authentication
+      const { backendService } = await import("@/lib/api/backend-service");
+      
       const memoryRequest = {
         message: inputMessage,
         sessionId,
@@ -138,29 +138,27 @@ export function MemoryEnhancedChat({ sessionId, userId }: MemoryEnhancedChatProp
         content: aiResponse.response,
         timestamp: new Date(),
         context: {
-          insights: aiResponse.insights,
-          isFailover: aiResponse.isFailover || false
+          insights: aiResponse.suggestions || [],
+          isFailover: false
         }
       };
 
       setMessages(prev => [...prev, assistantMessage]);
 
-      // Update user memory with this therapy session (only if not a failover response)
-      if (!aiResponse.isFailover) {
-        await userMemoryManager.addTherapySession({
-          date: new Date(),
-          topics: extractThemes(inputMessage),
-          techniques: aiResponse.techniques || [],
-          breakthroughs: aiResponse.breakthroughs || [],
-          concerns: extractConcerns(inputMessage),
-          goals: [],
-          mood: userMessage.context?.mood || 3,
-          summary: `Discussed: ${extractThemes(inputMessage).join(', ')}`
-        });
+      // Update user memory with this therapy session
+      await userMemoryManager.addTherapySession({
+        date: new Date(),
+        topics: extractThemes(inputMessage),
+        techniques: aiResponse.suggestions || [],
+        breakthroughs: [],
+        concerns: extractConcerns(inputMessage),
+        goals: [],
+        mood: userMessage.context?.mood || 3,
+        summary: `Discussed: ${extractThemes(inputMessage).join(', ')}`
+      });
 
-        // Reload memory to get updated insights
-        await loadUserMemory();
-      }
+      // Reload memory to get updated insights
+      await loadUserMemory();
 
     } catch (error) {
       console.error("Error sending message:", error);

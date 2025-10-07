@@ -14,6 +14,7 @@ export async function POST(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Authorization: req.headers.get("authorization") || "",
         ...(process.env.BACKEND_API_KEY ? { "x-api-key": process.env.BACKEND_API_KEY } : {}),
       },
       body: JSON.stringify(body),

@@ -1,7 +1,7 @@
 // Backend Service Layer for Hope Backend Integration
 // This service handles all communication with your backend API
 
-const BACKEND_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.BACKEND_API_URL || "https://hope-backend-2.onrender.com";
+const BACKEND_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.BACKEND_API_URL || "http://localhost:3002";
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -109,6 +109,19 @@ class BackendService {
       }
 
       const data = await response.json();
+      
+      // Handle login/register responses that have success field
+      if (data.success !== undefined) {
+        return {
+          success: data.success,
+          data: data.success ? {
+            user: data.user,
+            token: data.token
+          } : undefined,
+          error: data.success ? undefined : (data.message || data.error)
+        };
+      }
+      
       return {
         success: true,
         data,
@@ -136,17 +149,23 @@ class BackendService {
 
   // Authentication methods
   async login(email: string, password: string): Promise<ApiResponse<LoginResponse>> {
+    console.log("Backend service: Attempting login with:", { email, password: "***" });
     const response = await this.makeRequest<LoginResponse>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
 
+    console.log("Backend service: Login response:", response);
+
     if (response.success && response.data) {
+      console.log("Backend service: Login successful, storing token");
       if (typeof window !== 'undefined') {
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('authToken', response.data.token);
         this.authToken = response.data.token;
       }
+    } else {
+      console.log("Backend service: Login failed:", response.error);
     }
 
     return response;
@@ -215,10 +234,13 @@ class BackendService {
 
   // Memory-enhanced chat method
   async sendMemoryEnhancedMessage(messageData: any): Promise<ApiResponse> {
-    return this.makeRequest('/memory-enhanced-chat', {
+    console.log('Backend service: sending memory enhanced message', messageData);
+    const result = await this.makeRequest('/memory-enhanced-chat', {
       method: 'POST',
       body: JSON.stringify(messageData),
     });
+    console.log('Backend service: received response', result);
+    return result;
   }
 
   // User Profile methods (needed for rescue pair matching)

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test AI Chat Fix</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .form-group { margin: 10px 0; }
+        label { display: block; margin-bottom: 5px; }
+        input, textarea { padding: 8px; width: 300px; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer; }
+        .response { margin-top: 20px; padding: 15px; background: #f5f5f5; border-radius: 5px; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>Test AI Chat Fix</h1>
+    <p>Testing the fixed AI chat response generation</p>
+    
+    <form id="testForm">
+        <div class="form-group">
+            <label for="message">Message:</label>
+            <textarea id="message" rows="3" placeholder="Type your message here...">I'm feeling anxious about work</textarea>
+        </div>
+        <button type="submit">Test AI Response</button>
+    </form>
+    
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('testForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const message = document.getElementById('message').value;
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                console.log('Testing AI chat response...');
+                
+                // Test the actual memory-enhanced API
+                const response = await fetch('/api/chat/memory-enhanced', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer test-token'
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        sessionId: 'test-session-' + Date.now(),
+                        userId: 'test-user-123',
+                        context: 'Test context',
+                        suggestions: ['Test suggestion'],
+                        userMemory: {
+                            journalEntries: [],
+                            meditationHistory: [],
+                            moodPatterns: [],
+                            insights: [],
+                            profile: { name: 'Test User' }
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                console.log('API response:', data);
+                
+                if (data.response && !data.response.includes("I'm here to support you. Your thoughts and feelings are important. Please try again in a moment.")) {
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ SUCCESS! AI Response working properly!</div>
+                        <div class="response">
+                            <h3>AI Response:</h3>
+                            <p>${data.response}</p>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">❌ Still getting fallback response</div>
+                        <div class="response">
+                            <h3>Full Response:</h3>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                console.error('Error in API call:', error);
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        });
+    </script>
+</body>
+</html>
