@@ -28,12 +28,15 @@ export default function LoginPage() {
     setError("");
     
     try {
+      console.log("Attempting login with:", { email, password: "***" });
       logger.debug("Attempting login...");
       
       // Use the session context login method
       const success = await login(email, password);
+      console.log("Login result:", success);
       
       if (success) {
+        console.log("Login successful, redirecting...");
         toast.success("Welcome back! Redirecting to AI Chat...");
         
         // Wait a moment for state to update, then redirect to AI chat
@@ -41,12 +44,14 @@ export default function LoginPage() {
           router.push("/therapy/memory-enhanced");
         }, 1000);
       } else {
+        console.log("Login failed - success was false");
         setError("Invalid email or password. Please check your credentials.");
         toast.error("Login failed. Please check your credentials.");
       }
     } catch (err) {
       console.error("Login error:", err);
       const errorMessage = err instanceof Error ? err.message : "Login failed";
+      console.log("Error message:", errorMessage);
       
       // Provide more helpful error messages
       if (errorMessage.includes("timeout") || errorMessage.includes("Cannot connect")) {
@@ -54,7 +59,7 @@ export default function LoginPage() {
       } else if (errorMessage.includes("Invalid email or password")) {
         setError("Invalid email or password. Please check your credentials.");
       } else {
-        setError(errorMessage);
+        setError(`Login failed: ${errorMessage}`);
       }
       
       toast.error("Login failed. Please try again.");

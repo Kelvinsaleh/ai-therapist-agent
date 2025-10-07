@@ -111,9 +111,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
+      console.log("Session context: Attempting login with backend service");
       const response = await backendService.login(email, password);
+      console.log("Session context: Backend service response:", response);
       
       if (response.success && response.data) {
+        console.log("Session context: Login successful, setting user data");
         setUser(response.data.user);
         setIsAuthenticated(true);
         
@@ -138,11 +141,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         
         // Add small delay to ensure state is updated
         await new Promise(resolve => setTimeout(resolve, 100));
+        console.log("Session context: Login completed successfully");
         return true;
       }
       
+      console.log("Session context: Login failed - response not successful or no data");
       return false;
     } catch (error) {
+      console.error("Session context: Login error:", error);
       logger.error("Login error:", error);
       return false;
     }
