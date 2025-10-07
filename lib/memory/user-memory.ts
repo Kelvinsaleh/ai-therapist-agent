@@ -129,7 +129,8 @@ class UserMemoryManager {
         }
       }
     } catch (error) {
-      console.log("Backend sync failed, using local storage:", error);
+      // Backend sync failed, using local storage - this is expected in some cases
+      // No need to log this as it's not an error condition
     }
 
     // Fallback to localStorage
@@ -214,8 +215,8 @@ class UserMemoryManager {
         });
       }
     } catch (error) {
-      console.log("Failed to sync journal entry with backend:", error);
-      // Continue anyway - local storage is sufficient
+      // Failed to sync journal entry with backend - continue anyway
+      // Local storage is sufficient for the app to function
     }
   }
 

@@ -1,6 +1,8 @@
 // Backend Service Layer for Hope Backend Integration
 // This service handles all communication with your backend API
 
+import { logger } from "@/lib/utils/logger";
+
 const BACKEND_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.BACKEND_API_URL || "https://hope-backend-2.onrender.com";
 
 export interface ApiResponse<T = any> {
@@ -78,7 +80,7 @@ class BackendService {
   ): Promise<ApiResponse<T>> {
     try {
       const url = `${this.baseURL}${endpoint}`;
-      console.log(`Making request to: ${url}`);
+      logger.debug(`Making request to: ${url}`);
       
       const response = await fetch(url, {
         ...options,
@@ -89,7 +91,7 @@ class BackendService {
         signal: AbortSignal.timeout(10000),
       });
 
-      console.log(`Response status: ${response.status}`);
+      logger.debug(`Response status: ${response.status}`);
 
       if (!response.ok) {
         let errorText = `HTTP ${response.status}`;
@@ -114,7 +116,7 @@ class BackendService {
         data,
       };
     } catch (error) {
-      console.error(`API request failed for ${endpoint}:`, error);
+      logger.error(`API request failed for ${endpoint}:`, error);
       
       let errorMessage = 'Network error';
       if (error instanceof Error) {
@@ -289,7 +291,7 @@ class BackendService {
       const response = await this.healthCheck();
       return response.success;
     } catch (error) {
-      console.error('Backend connection test failed:', error);
+      logger.error('Backend connection test failed:', error);
       return false;
     }
   }
@@ -394,7 +396,7 @@ class BackendService {
         };
       }
     } catch (error) {
-      console.error('Upload error:', error);
+      logger.error('Upload error:', error);
       return {
         success: false,
         error: 'Failed to upload meditation'

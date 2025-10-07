@@ -165,9 +165,23 @@ export default function TherapyPage() {
 
       // Force a re-render of the chat area
       setIsLoading(false);
+      toast.success("New session created successfully");
     } catch (error) {
       logger.error("Failed to create new session", error);
       setIsLoading(false);
+      
+      if (error instanceof Error) {
+        if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+          toast.error("Session expired. Please sign in again.");
+          router.push('/login');
+        } else if (error.message.includes('network') || error.message.includes('fetch')) {
+          toast.error("Connection error. Please check your internet connection and try again.");
+        } else {
+          toast.error("Failed to create new session. Please try again.");
+        }
+      } else {
+        toast.error("Failed to create new session. Please try again.");
+      }
     }
   };
 
@@ -316,58 +330,105 @@ export default function TherapyPage() {
         recognitionRef.current.continuous = false;
         recognitionRef.current.interimResults = false;
         recognitionRef.current.lang = 'en-US';
+        
         recognitionRef.current.onresult = (event: SpeechRecognitionEventLike) => {
-          const transcript = event.results[0][0].transcript;
-          setMessage(transcript);
-          setIsListening(false);
-          if (isVoiceMode) {
-            setTimeout(() => {
-              const fakeEvent = { preventDefault: () => {} } as unknown as React.FormEvent;
-              handleSubmit(fakeEvent);
-            }, 50);
+          try {
+            const transcript = event.results[0][0].transcript;
+            setMessage(transcript);
+            setIsListening(false);
+            if (isVoiceMode) {
+              setTimeout(() => {
+                const fakeEvent = { preventDefault: () => {} } as unknown as React.FormEvent;
+                handleSubmit(fakeEvent);
+              }, 50);
+            }
+          } catch (error) {
+            logger.error("Error processing speech recognition result:", error);
+            setIsListening(false);
           }
         };
+        
+        recognitionRef.current.onerror = (event: any) => {
+          logger.error("Speech recognition error:", event.error);
+          setIsListening(false);
+          
+          if (event.error === 'not-allowed') {
+            toast.error("Microphone access denied. Please allow microphone access and try again.");
+          } else if (event.error === 'no-speech') {
+            toast.warning("No speech detected. Please try speaking again.");
+          } else if (event.error === 'audio-capture') {
+            toast.error("No microphone found. Please check your microphone connection.");
+          } else {
+            toast.error("Voice input error. Please try again.");
+          }
+        };
+        
         recognitionRef.current.onend = () => setIsListening(false);
         setVoiceSupported(true);
       }
     }
 
     if (!voiceSupported || !recognitionRef.current) {
-      toast.error("Voice input not supported on this device.");
+      toast.error("Voice input not supported on this device. Please use a modern browser with microphone support.");
       return;
     }
 
     if (isListening) {
-      try { recognitionRef.current.stop(); } catch {}
-      setIsListening(false);
+      try { 
+        recognitionRef.current.stop(); 
+        setIsListening(false);
+      } catch (error) {
+        logger.error("Error stopping speech recognition:", error);
+        setIsListening(false);
+      }
     } else {
       // Interrupt TTS if speaking
       if (typeof window !== 'undefined' && (window as any).speechSynthesis?.speaking) {
         (window as any).speechSynthesis.cancel();
       }
-      try { recognitionRef.current.start(); } catch {}
-      setIsListening(true);
+      try { 
+        recognitionRef.current.start(); 
+        setIsListening(true);
+        toast.info("Listening... Speak now");
+      } catch (error) {
+        logger.error("Error starting speech recognition:", error);
+        toast.error("Failed to start voice input. Please try again.");
+        setIsListening(false);
+      }
     }
   };
 
   const speakText = (text: string) => {
     if (!isPremium) {
-      toast.error("Listening is a Premium feature.");
+      toast.error("Voice features are Premium only.");
       router.push("/pricing");
       return;
     }
-    if ('speechSynthesis' in window) {
+    
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      toast.error("Text-to-speech not supported on this device.");
+      return;
+    }
+    
+    try {
+      // Stop any current speech
+      if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+      }
+      
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.rate = 0.9;
       utterance.pitch = 1;
       utterance.volume = 0.8;
       
-      // Try to use a more natural voice
+      // Try to find a good voice
       const voices = speechSynthesis.getVoices();
       const preferredVoice = voices.find(voice => 
         voice.name.includes('Google') || 
         voice.name.includes('Microsoft') ||
-        voice.name.includes('Natural')
+        voice.name.includes('Natural') ||
+        voice.name.includes('Samantha') ||
+        voice.name.includes('Alex')
       );
       if (preferredVoice) {
         utterance.voice = preferredVoice;
@@ -377,10 +438,15 @@ export default function TherapyPage() {
         setIsSpeaking(true);
         // Interrupt listening while speaking
         if (isListening && recognitionRef.current) {
-          try { recognitionRef.current.stop(); } catch {}
-          setIsListening(false);
+          try { 
+            recognitionRef.current.stop(); 
+            setIsListening(false);
+          } catch (error) {
+            logger.error("Error stopping speech recognition:", error);
+          }
         }
       };
+      
       utterance.onend = () => {
         setIsSpeaking(false);
         // Resume listening in Voice Mode
@@ -388,11 +454,22 @@ export default function TherapyPage() {
           try {
             recognitionRef.current.start();
             setIsListening(true);
-          } catch {}
+          } catch (error) {
+            logger.error("Error resuming speech recognition:", error);
+          }
         }
       };
       
+      utterance.onerror = (event) => {
+        logger.error("Speech synthesis error:", event.error);
+        setIsSpeaking(false);
+        toast.error("Text-to-speech error. Please try again.");
+      };
+      
       speechSynthesis.speak(utterance);
+    } catch (error) {
+      logger.error("Error in speakText:", error);
+      toast.error("Failed to speak text. Please try again.");
     }
   };
 
@@ -483,12 +560,29 @@ export default function TherapyPage() {
       }
     } catch (error) {
       logger.error("Error in chat", error);
+      
+      // Determine the appropriate error message based on the error type
+      let errorMessage = "I apologize, but I'm having trouble connecting right now. Please try again in a moment.";
+      
+      if (error instanceof Error) {
+        if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+          errorMessage = "Your session has expired. Please sign in again to continue.";
+          toast.error("Session expired. Please sign in again.");
+          router.push('/login');
+        } else if (error.message.includes('429') || error.message.includes('rate limit')) {
+          errorMessage = "I'm receiving many requests right now. Please wait a moment before sending another message.";
+          toast.warning("Please wait a moment before sending another message.");
+        } else if (error.message.includes('network') || error.message.includes('fetch')) {
+          errorMessage = "I'm having trouble connecting to the server. Please check your internet connection and try again.";
+          toast.error("Connection error. Please check your internet connection.");
+        }
+      }
+      
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content:
-            "I apologize, but I'm having trouble connecting right now. Please try again in a moment.",
+          content: errorMessage,
           timestamp: new Date(),
         },
       ]);
@@ -601,9 +695,27 @@ export default function TherapyPage() {
         setMessages(formattedHistory);
         setSessionId(selectedSessionId);
         window.history.pushState({}, "", `/therapy/${selectedSessionId}`);
+        toast.success("Session loaded successfully");
+      } else {
+        toast.error("Invalid session data received");
       }
     } catch (error) {
       logger.error("Failed to load session", error);
+      
+      if (error instanceof Error) {
+        if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+          toast.error("Session expired. Please sign in again.");
+          router.push('/login');
+        } else if (error.message.includes('404') || error.message.includes('Not Found')) {
+          toast.error("Session not found. It may have been deleted.");
+        } else if (error.message.includes('network') || error.message.includes('fetch')) {
+          toast.error("Connection error. Please check your internet connection and try again.");
+        } else {
+          toast.error("Failed to load session. Please try again.");
+        }
+      } else {
+        toast.error("Failed to load session. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }

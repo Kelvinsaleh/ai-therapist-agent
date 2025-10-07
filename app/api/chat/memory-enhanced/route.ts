@@ -10,11 +10,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Message is required" }, { status: 400 });
     }
 
+    // Check for authentication
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
+
     const res = await fetch(`${BACKEND_API_URL}/memory-enhanced-chat`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: req.headers.get("authorization") || "",
+        Authorization: authHeader,
         ...(process.env.BACKEND_API_KEY ? { "x-api-key": process.env.BACKEND_API_KEY } : {}),
       },
       body: JSON.stringify({
@@ -28,11 +34,26 @@ export async function POST(req: NextRequest) {
       }),
     });
 
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      return NextResponse.json(
+        { 
+          error: errorData.error || "Failed to process memory-enhanced message",
+          fallbackResponse: "I'm here to support you. Please try again in a moment."
+        }, 
+        { status: res.status }
+      );
+    }
+
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
   } catch (error) {
+    console.error("Memory-enhanced chat error:", error);
     return NextResponse.json(
-      { error: "Failed to process memory-enhanced message" },
+      { 
+        error: "Failed to process memory-enhanced message",
+        fallbackResponse: "I'm here to support you. Please try again in a moment."
+      },
       { status: 500 }
     );
   }
