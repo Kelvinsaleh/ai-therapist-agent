@@ -1,42 +1,45 @@
+// Simple Gemini API test
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 async function testGemini() {
+  console.log('🧪 Testing Gemini API...');
+  
+  const apiKey = 'AIzaSyCCRSas8dVBP3ye4ZY5RBP sYqw7m_2jro8';
+  console.log('API Key:', apiKey.substring(0, 10) + '...');
+  
   try {
-    // Use the API key from the .env file
-    const apiKey = 'AIzaSyCCRSas8dVBP3ye4ZY5RBP sYqw7m_2jro8';
     const genAI = new GoogleGenerativeAI(apiKey);
+    console.log('✅ GoogleGenerativeAI initialized');
     
-    console.log('Testing Gemini API with different model names...');
+    // Try gemini-1.5-pro
+    const model = genAI.getGenerativeModel({ 
+      model: 'gemini-1.5-pro',
+      generationConfig: { 
+        temperature: 0.9,
+        maxOutputTokens: 1024
+      } 
+    });
     
-    // Try different model names
-    const models = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro'];
+    console.log('✅ Model initialized');
     
-    for (const modelName of models) {
-      try {
-        console.log(`\nTrying model: ${modelName}`);
-        const model = genAI.getGenerativeModel({ model: modelName });
-        const result = await model.generateContent('Hello, respond with: AI is working');
-        const response = await result.response;
-        const text = response.text();
-        console.log(`✅ SUCCESS with ${modelName}:`, text);
-        return modelName; // Return the working model name
-      } catch (error) {
-        console.log(`❌ FAILED with ${modelName}:`, error.message);
-      }
-    }
+    const result = await model.generateContent('Hello, respond with: "Gemini AI is working correctly"');
+    const response = await result.response;
+    const text = response.text();
     
-    console.log('\n❌ No working model found');
-    return null;
+    console.log('🎉 SUCCESS! Gemini response:', text);
+    return true;
+    
   } catch (error) {
-    console.error('Error:', error.message);
-    return null;
+    console.log('❌ Gemini error:', error.message);
+    console.log('Full error:', error);
+    return false;
   }
 }
 
-testGemini().then(workingModel => {
-  if (workingModel) {
-    console.log(`\n🎉 Working model found: ${workingModel}`);
+testGemini().then(success => {
+  if (success) {
+    console.log('\n✅ Gemini API is working!');
   } else {
-    console.log('\n💥 No working model found');
+    console.log('\n❌ Gemini API is not working');
   }
 });
