@@ -94,26 +94,15 @@ export function MemoryEnhancedChat({ sessionId, userId }: MemoryEnhancedChatProp
       const therapySuggestions = userMemoryManager.getTherapySuggestions();
       const userMemory = await userMemoryManager.loadUserMemory(userId);
 
-      // Call the Next.js API route instead of backend directly
-      const response = await fetch('/api/chat/memory-enhanced', {
+      // Call the direct AI chat API
+      const response = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token') || localStorage.getItem('authToken') || ''}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           message: inputMessage,
-          sessionId,
-          userId,
-          context: therapyContext,
-          suggestions: therapySuggestions,
-          userMemory: {
-            journalEntries: userMemory.journalEntries.slice(-5),
-            meditationHistory: userMemory.meditationHistory.slice(-3),
-            moodPatterns: userMemory.moodPatterns.slice(-7),
-            insights: userMemory.insights.slice(-3),
-            profile: userMemory.profile
-          }
+          context: therapyContext
         })
       });
 
