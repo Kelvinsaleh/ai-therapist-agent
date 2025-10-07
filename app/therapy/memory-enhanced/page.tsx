@@ -59,6 +59,10 @@ const SUGGESTED_QUESTIONS = [
   { text: "I've been feeling overwhelmed lately" },
   { text: "Can we talk about improving sleep?" },
   { text: "I need help with work-life balance" },
+  { text: "I'm feeling sad and don't know why" },
+  { text: "I want to improve my relationships" },
+  { text: "I'm dealing with stress at work" },
+  { text: "I want to build better habits" },
 ];
 
 const glowAnimation = {
@@ -399,7 +403,12 @@ export default function MemoryEnhancedTherapyPage() {
             "Thank you for opening up about that. As your AI therapist, I would normally remember our previous conversations and provide tailored guidance. This is a demonstration of how the chat would work.",
             "I hear what you're saying, and I want you to know that your feelings are valid. In a full session, I would have access to your journal entries, mood patterns, and therapy history to provide more personalized support.",
             "That sounds like it's been challenging for you. I would typically draw from your past sessions and mental health data to offer more specific guidance. This is a demo to show you how the interface works.",
-            "I appreciate you sharing that with me. In a real therapy session, I would have context from your previous conversations and be able to track your progress over time. This is a preview of the experience."
+            "I appreciate you sharing that with me. In a real therapy session, I would have context from your previous conversations and be able to track your progress over time. This is a preview of the experience.",
+            "I'm here to support you. Your thoughts and feelings are important. Please try again in a moment.",
+            "Thank you for testing the demo! In a real session, I would provide more personalized responses based on your specific situation and mental health journey.",
+            "I can see you're exploring the chat interface. This demo shows how our AI therapist would interact with you in a real therapy session.",
+            "Your message has been received. In a full session, I would analyze your emotional state and provide targeted therapeutic techniques.",
+            "I'm listening and here to help. This demo mode gives you a preview of how our AI therapist would support your mental health journey."
           ];
           
           const randomResponse = demoResponses[Math.floor(Math.random() * demoResponses.length)];
