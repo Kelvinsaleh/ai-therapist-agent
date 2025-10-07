@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const BACKEND_API_URL = process.env.BACKEND_API_URL || "https://hope-backend-2.onrender.com";
-const GEMINI_API_KEY = "AIzaSyCCRSas8dVBP3ye4ZY5RBPsYqw7m_2jro8";
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,6 +15,14 @@ export async function POST(req: NextRequest) {
     const authHeader = req.headers.get("authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
+
+    // Check for Gemini API key
+    if (!GEMINI_API_KEY) {
+      return NextResponse.json({ 
+        error: "Gemini API key not configured",
+        fallbackResponse: "I'm here to support you. Please try again in a moment."
+      }, { status: 500 });
     }
 
     // Use direct Gemini integration for real AI responses
