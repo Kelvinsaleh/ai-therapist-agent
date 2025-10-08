@@ -1,4 +1,6 @@
-﻿// Initialize Gemini API
+﻿
+
+// Initialize Gemini API
 const genAI = new GoogleGenerativeAI(
   process.env.GEMINI_API_KEY || "AIzaSyDMHmeOCxXaoCuoebM4t4V0qYdXK4a7S78"
 );

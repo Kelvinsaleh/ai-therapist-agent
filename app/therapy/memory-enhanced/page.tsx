@@ -406,6 +406,7 @@ export default function MemoryEnhancedTherapyPage() {
         }
       };
 
+      logger.info('Sending memory-enhanced message to API...');
       const response = await fetch('/api/chat/memory-enhanced', {
         method: 'POST',
         headers: {
@@ -415,9 +416,12 @@ export default function MemoryEnhancedTherapyPage() {
         body: JSON.stringify(requestPayload)
       });
 
+      logger.info(`API response status: ${response.status}`);
+
       // Graceful handling for rate limiting and auth errors
       if (response.status === 429) {
         const data = await response.json();
+        logger.warn('Rate limit exceeded, using fallback response');
         return {
           response: data.fallbackResponse || "I understand you'd like to continue our conversation. Please wait a moment before sending your next message.",
           techniques: [],
@@ -434,17 +438,29 @@ export default function MemoryEnhancedTherapyPage() {
 
       if (!response.ok) {
         const errBody = await response.text();
+        logger.error(`API error: ${response.status} - ${errBody}`);
         throw new Error(`HTTP ${response.status}: ${errBody}`);
       }
 
       const data = await response.json();
+      logger.info('Received successful response from API');
+      
+      // Ensure we have a valid response
+      if (!data.response) {
+        logger.warn('No response content in API data');
+        throw new Error('No response content received');
+      }
+      
       return data;
     } catch (error) {
       logger.error('Error sending memory-enhanced message:', error);
+      
+      // Only use fallback for actual errors, not for successful API responses
       return {
         response: "I'm here to support you. Your thoughts and feelings are important. Please try again in a moment.",
         techniques: [],
-        breakthroughs: []
+        breakthroughs: [],
+        isError: true
       };
     }
   };
