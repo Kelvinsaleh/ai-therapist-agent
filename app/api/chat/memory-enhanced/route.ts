@@ -4,11 +4,26 @@ const BACKEND_API_URL = process.env.BACKEND_API_URL || "https://hope-backend-2.o
 
 export async function POST(req: NextRequest) {
   try {
+    console.log("Memory-enhanced API: Received request");
     const { message, sessionId, userId, context, suggestions, userMemory } = await req.json();
 
+    console.log("Memory-enhanced API: Request data", {
+      message: message?.substring(0, 50) + "...",
+      sessionId,
+      userId,
+      hasContext: !!context,
+      hasUserMemory: !!userMemory
+    });
+
     if (!message) {
+      console.log("Memory-enhanced API: No message provided");
       return NextResponse.json({ error: "Message is required" }, { status: 400 });
     }
+
+    console.log("Memory-enhanced API: Sending to backend", { 
+      backendUrl: `${BACKEND_API_URL}/memory-enhanced-chat`,
+      hasAuth: !!req.headers.get("authorization")
+    });
 
     const res = await fetch(`${BACKEND_API_URL}/memory-enhanced-chat`, {
       method: "POST",
@@ -28,9 +43,22 @@ export async function POST(req: NextRequest) {
       }),
     });
 
+    console.log("Memory-enhanced API: Backend response", {
+      status: res.status,
+      statusText: res.statusText,
+      ok: res.ok
+    });
+
     const data = await res.json();
+    console.log("Memory-enhanced API: Backend data received", {
+      hasResponse: !!data.response,
+      responseLength: data.response?.length || 0,
+      isFailover: data.isFailover
+    });
+
     return NextResponse.json(data, { status: res.status });
   } catch (error) {
+    console.error("Memory-enhanced API: Error occurred", error);
     return NextResponse.json(
       { error: "Failed to process memory-enhanced message" },
       { status: 500 }
