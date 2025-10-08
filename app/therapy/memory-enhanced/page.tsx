@@ -295,6 +295,8 @@ export default function MemoryEnhancedTherapyPage() {
     e.preventDefault();
     const currentMessage = message.trim();
 
+    logger.info("Memory-enhanced chat: Form submitted", { currentMessage, isTyping });
+
     if (!currentMessage || isTyping) return;
 
     setMessage("");
@@ -317,6 +319,13 @@ export default function MemoryEnhancedTherapyPage() {
         return;
       }
 
+      logger.info("Memory-enhanced chat: About to send message", { 
+        currentMessage, 
+        userId, 
+        sessionId,
+        hasToken: !!token 
+      });
+
       // Add user message
       const userMessage: ChatMessage = {
         role: "user",
@@ -326,7 +335,9 @@ export default function MemoryEnhancedTherapyPage() {
       setMessages((prev) => [...prev, userMessage]);
 
       // Send message with memory context
+      logger.info("Memory-enhanced chat: Calling sendMemoryEnhancedMessage...");
       const response = await sendMemoryEnhancedMessage(currentMessage);
+      logger.info("Memory-enhanced chat: Received response", { response });
       
       const assistantMessage: ChatMessage = {
         role: "assistant",
@@ -387,9 +398,17 @@ export default function MemoryEnhancedTherapyPage() {
 
   const sendMemoryEnhancedMessage = async (message: string) => {
     try {
+      logger.info('Memory-enhanced chat: Starting sendMemoryEnhancedMessage', { message, userId, sessionId });
+      
       const userMemory = await userMemoryManager.loadUserMemory(userId);
       const context = userMemoryManager.getTherapyContext();
       const suggestions = userMemoryManager.getTherapySuggestions();
+
+      logger.info('Memory-enhanced chat: Loaded user memory', { 
+        journalEntries: userMemory.journalEntries.length,
+        meditationHistory: userMemory.meditationHistory.length,
+        moodPatterns: userMemory.moodPatterns.length
+      });
 
       const requestPayload = {
         message,
@@ -406,7 +425,10 @@ export default function MemoryEnhancedTherapyPage() {
         }
       };
 
-      logger.info('Sending memory-enhanced message to API...');
+      logger.info('Memory-enhanced chat: Sending request to /api/chat/memory-enhanced', { 
+        payloadSize: JSON.stringify(requestPayload).length 
+      });
+      
       const response = await fetch('/api/chat/memory-enhanced', {
         method: 'POST',
         headers: {
@@ -416,7 +438,10 @@ export default function MemoryEnhancedTherapyPage() {
         body: JSON.stringify(requestPayload)
       });
 
-      logger.info(`API response status: ${response.status}`);
+      logger.info(`Memory-enhanced chat: API response status: ${response.status}`, {
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries())
+      });
 
       // Graceful handling for rate limiting and auth errors
       if (response.status === 429) {

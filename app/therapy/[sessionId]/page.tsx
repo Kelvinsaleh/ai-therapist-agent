@@ -437,6 +437,7 @@ export default function TherapyPage() {
 
       logger.debug("Sending message to API");
       // Send message to API
+      logger.debug("Sending message to regular chat API...");
       const response = await sendChatMessage(sessionId, currentMessage);
       logger.debug("Raw API response", { response });
 
