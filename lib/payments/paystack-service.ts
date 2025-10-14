@@ -224,24 +224,26 @@ class PaystackService {
   // Get subscription status through backend
   async getSubscriptionStatus(userId: string): Promise<SubscriptionStatus> {
     try {
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      
       const response = await fetch(`${this.backendUrl}/payments/subscription/status`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-        },
-        // Add user ID as query parameter or in headers
+          'Authorization': `Bearer ${token}`
+        }
       });
 
       const data = await response.json();
 
       if (data.success) {
         const subscription = data.subscription;
-        const plan = this.getPlans().find(p => p.paystackPlanCode === subscription.planCode);
+        const plan = this.getPlans().find(p => p.id === subscription.planId);
         
         return {
-          isActive: subscription.isActive,
+          isActive: data.isPremium,
           plan: plan || null,
-          expiresAt: subscription.expiresAt ? new Date(subscription.expiresAt) : null,
+          expiresAt: subscription?.expiresAt ? new Date(subscription.expiresAt) : null,
           autoRenew: subscription.autoRenew,
           nextBillingDate: subscription.nextBillingDate ? new Date(subscription.nextBillingDate) : null
         };

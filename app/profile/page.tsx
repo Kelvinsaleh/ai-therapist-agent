@@ -6,6 +6,7 @@ import { useSession } from "@/lib/contexts/session-context";
 import { backendService } from "@/lib/api/backend-service";
 import { dashboardService } from "@/lib/api/dashboard-service";
 import { getMoodHistory, getMoodStats } from "@/lib/api/mood";
+import { paystackService } from "@/lib/payments/paystack-service";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -34,7 +35,8 @@ import {
   Target,
   Smile,
   ChevronDown,
-  BarChart3
+  BarChart3,
+  CheckCircle
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -110,6 +112,9 @@ export default function ProfilePage() {
   const [moodStats, setMoodStats] = useState<any>(null);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [moodPeriod, setMoodPeriod] = useState<"7days" | "30days" | "90days">("7days");
+  
+  // Subscription data
+  const [subscriptionStatus, setSubscriptionStatus] = useState<any>(null);
 
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
@@ -122,12 +127,13 @@ export default function ProfilePage() {
       setLoading(true);
       
       // Load all data in parallel
-      const [profileRes, statsData, activityData, moodHistoryData, moodStatsData] = await Promise.all([
+      const [profileRes, statsData, activityData, moodHistoryData, moodStatsData, subscriptionData] = await Promise.all([
         backendService.getUserProfile(),
         dashboardService.getDashboardStats(),
         dashboardService.getRecentActivity(),
         getMoodHistory({ limit: 90 }).catch(() => ({ success: false, data: [] })),
-        getMoodStats("week").catch(() => ({ success: false, data: null }))
+        getMoodStats("week").catch(() => ({ success: false, data: null })),
+        paystackService.getSubscriptionStatus(user?._id || '').catch(() => ({ isActive: false, plan: null }))
       ]);
 
       // Set profile data
@@ -153,6 +159,9 @@ export default function ProfilePage() {
       if (moodStatsData.success && moodStatsData.data) {
         setMoodStats(moodStatsData.data);
       }
+      
+      // Set subscription data
+      setSubscriptionStatus(subscriptionData);
     } catch (error) {
       console.error("Error loading profile data:", error);
       toast.error("Failed to load profile data");
@@ -782,15 +791,53 @@ export default function ProfilePage() {
                     <Crown className="w-5 h-5 text-primary mt-0.5" />
                     <div className="flex-1">
                       <h4 className="font-semibold">Subscription</h4>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Current plan: <strong>{userTier === "premium" ? "Premium" : "Free"}</strong>
-                      </p>
-                      {userTier === "free" && (
-                        <Button className="mt-3" onClick={() => router.push("/pricing")}>
-                          <Crown className="w-4 h-4 mr-2" />
-                          Upgrade to Premium
-                        </Button>
-                      )}
+                      <div className="mt-2 space-y-2">
+                        <p className="text-sm">
+                          Current plan: <strong>{userTier === "premium" ? "Premium" : "Free"}</strong>
+                        </p>
+                        
+                        {subscriptionStatus && subscriptionStatus.isActive && subscriptionStatus.plan && (
+                          <div className="text-sm text-muted-foreground">
+                            <p>Plan: {subscriptionStatus.plan.name}</p>
+                            {subscriptionStatus.expiresAt && (
+                              <p>Expires: {new Date(subscriptionStatus.expiresAt).toLocaleDateString()}</p>
+                            )}
+                          </div>
+                        )}
+                        
+                        {userTier === "free" ? (
+                          <Button className="mt-3" onClick={() => router.push("/pricing")}>
+                            <Crown className="w-4 h-4 mr-2" />
+                            Upgrade to Premium
+                          </Button>
+                        ) : (
+                          <div className="mt-3 space-y-2">
+                            <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                              Active Premium
+                            </Badge>
+                            <div className="flex gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => router.push("/pricing")}
+                              >
+                                Manage Subscription
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => {
+                                  // Add cancel subscription functionality
+                                  toast.info("Subscription cancellation will be available soon");
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
