@@ -98,10 +98,16 @@ class PaystackService {
         throw new Error('Invalid plan selected');
       }
 
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
+
       const response = await fetch(`${this.backendUrl}/payments/initialize`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           email,
@@ -146,10 +152,16 @@ class PaystackService {
   // Verify payment through backend
   async verifyPayment(reference: string): Promise<PaymentResponse> {
     try {
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
+
       const response = await fetch(`${this.backendUrl}/payments/verify`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           reference
@@ -186,10 +198,16 @@ class PaystackService {
     authorizationCode: string
   ): Promise<PaymentResponse> {
     try {
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
+
       const response = await fetch(`${this.backendUrl}/payments/subscription`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           customerEmail,
@@ -271,10 +289,16 @@ class PaystackService {
   // Cancel subscription through backend
   async cancelSubscription(userId: string): Promise<PaymentResponse> {
     try {
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
+
       const response = await fetch(`${this.backendUrl}/payments/subscription/cancel`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           userId

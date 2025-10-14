@@ -60,12 +60,26 @@ export default function PricingPage() {
         }, 800);
       } else {
         await feedback.error();
-        toast.error(result.error || "Failed to initialize payment");
+        const errorMessage = result.error || "Failed to initialize payment";
+        toast.error(errorMessage);
+        console.error("Payment initialization failed:", errorMessage);
       }
     } catch (error) {
       console.error("Subscription error:", error);
       await feedback.error();
-      toast.error("Something went wrong. Please try again.");
+      
+      // More specific error handling
+      if (error instanceof Error) {
+        if (error.message.includes('token')) {
+          toast.error("Authentication required. Please sign in again.");
+        } else if (error.message.includes('network')) {
+          toast.error("Network error. Please check your connection.");
+        } else {
+          toast.error(`Payment error: ${error.message}`);
+        }
+      } else {
+        toast.error("Something went wrong. Please try again.");
+      }
     } finally {
       setTimeout(() => {
         setIsLoading(null);
