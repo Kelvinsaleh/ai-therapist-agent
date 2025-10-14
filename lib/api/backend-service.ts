@@ -240,6 +240,13 @@ class BackendService {
     });
   }
 
+  async updateUser(userData: { name?: string; email?: string }): Promise<ApiResponse> {
+    return this.makeRequest('/user', {
+      method: 'PUT',
+      body: JSON.stringify(userData),
+    });
+  }
+
   // Rescue Pair methods - Updated to match backend API
   async getRescuePairList(): Promise<ApiResponse> {
     return this.makeRequest('/rescue-pairs');

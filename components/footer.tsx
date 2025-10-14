@@ -1,7 +1,7 @@
 // components/Footer.tsx
 "use client";
 import Link from "next/link";
-import { MessageCircle, Headphones, NotebookPen, Users } from "lucide-react";
+import { MessageCircle, Headphones, NotebookPen, User } from "lucide-react";
 import { useSession } from "@/lib/contexts/session-context";
 import { usePathname } from "next/navigation";
 
@@ -30,9 +30,9 @@ export function Footer() {
         <NotebookPen className="w-7 h-7 text-primary group-hover:scale-110 transition" />
         <span className="text-xs mt-1">AI Journal</span>
       </Link>
-      <Link href="/rescue-pairs" className="flex flex-col items-center group">
-        <Users className="w-7 h-7 text-primary group-hover:scale-110 transition" />
-        <span className="text-xs mt-1">Rescue Pairs</span>
+      <Link href="/profile" className="flex flex-col items-center group">
+        <User className="w-7 h-7 text-primary group-hover:scale-110 transition" />
+        <span className="text-xs mt-1">Profile</span>
       </Link>
     </footer>
   );
