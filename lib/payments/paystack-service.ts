@@ -112,15 +112,15 @@ class PaystackService {
         body: JSON.stringify({
           email,
           planId,
-          planCode: plan.paystackPlanCode,
-          amount: plan.price,
-          currency: plan.currency,
           userId,
           metadata: {
             planName: plan.name,
+            planCode: plan.paystackPlanCode,
+            amount: plan.price,
+            currency: plan.currency,
+            callback_url: `${window.location.origin}/payment/success`,
             ...metadata
-          },
-          callback_url: `${window.location.origin}/payment/success`,
+          }
         })
       });
 
