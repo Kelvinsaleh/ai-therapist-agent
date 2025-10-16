@@ -87,7 +87,7 @@ export default function MemoryEnhancedTherapyPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [mounted, setMounted] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [sessionId, setSessionId] = useState<string>("memory-enhanced");
+  const [sessionId, setSessionId] = useState<string>("");
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [isPremium, setIsPremium] = useState<boolean>(false);
   const [isVoiceMode, setIsVoiceMode] = useState<boolean>(false);
@@ -112,6 +112,34 @@ export default function MemoryEnhancedTherapyPage() {
   useEffect(() => {
     loadSessions();
   }, [messages]);
+
+  // Ensure we always reuse a single session for memory-enhanced chat
+  useEffect(() => {
+    const ensureSession = async () => {
+      try {
+        // Try to reuse a previously stored session
+        const storedId = typeof window !== 'undefined' ? localStorage.getItem('memoryEnhancedSessionId') : null;
+        if (storedId) {
+          setSessionId(storedId);
+          return;
+        }
+
+        // Otherwise create a new one (once) and persist it
+        const newId = await createChatSession();
+        setSessionId(newId);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('memoryEnhancedSessionId', newId);
+        }
+      } catch (e) {
+        logger.error('Failed to ensure memory-enhanced session', e);
+      }
+    };
+
+    // Only run if we don't already have a session in state
+    if (!sessionId) {
+      ensureSession();
+    }
+  }, [sessionId]);
 
   useEffect(() => {
     scrollToBottom();
@@ -197,6 +225,7 @@ export default function MemoryEnhancedTherapyPage() {
 
       setSessions((prev) => [newSession, ...prev]);
       setSessionId(newSessionId);
+      try { if (typeof window !== 'undefined') localStorage.setItem('memoryEnhancedSessionId', newSessionId); } catch {}
       setMessages([]);
       setIsLoading(false);
     } catch (error) {
@@ -536,6 +565,7 @@ export default function MemoryEnhancedTherapyPage() {
         }));
         setMessages(formattedHistory);
         setSessionId(selectedSessionId);
+        try { if (typeof window !== 'undefined') localStorage.setItem('memoryEnhancedSessionId', selectedSessionId); } catch {}
       }
     } catch (error) {
       logger.error("Failed to load session", error);
