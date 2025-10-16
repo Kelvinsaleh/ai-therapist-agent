@@ -84,6 +84,7 @@ export default function MemoryEnhancedTherapyPage() {
   const [message, setMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [mounted, setMounted] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -97,6 +98,9 @@ export default function MemoryEnhancedTherapyPage() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(false);
   const recognitionRef = useRef<any>(null);
+  
+  // Keyboard overlay adjustment
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   // Use authenticated user id (support both _id and id)
   const userId = (user?._id as unknown as string) || (user?.id as unknown as string) || "";
@@ -178,6 +182,38 @@ export default function MemoryEnhancedTherapyPage() {
     } catch {
       setVoiceSupported(false);
     }
+  }, []);
+
+  // Keyboard overlay adjustment
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleResize = () => {
+      const initialViewportHeight = window.innerHeight;
+      const currentViewportHeight = window.visualViewport?.height || window.innerHeight;
+      const keyboardHeight = Math.max(0, initialViewportHeight - currentViewportHeight);
+      setKeyboardHeight(keyboardHeight);
+    };
+
+    const handleVisualViewportChange = () => {
+      handleResize();
+    };
+
+    // Listen for visual viewport changes (modern browsers)
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleVisualViewportChange);
+    } else {
+      // Fallback for older browsers
+      window.addEventListener('resize', handleResize);
+    }
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleVisualViewportChange);
+      } else {
+        window.removeEventListener('resize', handleResize);
+      }
+    };
   }, []);
 
 
@@ -317,6 +353,15 @@ export default function MemoryEnhancedTherapyPage() {
       };
       
       speechSynthesis.speak(utterance);
+    }
+  };
+
+  const adjustTextareaHeight = () => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      const maxHeight = 160; // max-h-[160px]
+      textarea.style.height = Math.min(textarea.scrollHeight, maxHeight) + 'px';
     }
   };
 
@@ -639,7 +684,13 @@ export default function MemoryEnhancedTherapyPage() {
         </div>
       </div>
 
-      <div className="flex h-[calc(100vh-4rem)] mt-20 gap-0">
+      <div 
+        className="flex gap-0"
+        style={{ 
+          height: `calc(100vh - 4rem - ${keyboardHeight}px)`,
+          marginTop: '5rem'
+        }}
+      >
         {/* Sessions Sidebar */}
         <div
           className={cn(
@@ -876,12 +927,21 @@ export default function MemoryEnhancedTherapyPage() {
           )}
 
           {/* Composer at bottom (sticky) */}
-          <div className="sticky bottom-0 z-[60] border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/95 px-4 py-3">
+          <div 
+            className="sticky bottom-0 z-[60] border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/95 px-4 py-3"
+            style={{ 
+              paddingBottom: keyboardHeight > 0 ? `${keyboardHeight + 12}px` : '12px'
+            }}
+          >
             <form onSubmit={handleSubmit} className="max-w-4xl mx-auto flex gap-3 items-end">
               <div className="flex-1 relative group">
                 <textarea
+                  ref={textareaRef}
                   value={message}
-                  onChange={(e) => setMessage(e.target.value)}
+                  onChange={(e) => {
+                    setMessage(e.target.value);
+                    adjustTextareaHeight();
+                  }}
                   onFocus={() => { try { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); } catch {} }}
                   placeholder={
                     isListening 
