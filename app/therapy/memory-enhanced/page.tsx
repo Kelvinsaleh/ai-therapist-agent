@@ -184,34 +184,52 @@ export default function MemoryEnhancedTherapyPage() {
     }
   }, []);
 
-  // Keyboard overlay adjustment
+  // ChatGPT-style keyboard overlay adjustment
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const handleResize = () => {
-      const initialViewportHeight = window.innerHeight;
-      const currentViewportHeight = window.visualViewport?.height || window.innerHeight;
-      const keyboardHeight = Math.max(0, initialViewportHeight - currentViewportHeight);
+    let initialViewportHeight = window.innerHeight;
+    
+    const handleViewportChange = () => {
+      const currentHeight = window.visualViewport?.height || window.innerHeight;
+      const keyboardHeight = Math.max(0, initialViewportHeight - currentHeight);
       setKeyboardHeight(keyboardHeight);
     };
 
-    const handleVisualViewportChange = () => {
-      handleResize();
+    const handleFocus = () => {
+      // Store initial height when input is focused
+      initialViewportHeight = window.innerHeight;
     };
 
-    // Listen for visual viewport changes (modern browsers)
+    const handleBlur = () => {
+      // Reset keyboard height when input loses focus
+      setTimeout(() => setKeyboardHeight(0), 100);
+    };
+
+    // Listen for viewport changes
     if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleVisualViewportChange);
+      window.visualViewport.addEventListener('resize', handleViewportChange);
     } else {
-      // Fallback for older browsers
-      window.addEventListener('resize', handleResize);
+      window.addEventListener('resize', handleViewportChange);
+    }
+
+    // Listen for focus/blur on textarea
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.addEventListener('focus', handleFocus);
+      textarea.addEventListener('blur', handleBlur);
     }
 
     return () => {
       if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', handleVisualViewportChange);
+        window.visualViewport.removeEventListener('resize', handleViewportChange);
       } else {
-        window.removeEventListener('resize', handleResize);
+        window.removeEventListener('resize', handleViewportChange);
+      }
+      
+      if (textarea) {
+        textarea.removeEventListener('focus', handleFocus);
+        textarea.removeEventListener('blur', handleBlur);
       }
     };
   }, []);
@@ -376,9 +394,9 @@ export default function MemoryEnhancedTherapyPage() {
     setMessage("");
     setIsTyping(true);
     
-    // Blur the textarea to dismiss keyboard on mobile
+    // Reset textarea height but keep keyboard open
     if (textareaRef.current) {
-      textareaRef.current.blur();
+      textareaRef.current.style.height = 'auto';
     }
 
     try {
@@ -692,7 +710,7 @@ export default function MemoryEnhancedTherapyPage() {
       <div 
         className="flex gap-0"
         style={{ 
-          height: `calc(100vh - 4rem - ${Math.max(0, keyboardHeight - 100)}px)`,
+          height: `calc(100vh - 4rem - ${keyboardHeight}px)`,
           marginTop: '5rem'
         }}
       >
@@ -935,7 +953,8 @@ export default function MemoryEnhancedTherapyPage() {
           <div 
             className="sticky bottom-0 z-[60] border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/95 px-4 py-3"
             style={{ 
-              paddingBottom: keyboardHeight > 0 ? `${Math.max(0, keyboardHeight - 50)}px` : '12px'
+              transform: keyboardHeight > 0 ? `translateY(-${keyboardHeight}px)` : 'translateY(0)',
+              transition: 'transform 0.2s ease-out'
             }}
           >
             <form onSubmit={handleSubmit} className="max-w-4xl mx-auto flex gap-3 items-end">
