@@ -795,75 +795,6 @@ export default function MemoryEnhancedTherapyPage() {
             </div>
           </div>
 
-          {/* Composer at top (sticky) */}
-          <div className="sticky top-0 z-[60] border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/95 px-4 py-3">
-            <form onSubmit={handleSubmit} className="max-w-4xl mx-auto flex gap-3 items-end">
-              <div className="flex-1 relative group">
-                <textarea
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  onFocus={() => { try { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); } catch {} }}
-                  placeholder={
-                    isListening 
-                      ? "Listening... Speak now"
-                      : "Type your message..."
-                  }
-                  className={cn(
-                    "w-full resize-none rounded-xl border bg-background",
-                    "p-3 pr-24 min-h-[44px] max-h-[160px]",
-                    "focus:outline-none focus:ring-2 focus:ring-primary/40",
-                    isListening && "ring-2 ring-red-500/50 bg-red-50 dark:bg-red-950/20",
-                    "transition-all duration-200",
-                    "placeholder:text-muted-foreground/70",
-                    isTyping && "opacity-50 cursor-not-allowed"
-                  )}
-                  rows={1}
-                  disabled={isTyping}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSubmit(e);
-                    }
-                  }}
-                />
-
-                <Button
-                  type="button"
-                  size="icon"
-                  variant={isListening ? "destructive" : "outline"}
-                  onClick={toggleListening}
-                  disabled={isTyping || !voiceSupported}
-                  className={cn(
-                    "absolute right-12 bottom-2.5 h-[36px] w-[36px]",
-                    "rounded-lg transition-all duration-200",
-                    "z-10 bg-background border",
-                    isListening && "animate-pulse"
-                  )}
-                  title={!voiceSupported ? "Voice input not supported" : isListening ? "Stop listening" : "Start voice input"}
-                >
-                  {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                </Button>
-
-                <Button
-                  type="submit"
-                  size="icon"
-                  className={cn(
-                    "absolute right-2 bottom-2.5 h-[36px] w-[36px]",
-                    "rounded-lg transition-all duration-200",
-                    "bg-primary hover:bg-primary/90",
-                    "shadow-sm shadow-primary/20",
-                    (isTyping || !message.trim()) && "opacity-50 cursor-not-allowed",
-                    "group-hover:scale-105 group-focus-within:scale-105"
-                  )}
-                  disabled={isTyping || !message.trim()}
-                  onClick={(e) => { e.preventDefault(); handleSubmit(e); }}
-                  title="Send"
-                >
-                  <Send className="w-4 h-4" />
-                </Button>
-              </div>
-            </form>
-          </div>
 
           {messages.length === 0 ? (
             // Minimal welcome
@@ -944,7 +875,75 @@ export default function MemoryEnhancedTherapyPage() {
             </div>
           )}
 
-          {/* Bottom input area removed in favor of top composer */}
+          {/* Composer at bottom (sticky) */}
+          <div className="sticky bottom-0 z-[60] border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/95 px-4 py-3">
+            <form onSubmit={handleSubmit} className="max-w-4xl mx-auto flex gap-3 items-end">
+              <div className="flex-1 relative group">
+                <textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onFocus={() => { try { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); } catch {} }}
+                  placeholder={
+                    isListening 
+                      ? "Listening... Speak now"
+                      : "Type your message..."
+                  }
+                  className={cn(
+                    "w-full resize-none rounded-xl border bg-background",
+                    "p-3 pr-24 min-h-[44px] max-h-[160px]",
+                    "focus:outline-none focus:ring-2 focus:ring-primary/40",
+                    isListening && "ring-2 ring-red-500/50 bg-red-50 dark:bg-red-950/20",
+                    "transition-all duration-200",
+                    "placeholder:text-muted-foreground/70",
+                    isTyping && "opacity-50 cursor-not-allowed"
+                  )}
+                  rows={1}
+                  disabled={isTyping}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSubmit(e);
+                    }
+                  }}
+                />
+
+                <Button
+                  type="button"
+                  size="icon"
+                  variant={isListening ? "destructive" : "outline"}
+                  onClick={toggleListening}
+                  disabled={isTyping || !voiceSupported}
+                  className={cn(
+                    "absolute right-12 bottom-2.5 h-[36px] w-[36px]",
+                    "rounded-lg transition-all duration-200",
+                    "z-10 bg-background border",
+                    isListening && "animate-pulse"
+                  )}
+                  title={!voiceSupported ? "Voice input not supported" : isListening ? "Stop listening" : "Start voice input"}
+                >
+                  {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                </Button>
+
+                <Button
+                  type="submit"
+                  size="icon"
+                  className={cn(
+                    "absolute right-2 bottom-2.5 h-[36px] w-[36px]",
+                    "rounded-lg transition-all duration-200",
+                    "bg-primary hover:bg-primary/90",
+                    "shadow-sm shadow-primary/20",
+                    (isTyping || !message.trim()) && "opacity-50 cursor-not-allowed",
+                    "group-hover:scale-105 group-focus-within:scale-105"
+                  )}
+                  disabled={isTyping || !message.trim()}
+                  onClick={(e) => { e.preventDefault(); handleSubmit(e); }}
+                  title="Send"
+                >
+                  <Send className="w-4 h-4" />
+                </Button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
     </div>

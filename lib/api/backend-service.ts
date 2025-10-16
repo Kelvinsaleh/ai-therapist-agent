@@ -230,21 +230,96 @@ class BackendService {
   }
 
   async getUserProfile(): Promise<ApiResponse> {
-    return this.makeRequest('/user/profile');
+    // Use local API route instead of direct backend call
+    try {
+      const token = this.authToken || 
+        (typeof window !== 'undefined' ? localStorage.getItem('token') || localStorage.getItem('authToken') : null);
+
+      if (!token) {
+        return { success: false, error: 'No authentication token' };
+      }
+
+      const response = await fetch('/api/user/profile', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        return { success: true, data };
+      } else {
+        return { success: false, error: data.message || 'Failed to fetch profile' };
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      return { success: false, error: 'Network error' };
+    }
   }
 
   async updateUserProfile(profileData: any): Promise<ApiResponse> {
-    return this.makeRequest('/user/profile', {
-      method: 'PUT',
-      body: JSON.stringify(profileData),
-    });
+    // Use local API route instead of direct backend call
+    try {
+      const token = this.authToken || 
+        (typeof window !== 'undefined' ? localStorage.getItem('token') || localStorage.getItem('authToken') : null);
+
+      if (!token) {
+        return { success: false, error: 'No authentication token' };
+      }
+
+      const response = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(profileData)
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        return { success: true, data };
+      } else {
+        return { success: false, error: data.message || 'Failed to update profile' };
+      }
+    } catch (error) {
+      console.error('Error updating user profile:', error);
+      return { success: false, error: 'Network error' };
+    }
   }
 
   async updateUser(userData: { name?: string; email?: string }): Promise<ApiResponse> {
-    return this.makeRequest('/user', {
-      method: 'PUT',
-      body: JSON.stringify(userData),
-    });
+    // Use local API route instead of direct backend call
+    try {
+      const token = this.authToken || 
+        (typeof window !== 'undefined' ? localStorage.getItem('token') || localStorage.getItem('authToken') : null);
+
+      if (!token) {
+        return { success: false, error: 'No authentication token' };
+      }
+
+      const response = await fetch('/api/user', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(userData)
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        return { success: true, data };
+      } else {
+        return { success: false, error: data.message || 'Failed to update user' };
+      }
+    } catch (error) {
+      console.error('Error updating user:', error);
+      return { success: false, error: 'Network error' };
+    }
   }
 
   // Rescue Pair methods - Updated to match backend API
