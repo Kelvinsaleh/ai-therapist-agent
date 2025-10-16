@@ -892,82 +892,52 @@ export default function MemoryEnhancedTherapyPage() {
             </div>
           ) : (
             // Chat messages
-            <div className="flex-1 overflow-y-auto scroll-smooth pb-32 overscroll-contain">
-              <div className="max-w-4xl mx-auto px-4">
+            <div className="flex-1 overflow-y-auto scroll-smooth pb-20 overscroll-contain">
+              <div className="max-w-3xl mx-auto px-3">
                 <AnimatePresence initial={false}>
                   {messages.map((msg) => (
                     <motion.div
                       key={msg.timestamp.toISOString()}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3 }}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.2 }}
                       className={cn(
-                        "py-6",
-                        msg.role === "assistant"
-                          ? "bg-muted/20"
-                          : "bg-background"
+                        "py-4",
+                        msg.role === "assistant" ? "" : ""
                       )}
                     >
-                      <div className="flex gap-4 max-w-3xl mx-auto">
-                        <div className="w-10 h-10 shrink-0 mt-1">
-                          {msg.role === "assistant" ? (
-                            <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center ring-1 ring-primary/20">
-                              <Bot className="w-6 h-6" />
-                            </div>
-                          ) : (
-                            <div className="w-10 h-10 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center">
-                              <User className="w-6 h-6" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 space-y-3 overflow-hidden min-h-[2.5rem]">
-                          <div className="flex items-center justify-between">
-                            <p className="font-medium text-base">
-                              {msg.role === "assistant"
-                                ? "AI Therapist"
-                                : "You"}
-                            </p>
-                            {msg.metadata?.technique && (
-                              <Badge variant="secondary" className="text-xs">
-                                {msg.metadata.technique}
-                              </Badge>
-                            )}
+                      <div className={cn(
+                        "flex gap-3",
+                        msg.role === "assistant" ? "" : "justify-end"
+                      )}>
+                        {msg.role === "assistant" && (
+                          <div className="w-8 h-8 shrink-0 mt-0.5 rounded-full bg-primary/10 text-primary flex items-center justify-center ring-1 ring-primary/20">
+                            <Bot className="w-4 h-4" />
                           </div>
-                          <div className="prose prose-base dark:prose-invert leading-relaxed max-w-none">
-                            <ReactMarkdown>{msg.content}</ReactMarkdown>
-                          </div>
-                          {msg.metadata?.goal && (
-                            <p className="text-sm text-muted-foreground mt-3 p-2 bg-muted/30 rounded-md">
-                              <strong>Goal:</strong> {msg.metadata.goal}
-                            </p>
-                          )}
+                        )}
+                        <div className={cn(
+                          "max-w-[80%] rounded-xl px-3 py-2 text-sm",
+                          msg.role === "assistant" ? "bg-muted/40" : "bg-primary text-primary-foreground"
+                        )}>
+                          <ReactMarkdown>{msg.content}</ReactMarkdown>
                         </div>
+                        {msg.role !== "assistant" && (
+                          <div className="w-8 h-8 shrink-0 mt-0.5 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center">
+                            <User className="w-4 h-4" />
+                          </div>
+                        )}
                       </div>
                     </motion.div>
                   ))}
                 </AnimatePresence>
 
                 {isTyping && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="py-6 bg-muted/20"
-                  >
-                    <div className="flex gap-4 max-w-3xl mx-auto px-4">
-                      <div className="w-10 h-10 shrink-0">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center ring-1 ring-primary/20">
-                          <Loader2 className="w-6 h-6 animate-spin" />
-                        </div>
-                      </div>
-                      <div className="flex-1 space-y-3">
-                        <p className="font-medium text-base">AI Therapist</p>
-                        <div className="flex items-center gap-2">
-                          <LoadingDots size="sm" color="primary" />
-                          <span className="text-sm text-muted-foreground">Thinking...</span>
-                        </div>
-                      </div>
+                  <div className="py-3">
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                      <LoadingDots size="sm" color="primary" />
+                      <span>AI is typing…</span>
                     </div>
-                  </motion.div>
+                  </div>
                 )}
                 <div ref={messagesEndRef} />
               </div>
