@@ -375,6 +375,11 @@ export default function MemoryEnhancedTherapyPage() {
 
     setMessage("");
     setIsTyping(true);
+    
+    // Blur the textarea to dismiss keyboard on mobile
+    if (textareaRef.current) {
+      textareaRef.current.blur();
+    }
 
     try {
       // Require auth token before sending to backend
@@ -687,7 +692,7 @@ export default function MemoryEnhancedTherapyPage() {
       <div 
         className="flex gap-0"
         style={{ 
-          height: `calc(100vh - 4rem - ${keyboardHeight}px)`,
+          height: `calc(100vh - 4rem - ${Math.max(0, keyboardHeight - 100)}px)`,
           marginTop: '5rem'
         }}
       >
@@ -930,7 +935,7 @@ export default function MemoryEnhancedTherapyPage() {
           <div 
             className="sticky bottom-0 z-[60] border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/95 px-4 py-3"
             style={{ 
-              paddingBottom: keyboardHeight > 0 ? `${keyboardHeight + 12}px` : '12px'
+              paddingBottom: keyboardHeight > 0 ? `${Math.max(0, keyboardHeight - 50)}px` : '12px'
             }}
           >
             <form onSubmit={handleSubmit} className="max-w-4xl mx-auto flex gap-3 items-end">
