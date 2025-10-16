@@ -411,8 +411,23 @@ export default function MemoryEnhancedTherapyPage() {
       });
 
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error in chat", error);
+      const messageText = (error?.message || "").toString();
+      if (messageText.includes("Daily chat limit")) {
+        toast.error("Daily chat limit reached on Free plan. Upgrade to continue chatting today.");
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: "You've reached the daily chat limit on the Free plan. Upgrade to Premium for unlimited chats.",
+            timestamp: new Date(),
+          },
+        ]);
+        setIsTyping(false);
+        setTimeout(() => router.push('/pricing'), 600);
+        return;
+      }
       setMessages((prev) => [
         ...prev,
         {
@@ -738,18 +753,13 @@ export default function MemoryEnhancedTherapyPage() {
 
         {/* Main chat area */}
         <div className="flex-1 flex flex-col overflow-hidden bg-background">
-          {/* Chat header */}
-          <div className="p-6 border-b bg-muted/30 flex items-center justify-between">
+          {/* Chat header (minimal) */}
+          <div className="px-4 py-3 border-b bg-background flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center ring-1 ring-primary/20">
-                <Bot className="w-6 h-6" />
+              <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center ring-1 ring-primary/20">
+                <Bot className="w-5 h-5" />
               </div>
-              <div>
-                <h2 className="font-semibold text-lg">AI Therapist with Memory</h2>
-                <p className="text-sm text-muted-foreground">
-                  {messages.length} messages • Memory Enhanced
-                </p>
-              </div>
+              <h2 className="font-semibold">AI Therapist</h2>
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -778,78 +788,104 @@ export default function MemoryEnhancedTherapyPage() {
                   }
                 }}
                 className="gap-2"
+                title={isVoiceMode ? "Voice on" : "Voice off"}
               >
-                {isVoiceMode ? (
-                  <>
-                    <Mic className="w-4 h-4" />
-                    Voice On
-                  </>
-                ) : (
-                  <>
-                    <MicOff className="w-4 h-4" />
-                    Voice Off
-                  </>
-                )}
+                {isVoiceMode ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
               </Button>
             </div>
           </div>
 
-          {messages.length === 0 ? (
-            // Welcome screen with suggested questions
-            <div className="flex-1 flex items-center justify-center p-8">
-              <div className="max-w-2xl w-full space-y-8">
-                <div className="text-center space-y-6">
-                  <div className="relative inline-flex flex-col items-center">
-                    <motion.div
-                      className="absolute inset-0 bg-primary/20 blur-2xl rounded-full"
-                      initial="initial"
-                      animate="animate"
-                      variants={glowAnimation}
-                    />
-                    <div className="relative flex items-center gap-3 text-3xl font-semibold">
-                      <div className="relative">
-                        <Bot className="w-8 h-8 text-primary" />
-                        <motion.div
-                          className="absolute inset-0 text-primary"
-                          initial="initial"
-                          animate="animate"
-                          variants={glowAnimation}
-                        >
-                          <Bot className="w-8 h-8" />
-                        </motion.div>
-                      </div>
-                      <span className="bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent">
-                        AI Therapist with Memory
-                      </span>
-                    </div>
-                    <p className="text-muted-foreground mt-3 text-lg">
-                      I remember our conversations and your mental health journey
-                    </p>
-                  </div>
-                </div>
+          {/* Composer at top (sticky) */}
+          <div className="sticky top-0 z-[60] border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/95 px-4 py-3">
+            <form onSubmit={handleSubmit} className="max-w-4xl mx-auto flex gap-3 items-end">
+              <div className="flex-1 relative group">
+                <textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onFocus={() => { try { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); } catch {} }}
+                  placeholder={
+                    isListening 
+                      ? "Listening... Speak now"
+                      : "Type your message..."
+                  }
+                  className={cn(
+                    "w-full resize-none rounded-xl border bg-background",
+                    "p-3 pr-24 min-h-[44px] max-h-[160px]",
+                    "focus:outline-none focus:ring-2 focus:ring-primary/40",
+                    isListening && "ring-2 ring-red-500/50 bg-red-50 dark:bg-red-950/20",
+                    "transition-all duration-200",
+                    "placeholder:text-muted-foreground/70",
+                    isTyping && "opacity-50 cursor-not-allowed"
+                  )}
+                  rows={1}
+                  disabled={isTyping}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSubmit(e);
+                    }
+                  }}
+                />
 
-                <div className="grid gap-4 relative">
-                  <motion.div
-                    className="absolute -inset-4 bg-gradient-to-b from-primary/5 to-transparent blur-xl"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.5 }}
-                  />
-                  {SUGGESTED_QUESTIONS.map((q, index) => (
-                    <motion.div
+                <Button
+                  type="button"
+                  size="icon"
+                  variant={isListening ? "destructive" : "outline"}
+                  onClick={toggleListening}
+                  disabled={isTyping || !voiceSupported}
+                  className={cn(
+                    "absolute right-12 bottom-2.5 h-[36px] w-[36px]",
+                    "rounded-lg transition-all duration-200",
+                    "z-10 bg-background border",
+                    isListening && "animate-pulse"
+                  )}
+                  title={!voiceSupported ? "Voice input not supported" : isListening ? "Stop listening" : "Start voice input"}
+                >
+                  {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                </Button>
+
+                <Button
+                  type="submit"
+                  size="icon"
+                  className={cn(
+                    "absolute right-2 bottom-2.5 h-[36px] w-[36px]",
+                    "rounded-lg transition-all duration-200",
+                    "bg-primary hover:bg-primary/90",
+                    "shadow-sm shadow-primary/20",
+                    (isTyping || !message.trim()) && "opacity-50 cursor-not-allowed",
+                    "group-hover:scale-105 group-focus-within:scale-105"
+                  )}
+                  disabled={isTyping || !message.trim()}
+                  onClick={(e) => { e.preventDefault(); handleSubmit(e); }}
+                  title="Send"
+                >
+                  <Send className="w-4 h-4" />
+                </Button>
+              </div>
+            </form>
+          </div>
+
+          {messages.length === 0 ? (
+            // Minimal welcome
+            <div className="flex-1 flex items-center justify-center p-6">
+              <div className="max-w-2xl w-full space-y-6 text-center">
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center ring-1 ring-primary/20">
+                    <Bot className="w-5 h-5" />
+                  </div>
+                  <h3 className="font-semibold">AI Therapist</h3>
+                </div>
+                <p className="text-sm text-muted-foreground">Ask anything. I’ll respond with support and practical guidance.</p>
+                <div className="grid gap-3">
+                  {SUGGESTED_QUESTIONS.map((q) => (
+                    <Button
                       key={q.text}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1 + 0.5 }}
+                      variant="outline"
+                      className="w-full h-auto py-3 px-4 justify-start"
+                      onClick={() => handleSuggestedQuestion(q.text)}
                     >
-                      <Button
-                        variant="outline"
-                        className="w-full h-auto py-6 px-8 text-left justify-start hover:bg-primary/5 hover:border-primary/50 transition-all duration-300 text-base"
-                        onClick={() => handleSuggestedQuestion(q.text)}
-                      >
-                        {q.text}
-                      </Button>
-                    </motion.div>
+                      {q.text}
+                    </Button>
                   ))}
                 </div>
               </div>
@@ -938,101 +974,7 @@ export default function MemoryEnhancedTherapyPage() {
             </div>
           )}
 
-          {/* Input area */}
-          <div className="border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/95 p-6 relative z-[60] sticky bottom-0 left-0 right-0">
-            <form
-              onSubmit={handleSubmit}
-              className="max-w-4xl mx-auto flex gap-4 items-end relative"
-            >
-              <div className="flex-1 relative group">
-                <textarea
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  onFocus={() => {
-                    try { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); } catch {}
-                  }}
-                  placeholder={
-                    isListening 
-                      ? "Listening... Speak now"
-                      : "Share what's on your mind..."
-                  }
-                  className={cn(
-                    "w-full resize-none rounded-2xl border bg-background",
-                    "p-4 pr-24 min-h-[56px] max-h-[200px]",
-                    "focus:outline-none focus:ring-2 focus:ring-primary/50",
-                    isListening && "ring-2 ring-red-500/50 bg-red-50 dark:bg-red-950/20",
-                    "transition-all duration-200",
-                    "placeholder:text-muted-foreground/70",
-                    isTyping && "opacity-50 cursor-not-allowed"
-                  )}
-                  rows={1}
-                  disabled={isTyping}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSubmit(e);
-                    }
-                  }}
-                />
-                
-                <Button
-                  type="button"
-                  size="icon"
-                  variant={isListening ? "destructive" : "outline"}
-                  onClick={toggleListening}
-                  disabled={isTyping || !voiceSupported}
-                  className={cn(
-                    "absolute right-16 bottom-4 h-[40px] w-[40px]",
-                    "rounded-xl transition-all duration-200",
-                    "z-10 bg-background border",
-                    isListening && "animate-pulse"
-                  )}
-                  title={
-                    !voiceSupported
-                      ? "Voice input not supported on this device"
-                      : isListening
-                        ? "Stop listening"
-                        : "Start voice input"
-                  }
-                >
-                  {isListening ? (
-                    <MicOff className="w-5 h-5" />
-                  ) : (
-                    <Mic className="w-5 h-5" />
-                  )}
-                </Button>
-                
-                <Button
-                  type="submit"
-                  size="icon"
-                  className={cn(
-                    "absolute right-2 bottom-4 h-[40px] w-[40px]",
-                    "rounded-xl transition-all duration-200",
-                    "bg-primary hover:bg-primary/90",
-                    "shadow-sm shadow-primary/20",
-                    (isTyping || !message.trim()) &&
-                      "opacity-50 cursor-not-allowed",
-                    "group-hover:scale-105 group-focus-within:scale-105"
-                  )}
-                  disabled={isTyping || !message.trim()}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleSubmit(e);
-                  }}
-                >
-                  <Send className="w-5 h-5" />
-                </Button>
-              </div>
-            </form>
-            <div className="mt-3 text-xs text-center text-muted-foreground">
-              Press <kbd className="px-2 py-1 rounded bg-muted text-xs">Enter ↵</kbd>{" "}
-              to send,
-              <kbd className="px-2 py-1 rounded bg-muted ml-1 text-xs">
-                Shift + Enter
-              </kbd>{" "}
-              for new line
-            </div>
-          </div>
+          {/* Bottom input area removed in favor of top composer */}
         </div>
       </div>
     </div>

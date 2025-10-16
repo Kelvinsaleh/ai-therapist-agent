@@ -185,6 +185,25 @@ export default function MeditationsPage() {
       return;
     }
 
+    // Pre-check free-tier weekly meditation limit
+    if (userTier === "free") {
+      try {
+        const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+        const res = await fetch((process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.BACKEND_API_URL || 'https://hope-backend-2.onrender.com') + '/meditation/sessions?limit=100&page=1', {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+          const sessionsLast7 = (data.sessions || []).filter((s: any) => new Date(s.completedAt) >= sevenDaysAgo).length;
+          if (sessionsLast7 >= 10) {
+            toast.error("Weekly meditation limit reached on Free plan. Upgrade to enjoy unlimited listening.");
+            return;
+          }
+        }
+      } catch {}
+    }
+
     // Validate audio URL
     if (!meditation.audioUrl) {
       console.error('No audio URL for meditation:', meditation);

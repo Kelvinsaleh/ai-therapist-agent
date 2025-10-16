@@ -90,7 +90,7 @@ const COMMON_GOALS = [
 ];
 
 export default function ProfilePage() {
-  const { user, isAuthenticated, userTier, isLoading } = useSession();
+  const { user, isAuthenticated, userTier, isLoading, refreshUser } = useSession();
   const router = useRouter();
   
   // State management
@@ -183,6 +183,8 @@ export default function ProfilePage() {
         if (!userRes.success) {
           throw new Error("Failed to update basic info");
         }
+        // Refresh session user so header and other components reflect changes
+        await refreshUser();
       }
       
       // Update user profile (therapeutic preferences)

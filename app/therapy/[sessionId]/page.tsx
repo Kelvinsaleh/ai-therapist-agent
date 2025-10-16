@@ -482,8 +482,23 @@ export default function TherapyPage() {
       if (isVoiceMode) {
         speakText(assistantMessage.content);
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error in chat", error);
+      const messageText = (error?.message || "").toString();
+      if (messageText.includes("Daily chat limit")) {
+        toast.error("Daily chat limit reached on Free plan. Upgrade to continue chatting today.");
+        setIsTyping(false);
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: "You've reached the daily chat limit on the Free plan. Upgrade to Premium for unlimited chats.",
+            timestamp: new Date(),
+          },
+        ]);
+        setTimeout(() => router.push('/pricing'), 600);
+        return;
+      }
       setMessages((prev) => [
         ...prev,
         {

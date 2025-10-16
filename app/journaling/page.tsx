@@ -173,6 +173,21 @@ export default function JournalingPage() {
         toast.error(limitCheck.reason);
         return;
       }
+
+      // Optional pre-check against backend (authoritative)
+      try {
+        const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+        const res = await fetch('/api/journal?limit=100', { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+        if (res.ok) {
+          const data = await res.json();
+          const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+          const count7 = (data || []).filter((e: any) => new Date(e.createdAt) >= weekAgo).length;
+          if (count7 >= 3) {
+            toast.error("Weekly journal limit reached on Free plan. Upgrade to continue journaling.");
+            return;
+          }
+        }
+      } catch {}
     }
 
     const newEntry: JournalEntry = {

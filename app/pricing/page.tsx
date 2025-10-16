@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Star, Zap, Heart, Shield, Users, Crown, Video, MessageSquare, Clock, AlertTriangle, Lock } from "lucide-react";
+import { Check, Star, Heart, Shield, Users, Crown, MessageSquare, Lock, Headphones, NotebookPen } from "lucide-react";
 import { paystackService, PaymentPlan } from "@/lib/payments/paystack-service";
 import { useSession } from "@/lib/contexts/session-context";
 import { useRouter } from "next/navigation";
@@ -93,19 +93,18 @@ export default function PricingPage() {
   };
 
   const freePlanFeatures = [
-    "1 active match",
-    "Basic text chat",
-    "Weekly check-ins",
-    "Community support groups"
+    "1 chat/day",
+    "3 journal entries/week",
+    "10 meditations/week",
+    "Basic text chat"
   ];
 
   const premiumPlanFeatures = [
-    "Unlimited matches",
-    "Video calls",
-    "Advanced matching filters",
-    "Priority matching",
-    "Daily check-ins",
-    "Crisis support priority"
+    "Unlimited chats",
+    "Unlimited journaling",
+    "Unlimited meditations",
+    "Voice mode in chat",
+    "Full analytics"
   ];
 
   return (
@@ -119,34 +118,34 @@ export default function PricingPage() {
           className="text-center mb-16"
         >
           <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-            Find Your Support Match
+            Upgrade to Premium
           </h1>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-            Connect with others who understand your journey and can provide mutual support on your mental health path
+            Unlock unlimited chats, full journaling, and more weekly meditations.
           </p>
 
           {/* Key Features */}
           <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-12">
             <div className="text-center">
               <div className="p-3 rounded-full bg-primary/10 w-12 h-12 mx-auto mb-3 flex items-center justify-center">
-                <Users className="w-6 h-6 text-primary" />
+                <MessageSquare className="w-6 h-6 text-primary" />
               </div>
-              <h3 className="font-semibold mb-1">Peer Support</h3>
-              <p className="text-sm text-muted-foreground">Connect with others who share similar experiences and challenges</p>
+              <h3 className="font-semibold mb-1">Unlimited Chat</h3>
+              <p className="text-sm text-muted-foreground">No daily limits. Continue the conversation any time.</p>
             </div>
             <div className="text-center">
               <div className="p-3 rounded-full bg-primary/10 w-12 h-12 mx-auto mb-3 flex items-center justify-center">
-                <Shield className="w-6 h-6 text-primary" />
+                <NotebookPen className="w-6 h-6 text-primary" />
               </div>
-              <h3 className="font-semibold mb-1">Safe & Secure</h3>
-              <p className="text-sm text-muted-foreground">All interactions are moderated and safety-checked for your protection</p>
+              <h3 className="font-semibold mb-1">Unlimited Journaling</h3>
+              <p className="text-sm text-muted-foreground">Capture your thoughts freely without weekly caps.</p>
             </div>
             <div className="text-center">
               <div className="p-3 rounded-full bg-primary/10 w-12 h-12 mx-auto mb-3 flex items-center justify-center">
-                <Zap className="w-6 h-6 text-primary" />
+                <Headphones className="w-6 h-6 text-primary" />
               </div>
-              <h3 className="font-semibold mb-1">Smart Matching</h3>
-              <p className="text-sm text-muted-foreground">AI-powered matching based on compatibility, goals, and communication style</p>
+              <h3 className="font-semibold mb-1">Unlimited Meditations</h3>
+              <p className="text-sm text-muted-foreground">Listen beyond free-plan weekly limits.</p>
             </div>
           </div>
         </motion.div>
@@ -199,7 +198,7 @@ export default function PricingPage() {
                   size="lg"
                 >
                   <MessageSquare className="w-4 h-4 mr-2" />
-                  Sign in to find your support match
+                  Sign in to get started
                 </Button>
 
                 <p className="text-xs text-center text-muted-foreground">
@@ -351,9 +350,9 @@ export default function PricingPage() {
         >
           <Card className="max-w-2xl mx-auto bg-primary/5 border-primary/20">
             <CardContent className="p-8">
-              <h2 className="text-2xl font-bold mb-4">Ready to Find Your Support Match?</h2>
+              <h2 className="text-2xl font-bold mb-4">Ready to go Premium?</h2>
               <p className="text-muted-foreground mb-6">
-                Join thousands of people who have found meaningful connections and support through our platform.
+                Unlock unlimited chat, journaling, and meditations today.
               </p>
               <Button 
                 onClick={handleSignIn}
