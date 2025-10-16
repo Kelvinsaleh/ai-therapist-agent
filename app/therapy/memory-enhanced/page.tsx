@@ -84,6 +84,7 @@ export default function MemoryEnhancedTherapyPage() {
   const [message, setMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [mounted, setMounted] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -318,6 +319,16 @@ export default function MemoryEnhancedTherapyPage() {
       
       speechSynthesis.speak(utterance);
     }
+  };
+
+  const autoResizeComposer = () => {
+    try {
+      const el = textareaRef.current;
+      if (!el) return;
+      el.style.height = 'auto';
+      const maxHeight = 160; // matches max-h in class below
+      el.style.height = Math.min(el.scrollHeight, maxHeight) + 'px';
+    } catch {}
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -877,70 +888,97 @@ export default function MemoryEnhancedTherapyPage() {
 
           {/* Composer at bottom (sticky) */}
           <div className="sticky bottom-0 z-[60] border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/95 px-4 py-3">
-            <form onSubmit={handleSubmit} className="max-w-4xl mx-auto flex gap-3 items-end">
-              <div className="flex-1 relative group">
-                <textarea
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  onFocus={() => { try { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); } catch {} }}
-                  placeholder={
-                    isListening 
-                      ? "Listening... Speak now"
-                      : "Type your message..."
-                  }
-                  className={cn(
-                    "w-full resize-none rounded-xl border bg-background",
-                    "p-3 pr-24 min-h-[44px] max-h-[160px]",
-                    "focus:outline-none focus:ring-2 focus:ring-primary/40",
-                    isListening && "ring-2 ring-red-500/50 bg-red-50 dark:bg-red-950/20",
-                    "transition-all duration-200",
-                    "placeholder:text-muted-foreground/70",
-                    isTyping && "opacity-50 cursor-not-allowed"
-                  )}
-                  rows={1}
-                  disabled={isTyping}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSubmit(e);
+            <form onSubmit={handleSubmit} className="max-w-3xl mx-auto">
+              <div className="relative group rounded-2xl border bg-background">
+                <div className="p-2">
+                  <textarea
+                    ref={textareaRef}
+                    value={message}
+                    onChange={(e) => { setMessage(e.target.value); autoResizeComposer(); }}
+                    onFocus={() => { try { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); } catch {} }}
+                    placeholder={
+                      isListening 
+                        ? "Listening... Speak now"
+                        : "Message AI Therapist"
                     }
-                  }}
-                />
+                    className={cn(
+                      "w-full resize-none rounded-xl bg-transparent",
+                      "px-4 py-3 pr-28 min-h-[44px] max-h-[160px]",
+                      "focus:outline-none",
+                      isListening && "ring-2 ring-red-500/50 bg-red-50 dark:bg-red-950/20",
+                      "transition-all duration-200",
+                      "placeholder:text-muted-foreground/70",
+                      isTyping && "opacity-50 cursor-not-allowed"
+                    )}
+                    rows={1}
+                    disabled={isTyping}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSubmit(e);
+                      }
+                    }}
+                  />
 
-                <Button
-                  type="button"
-                  size="icon"
-                  variant={isListening ? "destructive" : "outline"}
-                  onClick={toggleListening}
-                  disabled={isTyping || !voiceSupported}
-                  className={cn(
-                    "absolute right-12 bottom-2.5 h-[36px] w-[36px]",
-                    "rounded-lg transition-all duration-200",
-                    "z-10 bg-background border",
-                    isListening && "animate-pulse"
+                  {/* Clear (x) button */}
+                  {message && !isTyping && (
+                    <button
+                      type="button"
+                      onClick={() => { setMessage(""); autoResizeComposer(); }}
+                      className="absolute right-24 bottom-2.5 h-[28px] w-[28px] rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                      aria-label="Clear message"
+                      title="Clear"
+                    >
+                      ×
+                    </button>
                   )}
-                  title={!voiceSupported ? "Voice input not supported" : isListening ? "Stop listening" : "Start voice input"}
-                >
-                  {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                </Button>
 
-                <Button
-                  type="submit"
-                  size="icon"
-                  className={cn(
-                    "absolute right-2 bottom-2.5 h-[36px] w-[36px]",
-                    "rounded-lg transition-all duration-200",
-                    "bg-primary hover:bg-primary/90",
-                    "shadow-sm shadow-primary/20",
-                    (isTyping || !message.trim()) && "opacity-50 cursor-not-allowed",
-                    "group-hover:scale-105 group-focus-within:scale-105"
-                  )}
-                  disabled={isTyping || !message.trim()}
-                  onClick={(e) => { e.preventDefault(); handleSubmit(e); }}
-                  title="Send"
-                >
-                  <Send className="w-4 h-4" />
-                </Button>
+                  {/* Voice toggle */}
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant={isListening ? "destructive" : "outline"}
+                    onClick={toggleListening}
+                    disabled={isTyping || !voiceSupported}
+                    className={cn(
+                      "absolute right-12 bottom-2.5 h-[36px] w-[36px]",
+                      "rounded-lg transition-all duration-200",
+                      "z-10 bg-background border",
+                      isListening && "animate-pulse"
+                    )}
+                    title={!voiceSupported ? "Voice input not supported" : isListening ? "Stop listening" : "Start voice input"}
+                  >
+                    {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                  </Button>
+
+                  {/* Send button */}
+                  <Button
+                    type="submit"
+                    size="icon"
+                    className={cn(
+                      "absolute right-2 bottom-2.5 h-[36px] w-[36px]",
+                      "rounded-lg transition-all duration-200",
+                      "bg-primary hover:bg-primary/90",
+                      "shadow-sm shadow-primary/20",
+                      (isTyping || !message.trim()) && "opacity-50 cursor-not-allowed",
+                      "group-hover:scale-105 group-focus-within:scale-105"
+                    )}
+                    disabled={isTyping || !message.trim()}
+                    onClick={(e) => { e.preventDefault(); handleSubmit(e); }}
+                    title="Send"
+                  >
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </div>
+
+                {/* Hint row */}
+                <div className="flex items-center justify-between px-3 pb-2 text-xs text-muted-foreground">
+                  <span>Use Shift+Enter for new line</span>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="rounded-md">Enter</Badge>
+                    <span>sends</span>
+                  </div>
+                </div>
               </div>
             </form>
           </div>
