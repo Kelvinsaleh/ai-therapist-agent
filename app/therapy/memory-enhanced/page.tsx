@@ -871,64 +871,148 @@ export default function MemoryEnhancedTherapyPage() {
 
 
           {messages.length === 0 ? (
-            // Minimal welcome
+            // Enhanced welcome screen
             <div className="flex-1 flex items-center justify-center p-6">
-              <div className="max-w-2xl w-full space-y-6 text-center">
-                <div className="flex items-center justify-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center ring-1 ring-primary/20">
-                    <Bot className="w-5 h-5" />
+              <div className="max-w-3xl w-full space-y-8 text-center">
+                {/* Welcome header */}
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6 }}
+                  className="space-y-4"
+                >
+                  <div className="flex items-center justify-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 text-primary flex items-center justify-center ring-2 ring-primary/20 shadow-lg">
+                      <Bot className="w-6 h-6" />
+                    </div>
+                    <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                      AI Therapist
+                    </h2>
                   </div>
-                  <h3 className="font-semibold">AI Therapist</h3>
-                </div>
-                <p className="text-sm text-muted-foreground">Ask anything. I’ll respond with support and practical guidance.</p>
-                <div className="grid gap-3">
-                  {SUGGESTED_QUESTIONS.map((q) => (
-                    <Button
+                  <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+                    I'm here to provide compassionate support and practical guidance. 
+                    Share what's on your mind, and let's work through it together.
+                  </p>
+                </motion.div>
+
+                {/* Suggested questions with enhanced styling */}
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.2 }}
+                  className="grid gap-3 max-w-2xl mx-auto"
+                >
+                  <p className="text-sm text-muted-foreground mb-2">Try asking:</p>
+                  {SUGGESTED_QUESTIONS.map((q, index) => (
+                    <motion.div
                       key={q.text}
-                      variant="outline"
-                      className="w-full h-auto py-3 px-4 justify-start"
-                      onClick={() => handleSuggestedQuestion(q.text)}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.4, delay: 0.3 + index * 0.1 }}
                     >
-                      {q.text}
-                    </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full h-auto py-4 px-6 justify-start text-left hover:bg-primary/5 hover:border-primary/30 transition-all duration-200 group"
+                        onClick={() => handleSuggestedQuestion(q.text)}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-2 h-2 rounded-full bg-primary/60 group-hover:bg-primary transition-colors" />
+                          <span className="text-sm font-medium">{q.text}</span>
+                        </div>
+                      </Button>
+                    </motion.div>
                   ))}
-                </div>
+                </motion.div>
+
+                {/* Features highlight */}
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.6 }}
+                  className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto"
+                >
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <div className="w-2 h-2 rounded-full bg-green-500" />
+                    <span>Memory-enhanced conversations</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <div className="w-2 h-2 rounded-full bg-blue-500" />
+                    <span>Voice input support</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <div className="w-2 h-2 rounded-full bg-purple-500" />
+                    <span>24/7 available</span>
+                  </div>
+                </motion.div>
               </div>
             </div>
           ) : (
-            // Chat messages
             <div className="flex-1 overflow-y-auto scroll-smooth pb-20 overscroll-contain">
-              <div className="max-w-3xl mx-auto px-3">
+              <div className="max-w-4xl mx-auto px-4">
                 <AnimatePresence initial={false}>
-                  {messages.map((msg) => (
+                  {messages.map((msg, index) => (
                     <motion.div
                       key={msg.timestamp.toISOString()}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.2 }}
-                      className={cn(
-                        "py-4",
-                        msg.role === "assistant" ? "" : ""
-                      )}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: index * 0.05 }}
+                      className="py-4 group"
                     >
                       <div className={cn(
-                        "flex gap-3",
+                        "flex gap-3 max-w-full",
                         msg.role === "assistant" ? "" : "justify-end"
                       )}>
                         {msg.role === "assistant" && (
-                          <div className="w-8 h-8 shrink-0 mt-0.5 rounded-full bg-primary/10 text-primary flex items-center justify-center ring-1 ring-primary/20">
-                            <Bot className="w-4 h-4" />
+                          <div className="w-10 h-10 shrink-0 mt-0.5 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 text-primary flex items-center justify-center ring-2 ring-primary/20 shadow-sm">
+                            <Bot className="w-5 h-5" />
                           </div>
                         )}
                         <div className={cn(
-                          "max-w-[80%] rounded-xl px-3 py-2 text-sm",
-                          msg.role === "assistant" ? "bg-muted/40" : "bg-primary text-primary-foreground"
+                          "max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed",
+                          "shadow-sm transition-all duration-200",
+                          msg.role === "assistant" 
+                            ? "bg-gradient-to-br from-muted/60 to-muted/40 border border-muted/60" 
+                            : "bg-gradient-to-br from-primary to-primary/90 text-primary-foreground shadow-primary/20"
                         )}>
-                          <ReactMarkdown>{msg.content}</ReactMarkdown>
+                          <div className="prose prose-sm max-w-none dark:prose-invert">
+                            <ReactMarkdown
+                              components={{
+                                p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                                ul: ({ children }) => <ul className="my-2 ml-4 space-y-1">{children}</ul>,
+                                ol: ({ children }) => <ol className="my-2 ml-4 space-y-1">{children}</ol>,
+                                li: ({ children }) => <li className="text-sm">{children}</li>,
+                                strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                                em: ({ children }) => <em className="italic">{children}</em>,
+                                code: ({ children }) => (
+                                  <code className="px-1.5 py-0.5 bg-muted/80 rounded text-xs font-mono">
+                                    {children}
+                                  </code>
+                                ),
+                                blockquote: ({ children }) => (
+                                  <blockquote className="border-l-2 border-primary/30 pl-3 my-2 italic text-muted-foreground">
+                                    {children}
+                                  </blockquote>
+                                )
+                              }}
+                            >
+                              {msg.content}
+                            </ReactMarkdown>
+                          </div>
+                          
+                          {/* Message timestamp */}
+                          <div className={cn(
+                            "text-xs mt-2 opacity-0 group-hover:opacity-60 transition-opacity",
+                            msg.role === "assistant" ? "text-muted-foreground" : "text-primary-foreground/70"
+                          )}>
+                            {new Date(msg.timestamp).toLocaleTimeString([], { 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}
+                          </div>
                         </div>
                         {msg.role !== "assistant" && (
-                          <div className="w-8 h-8 shrink-0 mt-0.5 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center">
-                            <User className="w-4 h-4" />
+                          <div className="w-10 h-10 shrink-0 mt-0.5 rounded-full bg-gradient-to-br from-secondary to-secondary/80 text-secondary-foreground flex items-center justify-center ring-2 ring-secondary/20 shadow-sm">
+                            <User className="w-5 h-5" />
                           </div>
                         )}
                       </div>
@@ -936,95 +1020,144 @@ export default function MemoryEnhancedTherapyPage() {
                   ))}
                 </AnimatePresence>
 
-                {isTyping && (
-                  <div className="py-3">
-                    <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                      <LoadingDots size="sm" color="primary" />
-                      <span>AI is typing…</span>
-                    </div>
-                  </div>
-                )}
                 <div ref={messagesEndRef} />
               </div>
             </div>
           )}
 
-          {/* Composer at bottom (sticky) */}
+          {/* Enhanced Composer */}
           <div 
-            className="sticky bottom-0 z-[60] border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/95 px-4 py-3"
+            className="sticky bottom-0 z-[60] border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/95"
             style={{ 
               transform: keyboardHeight > 0 ? `translateY(-${keyboardHeight}px)` : 'translateY(0)',
               transition: 'transform 0.2s ease-out'
             }}
           >
-            <form onSubmit={handleSubmit} className="max-w-4xl mx-auto flex gap-3 items-end">
-              <div className="flex-1 relative group">
-                <textarea
-                  ref={textareaRef}
-                  value={message}
-                  onChange={(e) => {
-                    setMessage(e.target.value);
-                    adjustTextareaHeight();
-                  }}
-                  onFocus={() => { try { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); } catch {} }}
-                  placeholder={
-                    isListening 
-                      ? "Listening... Speak now"
-                      : "Type your message..."
-                  }
-                  className={cn(
-                    "w-full resize-none rounded-xl border bg-background",
-                    "p-3 pr-24 min-h-[44px] max-h-[160px]",
-                    "focus:outline-none focus:ring-2 focus:ring-primary/40",
-                    isListening && "ring-2 ring-red-500/50 bg-red-50 dark:bg-red-950/20",
-                    "transition-all duration-200",
-                    "placeholder:text-muted-foreground/70",
-                    isTyping && "opacity-50 cursor-not-allowed"
-                  )}
-                  rows={1}
-                  disabled={isTyping}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSubmit(e);
-                    }
-                  }}
-                />
+            {/* Typing indicator for AI */}
+            {isTyping && (
+              <div className="px-4 py-2 border-b bg-muted/30">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="flex gap-1">
+                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                  <span>AI is thinking...</span>
+                </div>
+              </div>
+            )}
 
-                <Button
-                  type="button"
-                  size="icon"
-                  variant={isListening ? "destructive" : "outline"}
-                  onClick={toggleListening}
-                  disabled={isTyping || !voiceSupported}
-                  className={cn(
-                    "absolute right-12 bottom-2.5 h-[36px] w-[36px]",
-                    "rounded-lg transition-all duration-200",
-                    "z-10 bg-background border",
-                    isListening && "animate-pulse"
-                  )}
-                  title={!voiceSupported ? "Voice input not supported" : isListening ? "Stop listening" : "Start voice input"}
-                >
-                  {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                </Button>
+            <form onSubmit={handleSubmit} className="px-4 py-3">
+              <div className="max-w-4xl mx-auto">
+                <div className="relative group">
+                  {/* Input container with enhanced styling */}
+                  <div className={cn(
+                    "relative rounded-2xl border-2 transition-all duration-200",
+                    "bg-background shadow-sm",
+                    message.trim() ? "border-primary/30 shadow-primary/10" : "border-border",
+                    isListening && "border-red-500/50 bg-red-50 dark:bg-red-950/20",
+                    "focus-within:border-primary/50 focus-within:shadow-primary/20"
+                  )}>
+                    <textarea
+                      ref={textareaRef}
+                      value={message}
+                      onChange={(e) => {
+                        setMessage(e.target.value);
+                        adjustTextareaHeight();
+                      }}
+                      onFocus={() => { 
+                        try { 
+                          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); 
+                        } catch {} 
+                      }}
+                      placeholder={
+                        isListening 
+                          ? "🎤 Listening... Speak now"
+                          : "Share what's on your mind..."
+                      }
+                      className={cn(
+                        "w-full resize-none bg-transparent",
+                        "px-4 py-3 pr-20 min-h-[48px] max-h-[160px]",
+                        "focus:outline-none",
+                        "transition-all duration-200",
+                        "placeholder:text-muted-foreground/70 placeholder:font-normal",
+                        "text-foreground font-medium",
+                        isTyping && "opacity-50 cursor-not-allowed"
+                      )}
+                      rows={1}
+                      disabled={isTyping}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSubmit(e);
+                        }
+                      }}
+                    />
 
-                <Button
-                  type="submit"
-                  size="icon"
-                  className={cn(
-                    "absolute right-2 bottom-2.5 h-[36px] w-[36px]",
-                    "rounded-lg transition-all duration-200",
-                    "bg-primary hover:bg-primary/90",
-                    "shadow-sm shadow-primary/20",
-                    (isTyping || !message.trim()) && "opacity-50 cursor-not-allowed",
-                    "group-hover:scale-105 group-focus-within:scale-105"
-                  )}
-                  disabled={isTyping || !message.trim()}
-                  onClick={(e) => { e.preventDefault(); handleSubmit(e); }}
-                  title="Send"
-                >
-                  <Send className="w-4 h-4" />
-                </Button>
+                    {/* Action buttons with enhanced styling */}
+                    <div className="absolute right-2 bottom-2 flex items-center gap-1">
+                      {/* Voice button */}
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant={isListening ? "destructive" : "ghost"}
+                        onClick={toggleListening}
+                        disabled={isTyping || !voiceSupported}
+                        className={cn(
+                          "h-8 w-8 rounded-lg transition-all duration-200",
+                          "hover:bg-muted/80",
+                          isListening && "animate-pulse bg-red-500 hover:bg-red-600"
+                        )}
+                        title={!voiceSupported ? "Voice input not supported" : isListening ? "Stop listening" : "Start voice input"}
+                      >
+                        {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                      </Button>
+
+                      {/* Send button with enhanced states */}
+                      <Button
+                        type="submit"
+                        size="icon"
+                        className={cn(
+                          "h-8 w-8 rounded-lg transition-all duration-200",
+                          "bg-primary hover:bg-primary/90 text-primary-foreground",
+                          "shadow-sm hover:shadow-md",
+                          (isTyping || !message.trim()) && "opacity-50 cursor-not-allowed",
+                          message.trim() && "hover:scale-105 active:scale-95"
+                        )}
+                        disabled={isTyping || !message.trim()}
+                        onClick={(e) => { e.preventDefault(); handleSubmit(e); }}
+                        title="Send message"
+                      >
+                        {isTyping ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Send className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Helpful hints */}
+                  <div className="flex items-center justify-between mt-2 px-1">
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <kbd className="px-1.5 py-0.5 text-xs bg-muted rounded">Enter</kbd>
+                        to send
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <kbd className="px-1.5 py-0.5 text-xs bg-muted rounded">Shift</kbd>
+                        +
+                        <kbd className="px-1.5 py-0.5 text-xs bg-muted rounded">Enter</kbd>
+                        for new line
+                      </span>
+                    </div>
+                    {voiceSupported && (
+                      <div className="text-xs text-muted-foreground">
+                        Voice input available
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </form>
           </div>
