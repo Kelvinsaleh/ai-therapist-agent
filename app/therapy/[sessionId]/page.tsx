@@ -50,6 +50,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistanceToNow } from "date-fns";
 import { Separator } from "@/components/ui/separator";
 import { VoiceControls } from "@/components/therapy/voice-controls";
+import { FixedInput } from "@/components/chat/fixed-input";
 import { useSession } from "@/lib/contexts/session-context";
 import { toast } from "sonner";
 import { backendService } from "@/lib/api/backend-service";
@@ -876,7 +877,7 @@ export default function TherapyPage() {
             </div>
           ) : (
             // Chat messages
-            <div className="flex-1 overflow-y-auto scroll-smooth pb-28 overscroll-contain">
+            <div className="flex-1 overflow-y-auto scroll-smooth pb-[calc(120px+env(safe-area-inset-bottom))] overscroll-contain">
               <div className="max-w-3xl mx-auto">
                 <AnimatePresence initial={false}>
                   {messages.map((msg) => (
@@ -959,106 +960,51 @@ export default function TherapyPage() {
             </div>
           )}
 
-          {/* Input area */}
-          <div className="border-t bg-background/50 backdrop-blur supports-[backdrop-filter]:bg-background/50 p-4 relative z-[60] sticky bottom-0 left-0 right-0 pb-[env(safe-area-inset-bottom)]">
-            <form
-              onSubmit={handleSubmit}
-              className="max-w-3xl mx-auto flex gap-4 items-end relative"
-            >
-              <div className="flex-1 relative group">
-                <textarea
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  onFocus={() => {
-                    try { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); } catch {}
-                  }}
-                  placeholder={
-                    isChatPaused
-                      ? "Complete the activity to continue..."
-                      : isListening 
-                        ? "Listening... Speak now"
-                        : "Type or speak your message..."
-                  }
-                  className={cn(
-                    "w-full resize-none rounded-2xl border bg-background",
-                    "p-3 pr-20 min-h-[48px] max-h-[200px]",
-                    "focus:outline-none focus:ring-2 focus:ring-primary/50",
-                    isListening && "ring-2 ring-red-500/50 bg-red-50 dark:bg-red-950/20",
-                    "transition-all duration-200",
-                    "placeholder:text-muted-foreground/70",
-                    (isTyping || isChatPaused) &&
-                      "opacity-50 cursor-not-allowed"
-                  )}
-                  rows={1}
-                  disabled={isTyping || isChatPaused}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSubmit(e);
-                    }
-                  }}
-                />
-                
-                {/* Inline Mic Button next to Submit - always visible; disabled if unsupported */}
-                <Button
-                  type="button"
-                  size="icon"
-                  variant={isListening ? "destructive" : "outline"}
-                  onClick={toggleListening}
-                  disabled={isTyping || isChatPaused || !voiceSupported}
-                  className={cn(
-                    "absolute right-12 bottom-3.5 h-[36px] w-[36px]",
-                    "rounded-xl transition-all duration-200",
-                    "z-10 bg-background border",
-                    isListening && "animate-pulse"
-                  )}
-                  title={
-                    !voiceSupported
-                      ? "Voice input not supported on this device"
-                      : isListening
-                        ? "Stop listening"
-                        : "Start voice input"
-                  }
-                >
-                  {isListening ? (
-                    <MicOff className="w-4 h-4" />
-                  ) : (
-                    <Mic className="w-4 h-4" />
-                  )}
-                </Button>
-                
-                <Button
-                  type="submit"
-                  size="icon"
-                  className={cn(
-                    "absolute right-1.5 bottom-3.5 h-[36px] w-[36px]",
-                    "rounded-xl transition-all duration-200",
-                    "bg-primary hover:bg-primary/90",
-                    "shadow-sm shadow-primary/20",
-                    (isTyping || isChatPaused || !message.trim()) &&
-                      "opacity-50 cursor-not-allowed",
-                    "group-hover:scale-105 group-focus-within:scale-105"
-                  )}
-                  disabled={isTyping || isChatPaused || !message.trim()}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleSubmit(e);
-                  }}
-                >
-                  <Send className="w-4 h-4" />
-                </Button>
-              </div>
-            </form>
-            {/* Removed external VoiceControls; mic is inline in input */}
-            <div className="mt-2 text-xs text-center text-muted-foreground">
-              Press <kbd className="px-2 py-0.5 rounded bg-muted">Enter ↵</kbd>{" "}
-              to send,
-              <kbd className="px-2 py-0.5 rounded bg-muted ml-1">
-                Shift + Enter
-              </kbd>{" "}
-              for new line
-            </div>
-          </div>
+          {/* Fixed Input */}
+          <FixedInput
+            value={message}
+            onChange={setMessage}
+            onSend={handleSubmit}
+            placeholder={
+              isChatPaused
+                ? "Complete the activity to continue..."
+                : isListening
+                  ? "Listening... Speak now"
+                  : "Type or speak your message..."
+            }
+            disabled={isTyping || isChatPaused}
+            onFocusScrollIntoView={() => {
+              try { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); } catch {}
+            }}
+            rightAccessories={(
+              <Button
+                type="button"
+                size="icon"
+                variant={isListening ? "destructive" : "outline"}
+                onClick={toggleListening}
+                disabled={isTyping || isChatPaused || !voiceSupported}
+                className={cn(
+                  "h-[36px] w-[36px]",
+                  "rounded-xl transition-all duration-200",
+                  "bg-background border",
+                  isListening && "animate-pulse"
+                )}
+                title={
+                  !voiceSupported
+                    ? "Voice input not supported on this device"
+                    : isListening
+                      ? "Stop listening"
+                      : "Start voice input"
+                }
+              >
+                {isListening ? (
+                  <MicOff className="w-4 h-4" />
+                ) : (
+                  <Mic className="w-4 h-4" />
+                )}
+              </Button>
+            )}
+          />
         </div>
       </div>
     </div>
