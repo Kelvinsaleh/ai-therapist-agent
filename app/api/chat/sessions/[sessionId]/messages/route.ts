@@ -10,6 +10,9 @@ export async function POST(
   { params }: { params: { sessionId: string } }
 ) {
   try {
+    const auth = req.headers.get("authorization") || "";
+    const masked = auth ? `${auth.slice(0, 12)}…` : "<none>";
+    console.log("[proxy] POST /api/chat/sessions/:id/messages auth:", masked);
     const { sessionId } = params;
     const body = await req.json();
 
@@ -21,6 +24,7 @@ export async function POST(
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: req.headers.get("authorization") || "",
             ...(process.env.BACKEND_API_KEY ? { "x-api-key": process.env.BACKEND_API_KEY } : {}),
           },
           body: JSON.stringify(body),
@@ -32,6 +36,7 @@ export async function POST(
     };
 
     let res = await doFetch();
+    console.log("[proxy] POST /chat/sessions/:id/messages upstream status:", res.status);
     if (res.status >= 500) {
       for (let i = 0; i < RETRIES; i++) {
         await new Promise(r => setTimeout(r, 600));

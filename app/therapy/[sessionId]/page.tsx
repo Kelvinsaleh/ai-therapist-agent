@@ -962,47 +962,47 @@ export default function TherapyPage() {
 
           {/* Fixed Input */}
           <FixedInput
-            value={message}
+                  value={message}
             onChange={setMessage}
             onSend={handleSubmit}
-            placeholder={
-              isChatPaused
-                ? "Complete the activity to continue..."
-                : isListening
-                  ? "Listening... Speak now"
-                  : "Type or speak your message..."
-            }
-            disabled={isTyping || isChatPaused}
+                  placeholder={
+                    isChatPaused
+                      ? "Complete the activity to continue..."
+                      : isListening 
+                        ? "Listening... Speak now"
+                        : "Type or speak your message..."
+                  }
+                  disabled={isTyping || isChatPaused}
             onFocusScrollIntoView={() => {
               try { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); } catch {}
             }}
             rightAccessories={(
-              <Button
-                type="button"
-                size="icon"
-                variant={isListening ? "destructive" : "outline"}
-                onClick={toggleListening}
-                disabled={isTyping || isChatPaused || !voiceSupported}
-                className={cn(
+                <Button
+                  type="button"
+                  size="icon"
+                  variant={isListening ? "destructive" : "outline"}
+                  onClick={toggleListening}
+                  disabled={isTyping || isChatPaused || !voiceSupported}
+                  className={cn(
                   "h-[36px] w-[36px]",
-                  "rounded-xl transition-all duration-200",
+                    "rounded-xl transition-all duration-200",
                   "bg-background border",
-                  isListening && "animate-pulse"
-                )}
-                title={
-                  !voiceSupported
-                    ? "Voice input not supported on this device"
-                    : isListening
-                      ? "Stop listening"
-                      : "Start voice input"
-                }
-              >
-                {isListening ? (
-                  <MicOff className="w-4 h-4" />
-                ) : (
-                  <Mic className="w-4 h-4" />
-                )}
-              </Button>
+                    isListening && "animate-pulse"
+                  )}
+                  title={
+                    !voiceSupported
+                      ? "Voice input not supported on this device"
+                      : isListening
+                        ? "Stop listening"
+                        : "Start voice input"
+                  }
+                >
+                  {isListening ? (
+                    <MicOff className="w-4 h-4" />
+                  ) : (
+                    <Mic className="w-4 h-4" />
+                  )}
+                </Button>
             )}
           />
         </div>

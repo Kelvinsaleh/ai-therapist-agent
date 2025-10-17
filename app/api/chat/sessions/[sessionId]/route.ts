@@ -11,7 +11,17 @@ export async function GET(
 ) {
   const { sessionId } = params;
   try {
-    const res = await fetch(`${BACKEND_API_URL}/chat/sessions/${sessionId}`, { cache: "no-store" });
+    const auth = req.headers.get("authorization") || "";
+    const masked = auth ? `${auth.slice(0, 12)}…` : "<none>";
+    console.log("[proxy] GET /api/chat/sessions/:id auth:", masked);
+    const res = await fetch(`${BACKEND_API_URL}/chat/sessions/${sessionId}`, {
+      cache: "no-store",
+      headers: {
+        Authorization: auth,
+        ...(process.env.BACKEND_API_KEY ? { "x-api-key": process.env.BACKEND_API_KEY } : {}),
+      },
+    });
+    console.log("[proxy] GET /chat/sessions/:id upstream status:", res.status);
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
   } catch (error) {
@@ -42,6 +52,7 @@ export async function POST(
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: req.headers.get("authorization") || "",
             ...(process.env.BACKEND_API_KEY ? { "x-api-key": process.env.BACKEND_API_KEY } : {}),
           },
           body: JSON.stringify({ message }),
