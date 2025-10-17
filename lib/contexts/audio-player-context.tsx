@@ -75,9 +75,13 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       const response = await playlistAPI.getUserPlaylists();
       if (response.success) {
         setSavedPlaylists(response.data?.playlists || []);
+      } else {
+        console.warn('Failed to load playlists:', response.error);
+        // Don't throw error, just log warning to prevent frontend fallback
       }
     } catch (error) {
       console.error('Failed to load playlists:', error);
+      // Don't throw error, just log to prevent frontend fallback
     }
   }, []);
 
@@ -97,11 +101,14 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
         await loadSavedPlaylists();
         return response.data?.playlist;
       } else {
+        console.warn('Failed to save playlist:', response.error);
         toast.error('Failed to save playlist');
+        return undefined;
       }
     } catch (error) {
       console.error('Error saving playlist:', error);
       toast.error('Failed to save playlist');
+      return undefined;
     }
   };
 
@@ -125,6 +132,9 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
           setCurrentIndex(0);
         }
         toast.success(`Playing "${pl.name}"`);
+      } else {
+        console.warn('Failed to load playlist:', response.error);
+        toast.error('Failed to load playlist');
       }
     } catch (error) {
       console.error('Error loading playlist:', error);
@@ -239,7 +249,9 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
             }
           };
 
-          audioRef.current.addEventListener('canplay', handleCanPlay);
+          if (audioRef.current) {
+            audioRef.current.addEventListener('canplay', handleCanPlay);
+          }
           
           // Fallback timeout in case canplay doesn't fire
           setTimeout(() => {
