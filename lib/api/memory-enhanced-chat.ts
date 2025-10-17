@@ -3,6 +3,39 @@
 
 import { userMemoryManager } from "@/lib/memory/user-memory";
 
+async function fetchWithRetry(url: string, options: RequestInit, retries = 1, timeoutMs = 25000): Promise<Response> {
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : undefined;
+  const id = controller ? setTimeout(() => controller.abort(), timeoutMs) : undefined as unknown as number;
+  try {
+    const res = await fetch(url, { ...options, signal: controller?.signal });
+    if (res.status >= 500 && retries > 0) {
+      await new Promise(r => setTimeout(r, 600));
+      return fetchWithRetry(url, options, retries - 1, timeoutMs);
+    }
+    return res;
+  } catch (err) {
+    if (retries > 0) {
+      await new Promise(r => setTimeout(r, 600));
+      return fetchWithRetry(url, options, retries - 1, timeoutMs);
+    }
+    throw err;
+  } finally {
+    if (controller && id) clearTimeout(id);
+  }
+}
+
+async function parseJsonSafely(res: Response): Promise<any> {
+  const ct = res.headers.get('content-type') || '';
+  if (!ct.includes('application/json')) {
+    return { error: `Unexpected content-type: ${ct}`, status: res.status };
+  }
+  try {
+    return await res.json();
+  } catch {
+    return { error: 'Invalid JSON in response', status: res.status };
+  }
+}
+
 export interface MemoryEnhancedChatRequest {
   message: string;
   sessionId: string;
@@ -54,20 +87,21 @@ export async function sendMemoryEnhancedMessage(
     };
 
     // Send to your backend
-    const response = await fetch('/api/chat/memory-enhanced', {
+    const response = await fetchWithRetry('/api/chat/memory-enhanced', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
       body: JSON.stringify(requestPayload)
-    });
+    }, 1, 30000);
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const err = await parseJsonSafely(response);
+      throw new Error(err?.error || `HTTP ${response.status}`);
     }
 
-    const data = await response.json();
+    const data = await parseJsonSafely(response);
     
     // Update user memory with this therapy session
     await userMemoryManager.addTherapySession({
@@ -84,9 +118,12 @@ export async function sendMemoryEnhancedMessage(
     return data;
   } catch (error) {
     console.error('Error sending memory-enhanced message:', error);
-    
-    // Fallback to local processing if backend is unavailable
-    return await generateLocalResponse(message, userId);
+    // Only fallback if network/timeout (no valid response received)
+    if (error instanceof Error && (error.name === 'AbortError' || /fetch|Network|Failed to fetch|timeout/i.test(error.message))) {
+      return await generateLocalResponse(message, userId);
+    }
+    // If backend returned a structured error, surface it
+    throw error;
   }
 }
 

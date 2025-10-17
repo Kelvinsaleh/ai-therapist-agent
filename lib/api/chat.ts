@@ -40,7 +40,8 @@ export interface ApiResponse {
   };
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_BACKEND_API_URL || "https://hope-backend-2.onrender.com";
+// Route all chat traffic through our Next.js API to centralize retries/timeouts
+const API_BASE = "/api/chat";
 
 // Helper function to get auth headers
 const getAuthHeaders = () => {
@@ -58,21 +59,57 @@ const getAuthHeaders = () => {
 
 import { logger } from "@/lib/utils/logger";
 
+async function fetchWithRetry(url: string, options: RequestInit, retries = 1, timeoutMs = 25000): Promise<Response> {
+  const attempt = async (): Promise<Response> => {
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : undefined;
+    const id = controller ? setTimeout(() => controller.abort(), timeoutMs) : undefined as unknown as number;
+    try {
+      const res = await fetch(url, { ...options, signal: controller?.signal });
+      if (res.status >= 500 && retries > 0) {
+        await new Promise(r => setTimeout(r, 600));
+        return fetchWithRetry(url, options, retries - 1, timeoutMs);
+      }
+      return res;
+    } catch (err) {
+      if (retries > 0) {
+        await new Promise(r => setTimeout(r, 600));
+        return fetchWithRetry(url, options, retries - 1, timeoutMs);
+      }
+      throw err;
+    } finally {
+      if (controller && id) clearTimeout(id);
+    }
+  };
+  return attempt();
+}
+
+async function parseJsonSafely(res: Response): Promise<any> {
+  const ct = res.headers.get('content-type') || '';
+  if (!ct.includes('application/json')) {
+    return { error: `Unexpected content-type: ${ct}`, status: res.status };
+  }
+  try {
+    return await res.json();
+  } catch {
+    return { error: 'Invalid JSON in response', status: res.status };
+  }
+}
+
 export const createChatSession = async (): Promise<string> => {
   try {
     logger.debug("Creating new chat session...");
-    const response = await fetch(`${API_BASE}/chat/sessions`, {
+    const response = await fetchWithRetry(`${API_BASE}/sessions`, {
       method: "POST",
       headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
-      const error = await response.json();
+      const error = await parseJsonSafely(response);
       logger.error("Failed to create chat session", error);
       throw new Error(error.error || "Failed to create chat session");
     }
 
-    const data = await response.json();
+    const data = await parseJsonSafely(response);
     logger.debug("Chat session created", data);
     return data.sessionId;
   } catch (error) {
@@ -87,22 +124,24 @@ export const sendChatMessage = async (
 ): Promise<ApiResponse> => {
   try {
     logger.debug(`Sending message to session ${sessionId}`);
-    const response = await fetch(
-      `${API_BASE}/chat/sessions/${sessionId}/messages`,
+    const response = await fetchWithRetry(
+      `${API_BASE}/sessions/${sessionId}/messages`,
       {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify({ message }),
-      }
+      },
+      1,
+      30000
     );
 
     if (!response.ok) {
-      const error = await response.json();
+      const error = await parseJsonSafely(response);
       logger.error("Failed to send message", error);
       throw new Error(error.error || "Failed to send message");
     }
 
-    const data = await response.json();
+    const data = await parseJsonSafely(response);
     logger.debug("Message sent successfully", data);
     return data;
   } catch (error) {
@@ -116,20 +155,22 @@ export const getChatHistory = async (
 ): Promise<ChatMessage[]> => {
   try {
     logger.debug(`Fetching chat history for session ${sessionId}`);
-    const response = await fetch(
-      `${API_BASE}/chat/sessions/${sessionId}/history`,
+    const response = await fetchWithRetry(
+      `${API_BASE}/sessions/${sessionId}/history`,
       {
         headers: getAuthHeaders(),
-      }
+      },
+      1,
+      20000
     );
 
     if (!response.ok) {
-      const error = await response.json();
+      const error = await parseJsonSafely(response);
       logger.error("Failed to fetch chat history", error);
       throw new Error(error.error || "Failed to fetch chat history");
     }
 
-    const data = await response.json();
+    const data = await parseJsonSafely(response);
     logger.debug("Received chat history", data);
 
     if (!Array.isArray(data)) {
@@ -153,17 +194,17 @@ export const getChatHistory = async (
 export const getAllChatSessions = async (): Promise<ChatSession[]> => {
   try {
     logger.debug("Fetching all chat sessions...");
-    const response = await fetch(`${API_BASE}/chat/sessions`, {
+    const response = await fetchWithRetry(`${API_BASE}/sessions`, {
       headers: getAuthHeaders(),
-    });
+    }, 1, 15000);
 
     if (!response.ok) {
-      const error = await response.json();
+      const error = await parseJsonSafely(response);
       logger.error("Failed to fetch chat sessions", error);
       throw new Error(error.error || "Failed to fetch chat sessions");
     }
 
-    const data = await response.json();
+    const data = await parseJsonSafely(response);
     logger.debug("Received chat sessions", data);
 
     return data.map((session: any) => {
