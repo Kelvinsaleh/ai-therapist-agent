@@ -16,7 +16,11 @@ import {
   Calendar,
   BookOpen,
   Activity,
-  AlertCircle
+  AlertCircle,
+  Target,
+  Zap,
+  Crown,
+  CheckCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
@@ -39,6 +43,14 @@ interface ChatMessage {
     isRateLimit?: boolean;
     isFailover?: boolean;
     isError?: boolean;
+    // CBT fields
+    cbtInsights?: {
+      cognitiveDistortions?: string[];
+      challengingQuestions?: string[];
+      balancedSuggestions?: string[];
+      copingStrategies?: string[];
+    };
+    isCBTTriggered?: boolean;
   };
 }
 
@@ -48,6 +60,8 @@ export function MemoryEnhancedChat({ sessionId, userId }: MemoryEnhancedChatProp
   const [isTyping, setIsTyping] = useState(false);
   const [userMemory, setUserMemory] = useState<UserMemory | null>(null);
   const [showContext, setShowContext] = useState(false);
+  const [userTier, setUserTier] = useState<'free' | 'premium'>('free');
+  const [cbtSuggestions, setCbtSuggestions] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -71,8 +85,52 @@ export function MemoryEnhancedChat({ sessionId, userId }: MemoryEnhancedChatProp
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  // CBT detection and enhancement
+  const detectCBTTriggers = (message: string): boolean => {
+    const cbtKeywords = [
+      'always', 'never', 'all', 'none', 'terrible', 'awful', 'disaster',
+      'should', 'must', 'have to', 'my fault', 'because of me', 'i caused',
+      'they think', 'they believe', 'will never', 'will always', 'obviously',
+      'clearly', 'i am', 'you are', 'they are', 'huge', 'tiny', 'massive'
+    ];
+    
+    const lowerMessage = message.toLowerCase();
+    return cbtKeywords.some(keyword => lowerMessage.includes(keyword));
+  };
+
+  const getCBTSuggestions = async (message: string): Promise<string[]> => {
+    if (userTier !== 'premium') return [];
+    
+    try {
+      const response = await fetch('/api/cbt/insights', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token') || localStorage.getItem('authToken')}`
+        },
+        body: JSON.stringify({
+          text: message,
+          type: 'general_insights'
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        return data.data?.copingStrategies || [];
+      }
+    } catch (error) {
+      console.error('Failed to get CBT suggestions:', error);
+    }
+    
+    return [];
+  };
+
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isTyping) return;
+
+    // Detect CBT triggers
+    const hasCBTTriggers = detectCBTTriggers(inputMessage);
+    const cbtSuggestions = hasCBTTriggers ? await getCBTSuggestions(inputMessage) : [];
 
     const userMessage: ChatMessage = {
       role: "user",
@@ -80,7 +138,11 @@ export function MemoryEnhancedChat({ sessionId, userId }: MemoryEnhancedChatProp
       timestamp: new Date(),
       context: {
         mood: userMemory?.moodPatterns[userMemory.moodPatterns.length - 1]?.mood || 3,
-        themes: extractThemes(inputMessage)
+        themes: extractThemes(inputMessage),
+        isCBTTriggered: hasCBTTriggers,
+        cbtInsights: hasCBTTriggers ? {
+          copingStrategies: cbtSuggestions
+        } : undefined
       }
     };
 

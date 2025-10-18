@@ -12,8 +12,8 @@ export interface SessionLimits {
 }
 
 export const FREE_TIER_LIMITS: SessionLimits = {
-  maxSessionsPerWeek: 3,
-  maxSessionsPerDay: 1,
+  maxSessionsPerWeek: 5,
+  maxSessionsPerDay: 2,
   maxSessionDuration: 30, // 30 minutes max per session
   canUseVoice: true, // Basic voice features
   canUseAdvancedFeatures: false,
@@ -38,7 +38,7 @@ export interface FeatureLimits {
 
 export const FREE_FEATURE_LIMITS: FeatureLimits = {
   maxMeditationSessionsPerWeek: 5,
-  maxJournalEntriesPerWeek: 10,
+  maxJournalEntriesPerWeek: 5,
   canAccessAIJournalAnalysis: false,
   canAccessAdvancedMeditation: false,
   canAccessCrisisSupport: true, // Basic crisis support

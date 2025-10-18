@@ -18,7 +18,10 @@ import {
   Edit,
   Trash2,
   Crown,
-  AlertCircle
+  AlertCircle,
+  Target,
+  CheckCircle,
+  Zap
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -39,6 +42,21 @@ interface JournalEntry {
   keyThemes?: string[];
   concerns?: string[];
   achievements?: string[];
+  // CBT fields
+  cbtTemplate?: 'regular' | 'thought_record';
+  situation?: string;
+  automaticThoughts?: string;
+  emotions?: string[];
+  emotionIntensity?: number;
+  evidenceFor?: string;
+  evidenceAgainst?: string;
+  balancedThought?: string;
+  cognitiveDistortions?: string[];
+  cbtInsights?: {
+    detectedDistortions: string[];
+    challengingQuestions: string[];
+    balancedSuggestions: string[];
+  };
 }
 
 export default function JournalingPage() {
@@ -48,6 +66,19 @@ export default function JournalingPage() {
   const [entryTitle, setEntryTitle] = useState("");
   const [mood, setMood] = useState(5);
   const [tags, setTags] = useState<string[]>([]);
+  
+  // CBT template state
+  const [cbtTemplate, setCbtTemplate] = useState<'regular' | 'thought_record'>('regular');
+  const [cbtData, setCbtData] = useState({
+    situation: '',
+    automaticThoughts: '',
+    emotions: [] as string[],
+    emotionIntensity: 5,
+    evidenceFor: '',
+    evidenceAgainst: '',
+    balancedThought: '',
+    cognitiveDistortions: [] as string[]
+  });
   const [newTag, setNewTag] = useState("");
   const [saved, setSaved] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
@@ -190,14 +221,52 @@ export default function JournalingPage() {
       } catch {}
     }
 
+    // Generate CBT insights for thought records
+    let cbtInsights = undefined;
+    if (cbtTemplate === 'thought_record' && userTier === 'premium' && cbtData.automaticThoughts) {
+      try {
+        const response = await fetch('/api/cbt/insights', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token') || localStorage.getItem('authToken')}`
+          },
+          body: JSON.stringify({
+            text: cbtData.automaticThoughts,
+            type: 'thought_analysis'
+          })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          cbtInsights = data.data;
+        }
+      } catch (error) {
+        console.error('Failed to get CBT insights:', error);
+      }
+    }
+
     const newEntry: JournalEntry = {
       id: Date.now().toString(),
       title: entryTitle || `Entry ${format(new Date(), "MMM dd, yyyy")}`,
-      content: currentEntry,
+      content: cbtTemplate === 'thought_record' 
+        ? `Situation: ${cbtData.situation}\n\nAutomatic Thoughts: ${cbtData.automaticThoughts}\n\nEmotions: ${cbtData.emotions.join(', ')} (${cbtData.emotionIntensity}/10)\n\nEvidence For: ${cbtData.evidenceFor}\n\nEvidence Against: ${cbtData.evidenceAgainst}\n\nBalanced Thought: ${cbtData.balancedThought}`
+        : currentEntry,
       mood,
       tags,
       createdAt: new Date(),
-      insights: userTier === "premium" ? generateInsights(currentEntry, mood) : undefined
+      insights: userTier === "premium" ? generateInsights(currentEntry, mood) : undefined,
+      // CBT fields
+      cbtTemplate,
+      situation: cbtData.situation,
+      automaticThoughts: cbtData.automaticThoughts,
+      emotions: cbtData.emotions,
+      emotionIntensity: cbtData.emotionIntensity,
+      evidenceFor: cbtData.evidenceFor,
+      evidenceAgainst: cbtData.evidenceAgainst,
+      balancedThought: cbtData.balancedThought,
+      cognitiveDistortions: cbtInsights?.cognitiveDistortions || [],
+      cbtInsights
     };
 
     const updatedEntries = [newEntry, ...entries];
@@ -259,6 +328,17 @@ export default function JournalingPage() {
     setEntryTitle("");
     setMood(5);
     setTags([]);
+    setCbtTemplate('regular');
+    setCbtData({
+      situation: '',
+      automaticThoughts: '',
+      emotions: [],
+      emotionIntensity: 5,
+      evidenceFor: '',
+      evidenceAgainst: '',
+      balancedThought: '',
+      cognitiveDistortions: []
+    });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -532,6 +612,32 @@ export default function JournalingPage() {
                 </div>
               </div>
 
+              {/* CBT Template Selection */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Journal Template</label>
+                <div className="flex gap-2 mb-4">
+                  <Button
+                    variant={cbtTemplate === 'regular' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setCbtTemplate('regular')}
+                    className="flex items-center gap-2"
+                  >
+                    <NotebookPen className="w-4 h-4" />
+                    Regular Journal
+                  </Button>
+                  <Button
+                    variant={cbtTemplate === 'thought_record' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setCbtTemplate('thought_record')}
+                    className="flex items-center gap-2"
+                  >
+                    <Brain className="w-4 h-4" />
+                    CBT Thought Record
+                    {userTier === 'premium' && <Crown className="w-3 h-3" />}
+                  </Button>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium mb-2">Tags</label>
                 <div className="flex flex-wrap gap-2 mb-2">
@@ -582,24 +688,148 @@ export default function JournalingPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">What's on your mind?</label>
-                <textarea
-                  value={currentEntry}
-                  onChange={(e) => {
-                    setCurrentEntry(e.target.value);
-                    setSaved(false);
-                  }}
-                  placeholder="Write freely about your thoughts, feelings, experiences, or anything else on your mind..."
-                  className="w-full min-h-[300px] rounded-md border p-3 bg-background resize-none"
-                />
-              </div>
+              {/* Regular Journal Entry */}
+              {cbtTemplate === 'regular' && (
+                <div>
+                  <label className="block text-sm font-medium mb-2">What's on your mind?</label>
+                  <textarea
+                    value={currentEntry}
+                    onChange={(e) => {
+                      setCurrentEntry(e.target.value);
+                      setSaved(false);
+                    }}
+                    placeholder="Write freely about your thoughts, feelings, experiences, or anything else on your mind..."
+                    className="w-full min-h-[300px] rounded-md border p-3 bg-background resize-none"
+                  />
+                </div>
+              )}
+
+              {/* CBT Thought Record Form */}
+              {cbtTemplate === 'thought_record' && (
+                <div className="space-y-6">
+                  <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Brain className="w-5 h-5 text-blue-600" />
+                      <h3 className="font-semibold text-blue-900 dark:text-blue-100">CBT Thought Record</h3>
+                    </div>
+                    <p className="text-sm text-blue-700 dark:text-blue-300">
+                      Use this structured approach to challenge unhelpful thoughts and develop balanced thinking.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Situation</label>
+                    <textarea
+                      value={cbtData.situation}
+                      onChange={(e) => setCbtData({...cbtData, situation: e.target.value})}
+                      placeholder="What happened? Where were you? Who was with you?"
+                      className="w-full min-h-[80px] rounded-md border p-3 bg-background resize-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Automatic Thoughts</label>
+                    <textarea
+                      value={cbtData.automaticThoughts}
+                      onChange={(e) => setCbtData({...cbtData, automaticThoughts: e.target.value})}
+                      placeholder="What thoughts went through your mind? What did you believe?"
+                      className="w-full min-h-[80px] rounded-md border p-3 bg-background resize-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Emotions & Intensity</label>
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap gap-2">
+                        {['Anxious', 'Sad', 'Angry', 'Frustrated', 'Guilty', 'Shame', 'Fear', 'Worry', 'Happy', 'Content', 'Excited', 'Proud'].map(emotion => (
+                          <button
+                            key={emotion}
+                            onClick={() => {
+                              const emotions = cbtData.emotions.includes(emotion)
+                                ? cbtData.emotions.filter(e => e !== emotion)
+                                : [...cbtData.emotions, emotion];
+                              setCbtData({...cbtData, emotions});
+                            }}
+                            className={`px-3 py-1 rounded-full text-sm border transition-colors ${
+                              cbtData.emotions.includes(emotion)
+                                ? 'bg-primary text-primary-foreground border-primary'
+                                : 'bg-background border-border hover:border-primary/50'
+                            }`}
+                          >
+                            {emotion}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <span className="text-sm text-muted-foreground">Intensity:</span>
+                        <input
+                          type="range"
+                          min="1"
+                          max="10"
+                          value={cbtData.emotionIntensity}
+                          onChange={(e) => setCbtData({...cbtData, emotionIntensity: parseInt(e.target.value)})}
+                          className="flex-1"
+                        />
+                        <span className="text-sm font-medium">{cbtData.emotionIntensity}/10</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Evidence For This Thought</label>
+                    <textarea
+                      value={cbtData.evidenceFor}
+                      onChange={(e) => setCbtData({...cbtData, evidenceFor: e.target.value})}
+                      placeholder="What evidence supports this thought?"
+                      className="w-full min-h-[60px] rounded-md border p-3 bg-background resize-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Evidence Against This Thought</label>
+                    <textarea
+                      value={cbtData.evidenceAgainst}
+                      onChange={(e) => setCbtData({...cbtData, evidenceAgainst: e.target.value})}
+                      placeholder="What evidence contradicts this thought?"
+                      className="w-full min-h-[60px] rounded-md border p-3 bg-background resize-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Balanced Thought</label>
+                    <textarea
+                      value={cbtData.balancedThought}
+                      onChange={(e) => setCbtData({...cbtData, balancedThought: e.target.value})}
+                      placeholder="What's a more balanced way of thinking about this situation?"
+                      className="w-full min-h-[80px] rounded-md border p-3 bg-background resize-none"
+                    />
+                  </div>
+
+                  {/* AI-Powered CBT Insights for Premium Users */}
+                  {userTier === 'premium' && cbtData.automaticThoughts && (
+                    <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Zap className="w-4 h-4 text-purple-600" />
+                        <h4 className="font-semibold text-purple-900 dark:text-purple-100">AI CBT Insights</h4>
+                        <Crown className="w-3 h-3 text-yellow-500" />
+                      </div>
+                      <div className="text-sm text-purple-700 dark:text-purple-300">
+                        <p>AI analysis will appear here to help identify cognitive distortions and suggest challenging questions.</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Button
                     onClick={handleSave}
-                    disabled={!currentEntry.trim()}
+                    disabled={
+                      cbtTemplate === 'regular' 
+                        ? !currentEntry.trim()
+                        : !cbtData.situation.trim() || !cbtData.automaticThoughts.trim()
+                    }
                     className="bg-primary/90 hover:bg-primary"
                   >
                     <Save className="w-4 h-4 mr-2" />
