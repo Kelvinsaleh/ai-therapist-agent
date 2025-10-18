@@ -8,6 +8,8 @@ export interface ApiResponse<T = any> {
   data?: T;
   error?: string;
   message?: string;
+  isAuthError?: boolean;
+  isNetworkError?: boolean;
 }
 
 export interface User {
@@ -86,25 +88,36 @@ class BackendService {
           ...this.getHeaders(),
           ...options.headers,
         },
-        signal: AbortSignal.timeout(10000),
+        signal: AbortSignal.timeout(15000), // Increased timeout to 15 seconds
       });
 
       console.log(`Response status: ${response.status}`);
 
       if (!response.ok) {
         let errorText = `HTTP ${response.status}`;
+        let isAuthError = false;
+        
         try {
           const data = await response.json();
-          errorText = typeof (data?.error) === 'string'
-            ? data.error
-            : (typeof (data?.message) === 'string' ? data.message : errorText);
+          if (data?.error) {
+            errorText = data.error;
+            // Check if this is specifically an authentication error
+            isAuthError = response.status === 401 || 
+                         data.error.toLowerCase().includes('invalid') ||
+                         data.error.toLowerCase().includes('credential') ||
+                         data.error.toLowerCase().includes('unauthorized');
+          } else if (data?.message) {
+            errorText = data.message;
+          }
         } catch (e) {
           errorText = response.statusText || errorText;
+          isAuthError = response.status === 401;
         }
         
         return {
           success: false,
           error: errorText,
+          isAuthError, // Add flag to distinguish auth errors
         };
       }
 
@@ -117,11 +130,15 @@ class BackendService {
       console.error(`API request failed for ${endpoint}:`, error);
       
       let errorMessage = 'Network error';
+      let isNetworkError = false;
+      
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
-          errorMessage = 'Request timeout - server is not responding';
-        } else if (error.message.includes('fetch')) {
+          errorMessage = 'Request timeout - server is not responding. Please try again.';
+          isNetworkError = true;
+        } else if (error.message.includes('fetch') || error.message.includes('network')) {
           errorMessage = 'Cannot connect to server - check your internet connection';
+          isNetworkError = true;
         } else {
           errorMessage = error.message;
         }
@@ -130,6 +147,7 @@ class BackendService {
       return {
         success: false,
         error: errorMessage,
+        isNetworkError, // Add flag to distinguish network errors
       };
     }
   }

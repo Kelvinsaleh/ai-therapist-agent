@@ -146,6 +146,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       }
       
       console.log("Session context: Login failed - response not successful or no data");
+      // Log the specific error type for debugging
+      if (response.isNetworkError) {
+        console.log("Session context: Network error during login:", response.error);
+      } else if (response.isAuthError) {
+        console.log("Session context: Authentication error during login:", response.error);
+      }
       return false;
     } catch (error) {
       console.error("Session context: Login error:", error);

@@ -31,7 +31,18 @@ export default function SignupPage() {
       await registerUser(name, email, password);
       router.push("/login");
     } catch (err: any) {
-      setError(err.message || "Signup failed. Please try again.");
+      const errorMessage = err.message || "Signup failed. Please try again.";
+      
+      // Provide more helpful error messages
+      if (errorMessage.includes("timeout") || errorMessage.includes("Request timeout")) {
+        setError("Server is taking longer than expected to respond. Please try again in a moment.");
+      } else if (errorMessage.includes("Cannot connect") || errorMessage.includes("Network error")) {
+        setError("Network connection issue. Please check your internet connection and try again.");
+      } else if (errorMessage.includes("email") && errorMessage.includes("already")) {
+        setError("An account with this email already exists. Please use a different email or try logging in.");
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }

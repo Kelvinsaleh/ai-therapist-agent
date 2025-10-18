@@ -41,8 +41,20 @@ export default function LoginPage() {
           router.push("/therapy/memory-enhanced");
         }, 1000);
       } else {
-        setError("Invalid email or password. Please check your credentials.");
-        toast.error("Login failed. Please check your credentials.");
+        // Get the backend service response to check error type
+        const { backendService } = await import("@/lib/api/backend-service");
+        const response = await backendService.login(email, password);
+        
+        if (response.isNetworkError) {
+          setError("Network connection issue. Please check your internet connection and try again.");
+          toast.error("Connection failed. Please try again.");
+        } else if (response.isAuthError) {
+          setError("Invalid email or password. Please check your credentials.");
+          toast.error("Invalid credentials. Please try again.");
+        } else {
+          setError(response.error || "Login failed. Please try again.");
+          toast.error("Login failed. Please try again.");
+        }
       }
     } catch (err) {
       console.error("Login error:", err);
@@ -51,13 +63,14 @@ export default function LoginPage() {
       // Provide more helpful error messages
       if (errorMessage.includes("timeout") || errorMessage.includes("Cannot connect")) {
         setError("Server is currently unavailable. Please try again in a few minutes.");
+        toast.error("Server timeout. Please try again.");
       } else if (errorMessage.includes("Invalid email or password")) {
         setError("Invalid email or password. Please check your credentials.");
+        toast.error("Invalid credentials. Please try again.");
       } else {
         setError(errorMessage);
+        toast.error("Login failed. Please try again.");
       }
-      
-      toast.error("Login failed. Please try again.");
     } finally {
       setLoading(false);
     }
