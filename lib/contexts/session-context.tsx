@@ -73,7 +73,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           
           // Get user tier/subscription status
           try {
-            const tierResponse = await fetch((process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.BACKEND_API_URL || 'https://hope-backend-2.onrender.com') + '/subscription/status', {
+            const tierResponse = await fetch((process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.BACKEND_API_URL || 'https://hope-backend-2.onrender.com') + '/payments/subscription/status', {
               headers: {
                 'Authorization': `Bearer ${token}`,
               },
@@ -81,7 +81,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
             
             if (tierResponse.ok) {
               const tierData = await tierResponse.json();
-              setUserTier(tierData.userTier || "free");
+              setUserTier(tierData.isPremium ? "premium" : "free");
             } else {
               setUserTier("free");
             }
@@ -123,7 +123,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         
         // Get user tier after login
         try {
-          const tierResponse = await fetch((process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.BACKEND_API_URL || 'https://hope-backend-2.onrender.com') + '/subscription/status', {
+          const tierResponse = await fetch((process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.BACKEND_API_URL || 'https://hope-backend-2.onrender.com') + '/payments/subscription/status', {
             headers: {
               'Authorization': `Bearer ${response.data.token}`,
             },
@@ -131,7 +131,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           
           if (tierResponse.ok) {
             const tierData = await tierResponse.json();
-            setUserTier(tierData.userTier || "free");
+            setUserTier(tierData.isPremium ? "premium" : "free");
           } else {
             setUserTier("free");
           }
