@@ -37,7 +37,7 @@ export default function SignupPage() {
       if (errorMessage.includes("timeout") || errorMessage.includes("Request timeout")) {
         setError("Server is taking longer than expected to respond. Please try again in a moment.");
       } else if (errorMessage.includes("Cannot connect") || errorMessage.includes("Network error")) {
-        setError("Network connection issue. Please check your internet connection and try again.");
+        setError("Unable to connect to the server. This might be a temporary issue. Please try again in a moment.");
       } else if (errorMessage.includes("email") && errorMessage.includes("already")) {
         setError("An account with this email already exists. Please use a different email or try logging in.");
       } else {

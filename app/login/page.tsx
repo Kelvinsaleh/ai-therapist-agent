@@ -46,8 +46,8 @@ export default function LoginPage() {
         const response = await backendService.login(email, password);
         
         if (response.isNetworkError) {
-          setError("Network connection issue. Please check your internet connection and try again.");
-          toast.error("Connection failed. Please try again.");
+          setError("Unable to connect to the server. This might be a temporary issue. Please try again in a moment.");
+          toast.error("Server connection issue. Please try again.");
         } else if (response.isAuthError) {
           setError("Invalid email or password. Please check your credentials.");
           toast.error("Invalid credentials. Please try again.");

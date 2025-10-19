@@ -81,6 +81,8 @@ class BackendService {
     try {
       const url = `${this.baseURL}${endpoint}`;
       console.log(`Making request to: ${url}`);
+      console.log(`Backend URL: ${this.baseURL}`);
+      console.log(`Full URL: ${url}`);
       
       const response = await fetch(url, {
         ...options,
@@ -92,6 +94,7 @@ class BackendService {
       });
 
       console.log(`Response status: ${response.status}`);
+      console.log(`Response headers:`, Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
         let errorText = `HTTP ${response.status}`;
@@ -136,9 +139,12 @@ class BackendService {
         if (error.name === 'AbortError') {
           errorMessage = 'Request timeout - server is not responding. Please try again.';
           isNetworkError = true;
-        } else if (error.message.includes('fetch') || error.message.includes('network')) {
-          errorMessage = 'Cannot connect to server - check your internet connection';
+        } else if (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('Failed to fetch')) {
+          errorMessage = 'Unable to connect to the server. This might be a temporary issue. Please try again in a moment.';
           isNetworkError = true;
+        } else if (error.message.includes('CORS')) {
+          errorMessage = 'Server configuration issue. Please try again.';
+          isNetworkError = false;
         } else {
           errorMessage = error.message;
         }
