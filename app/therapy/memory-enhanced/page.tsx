@@ -34,6 +34,8 @@ import {
 import { backendService } from "@/lib/api/backend-service";
 import { logger } from "@/lib/utils/logger";
 import { LoadingDots } from "@/components/ui/loading-dots";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { Skeleton, SkeletonChat } from "@/components/ui/skeleton";
 
 // TypeScript declarations for Speech Recognition
 declare global {

@@ -32,7 +32,11 @@ export function Header() {
   return (
     <div className="w-full fixed top-0 z-[100] bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="absolute inset-0 border-b border-primary/10" />
-      <header className="relative max-w-6xl mx-auto px-4">
+      <header 
+        id="main-navigation"
+        className="relative max-w-6xl mx-auto px-4"
+        role="banner"
+      >
         <div className="flex h-16 items-center justify-between">
           <Link
             href="/"
@@ -50,12 +54,17 @@ export function Header() {
           </Link>
 
           <div className="flex items-center gap-4">
-            <nav className="hidden md:flex items-center space-x-1">
+            <nav 
+              className="hidden md:flex items-center space-x-1"
+              role="navigation"
+              aria-label="Main navigation"
+            >
               {navItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors relative group"
+                  className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors relative group focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-md"
+                  aria-label={`Navigate to ${item.label}`}
                 >
                   {item.label}
                   <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary scale-x-0 group-hover:scale-x-100 transition-transform duration-200 origin-left" />
@@ -77,8 +86,11 @@ export function Header() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="md:hidden"
+                className="md:hidden focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
+                aria-label={isMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+                aria-expanded={isMenuOpen}
+                aria-controls="mobile-navigation"
               >
                 {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </Button>
@@ -125,7 +137,12 @@ export function Header() {
             />
             
             {/* Menu content */}
-            <div className="md:hidden border-t border-primary/10 bg-background/98 backdrop-blur-sm relative z-[95]">
+            <div 
+              id="mobile-navigation"
+              className="md:hidden border-t border-primary/10 bg-background/98 backdrop-blur-sm relative z-[95]"
+              role="navigation"
+              aria-label="Mobile navigation"
+            >
               {/* Mental Health Data for mobile */}
               {isAuthenticated && (
                 <div className="p-4 border-b border-primary/10">
@@ -137,8 +154,9 @@ export function Header() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className="px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-primary/5 rounded-md transition-colors"
+                    className="px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-primary/5 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
                     onClick={() => setIsMenuOpen(false)}
+                    aria-label={`Navigate to ${item.label}`}
                   >
                     {item.label}
                   </Link>

@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AccessibleCard } from "@/components/ui/accessible-card";
+import { AccessibleButton } from "@/components/ui/accessible-button";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -400,15 +402,31 @@ export default function MeditationsPage() {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            {showFavorites ? "My Favorite Meditations" : "Meditation Library"}
-          </h1>
+          <div className="flex items-center justify-center gap-3 mb-4">
+            {showFavorites && (
+              <Heart className="w-8 h-8 text-red-500 fill-current" />
+            )}
+            <h1 className="text-4xl font-bold text-gray-900">
+              {showFavorites ? "My Favorite Meditations" : "Meditation Library"}
+            </h1>
+            {showFavorites && (
+              <Heart className="w-8 h-8 text-red-500 fill-current" />
+            )}
+          </div>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
             {showFavorites 
               ? "Your personal collection of meditations that bring you peace and mindfulness."
               : "Discover guided meditations to help you find peace, reduce stress, and improve your well-being."
             }
           </p>
+          {showFavorites && favoriteMeditations.length > 0 && (
+            <div className="mt-4">
+              <Badge variant="default" className="bg-red-500 hover:bg-red-600 text-white">
+                <Heart className="w-3 h-3 mr-1 fill-current" />
+                {favoriteMeditations.length} Favorite{favoriteMeditations.length !== 1 ? 's' : ''}
+              </Badge>
+            </div>
+          )}
         </div>
 
         {/* Search and Filter */}
@@ -440,9 +458,13 @@ export default function MeditationsPage() {
                     variant={showFavorites ? "default" : "outline"}
                     onClick={() => setShowFavorites(true)}
                     size="sm"
-                    className="gap-2"
+                    className={`gap-2 ${
+                      showFavorites 
+                        ? 'bg-red-500 hover:bg-red-600 text-white border-red-500' 
+                        : 'text-red-500 hover:text-red-600 hover:border-red-500'
+                    }`}
                   >
-                    <Heart className="w-4 h-4" />
+                    <Heart className={`w-4 h-4 ${showFavorites ? 'fill-current' : ''}`} />
                     Favorites ({favoriteMeditations.length})
                   </Button>
                 )}
@@ -512,19 +534,24 @@ export default function MeditationsPage() {
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <Card className="h-full hover:shadow-lg transition-shadow duration-300">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-2">
-                          <Headphones className="w-5 h-5 text-primary" />
-                          <CardTitle className="text-lg">{meditation.title}</CardTitle>
-                        </div>
-                        {meditation.isPremium && (
-                          <Crown className="w-5 h-5 text-amber-500" />
-                        )}
+                  <AccessibleCard
+                    title={meditation.title}
+                    description={meditation.description}
+                    className="h-full hover:shadow-lg transition-shadow duration-300"
+                    ariaLabel={`Meditation: ${meditation.title}`}
+                    ariaDescribedBy={`meditation-${meditation.id}-description`}
+                    interactive={false}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <Headphones className="w-5 h-5 text-primary" aria-hidden="true" />
+                        <h3 className="text-lg font-semibold">{meditation.title}</h3>
                       </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
+                      {meditation.isPremium && (
+                        <Crown className="w-5 h-5 text-amber-500" aria-label="Premium meditation" />
+                      )}
+                    </div>
+                    <div className="space-y-4">
                       <p className="text-gray-600 text-sm line-clamp-2">
                         {meditation.description}
                       </p>
@@ -539,23 +566,34 @@ export default function MeditationsPage() {
                         </Badge>
                       </div>
 
-                      {meditation.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {meditation.tags.slice(0, 3).map((tag, index) => (
-                            <Badge key={index} variant="outline" className="text-xs">
-                              {tag}
-                            </Badge>
-                          ))}
-                          {meditation.tags.length > 3 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{meditation.tags.length - 3}
-                            </Badge>
-                          )}
-                        </div>
-                      )}
+                      <div className="flex flex-wrap gap-1">
+                        {/* Favorites tag */}
+                        {isAuthenticated && favoriteStatus[meditation.id] && (
+                          <Badge variant="default" className="text-xs bg-red-500 hover:bg-red-600">
+                            <Heart className="w-3 h-3 mr-1 fill-current" />
+                            Favorites
+                          </Badge>
+                        )}
+                        
+                        {/* Regular tags */}
+                        {meditation.tags.length > 0 && (
+                          <>
+                            {meditation.tags.slice(0, 3).map((tag, index) => (
+                              <Badge key={index} variant="outline" className="text-xs">
+                                {tag}
+                              </Badge>
+                            ))}
+                            {meditation.tags.length > 3 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{meditation.tags.length - 3}
+                              </Badge>
+                            )}
+                          </>
+                        )}
+                      </div>
 
                       <div className="flex gap-2">
-                        <Button
+                        <AccessibleButton
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -564,57 +602,68 @@ export default function MeditationsPage() {
                           }}
                           className="flex-1"
                           disabled={meditation.isPremium && userTier === "free"}
+                          ariaLabel={
+                            currentTrack?._id === meditation.id
+                              ? isPlaying
+                                ? "Pause meditation"
+                                : "Resume meditation"
+                              : "Play meditation"
+                          }
                         >
                           {currentTrack?._id === meditation.id ? (
                             isPlaying ? (
                               <>
-                                <Pause className="w-4 h-4 mr-2" />
+                                <Pause className="w-4 h-4 mr-2" aria-hidden="true" />
                                 Pause
                               </>
                             ) : (
                               <>
-                                <Play className="w-4 h-4 mr-2" />
+                                <Play className="w-4 h-4 mr-2" aria-hidden="true" />
                                 Resume
                               </>
                             )
                           ) : (
                             <>
-                              <Play className="w-4 h-4 mr-2" />
+                              <Play className="w-4 h-4 mr-2" aria-hidden="true" />
                               Play
                             </>
                           )}
-                        </Button>
-                        <Button
+                        </AccessibleButton>
+                        <AccessibleButton
                           size="sm"
                           variant="outline"
                           onClick={() => handleAddToPlaylist(meditation)}
                           className="gap-2"
+                          ariaLabel="Add meditation to playlist"
                         >
-                          <ListPlus className="w-4 h-4" />
+                          <ListPlus className="w-4 h-4" aria-hidden="true" />
                           Add
-                        </Button>
-                        <Button
+                        </AccessibleButton>
+                        <AccessibleButton
                           size="sm"
-                          variant="outline"
+                          variant={favoriteStatus[meditation.id] ? "default" : "outline"}
                           onClick={() => toggleFavorite(meditation.id)}
                           disabled={favoriteLoading[meditation.id]}
                           className={`gap-2 ${
                             favoriteStatus[meditation.id] 
-                              ? 'text-red-500 hover:text-red-600' 
-                              : 'text-gray-500 hover:text-red-500'
+                              ? 'bg-red-500 hover:bg-red-600 text-white border-red-500' 
+                              : 'text-gray-500 hover:text-red-500 hover:border-red-500'
                           }`}
+                          ariaLabel={favoriteStatus[meditation.id] ? "Remove from favorites" : "Add to favorites"}
+                          loading={favoriteLoading[meditation.id]}
+                          loadingText="Updating..."
                         >
                           {favoriteLoading[meditation.id] ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
                           ) : favoriteStatus[meditation.id] ? (
-                            <Heart className="w-4 h-4 fill-current" />
+                            <Heart className="w-4 h-4 fill-current" aria-hidden="true" />
                           ) : (
-                            <HeartOff className="w-4 h-4" />
+                            <HeartOff className="w-4 h-4" aria-hidden="true" />
                           )}
-                        </Button>
+                        </AccessibleButton>
                       </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </AccessibleCard>
                 </motion.div>
               ))}
             </AnimatePresence>

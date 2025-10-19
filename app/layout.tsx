@@ -7,6 +7,7 @@ import { SessionProvider } from "@/lib/contexts/session-context";
 import { AudioPlayerProvider } from "@/lib/contexts/audio-player-context";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
+import { SkipToMainContent, SkipToNavigation } from "@/components/ui/skip-link";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -28,11 +29,13 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
+        <SkipToMainContent />
+        <SkipToNavigation />
         <ThemeProvider>
           <SessionProvider>
             <AudioPlayerProvider>
               <Header />
-              <main className="pt-16 pb-28">
+              <main id="main-content" className="pt-16 pb-28" role="main">
                 {children}
               </main>
               <Footer />
