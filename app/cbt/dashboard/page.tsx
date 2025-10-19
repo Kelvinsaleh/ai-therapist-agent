@@ -83,7 +83,7 @@ export default function CBTDashboard() {
       title: "Thought Records",
       description: "Challenge negative thoughts and develop balanced thinking",
       icon: Brain,
-      href: "/cbt/thought-records",
+      href: "/journaling",
       color: "bg-blue-500",
       completed: progress.thoughtRecordsCompleted,
       isPremium: false
@@ -92,7 +92,7 @@ export default function CBTDashboard() {
       title: "Behavioral Activation",
       description: "Schedule activities and track your mood",
       icon: Activity,
-      href: "/cbt/behavioral-activation",
+      href: "/dashboard",
       color: "bg-green-500",
       completed: progress.activitiesScheduled,
       isPremium: false
@@ -101,7 +101,7 @@ export default function CBTDashboard() {
       title: "Mood Tracking",
       description: "Monitor your emotional patterns and triggers",
       icon: Heart,
-      href: "/cbt/mood-tracking",
+      href: "/dashboard",
       color: "bg-pink-500",
       completed: progress.moodEntries,
       isPremium: false
@@ -110,7 +110,7 @@ export default function CBTDashboard() {
       title: "Relaxation Techniques",
       description: "Learn breathing exercises and relaxation methods",
       icon: Wind,
-      href: "/cbt/relaxation",
+      href: "/meditations",
       color: "bg-purple-500",
       completed: progress.relaxationSessions,
       isPremium: userTier === "premium"
@@ -119,7 +119,7 @@ export default function CBTDashboard() {
       title: "Goal Setting",
       description: "Set and track therapeutic goals",
       icon: Target,
-      href: "/cbt/goals",
+      href: "/dashboard",
       color: "bg-orange-500",
       completed: progress.goalsAchieved,
       isPremium: userTier === "premium"
@@ -249,7 +249,7 @@ export default function CBTDashboard() {
                     </p>
                   </div>
                   <Button size="sm" asChild>
-                    <Link href="/cbt/thought-records">Start</Link>
+                    <Link href="/journaling">Start</Link>
                   </Button>
                 </div>
               </CardContent>
@@ -268,7 +268,7 @@ export default function CBTDashboard() {
                     </p>
                   </div>
                   <Button size="sm" asChild>
-                    <Link href="/cbt/mood-tracking">Start</Link>
+                    <Link href="/dashboard">Start</Link>
                   </Button>
                 </div>
               </CardContent>
