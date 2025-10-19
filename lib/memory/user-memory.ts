@@ -105,7 +105,7 @@ class UserMemoryManager {
               goals: [],
               challenges: [],
             },
-            journalEntries: journalResponse.data.map((entry: any) => ({
+            journalEntries: Array.isArray(journalResponse.data) ? journalResponse.data.map((entry: any) => ({
               id: entry._id,
               date: new Date(entry.createdAt),
               mood: entry.mood,
@@ -116,7 +116,7 @@ class UserMemoryManager {
               concerns: this.extractConcerns(entry.content),
               achievements: this.extractAchievements(entry.content),
               insights: entry.insights || []
-            })),
+            })) : [],
             meditationHistory: [],
             therapySessions: [],
             moodPatterns: [],
@@ -201,7 +201,7 @@ class UserMemoryManager {
       if (typeof window !== 'undefined') {
         const { backendService } = await import("@/lib/api/backend-service");
         await backendService.createJournalEntry({
-          title: `Entry ${entry.date.toLocaleDateString()}`,
+          title: `Entry ${entry.date instanceof Date ? entry.date.toLocaleDateString() : new Date(entry.date).toLocaleDateString()}`,
           content: entry.content,
           mood: entry.mood,
           tags: entry.tags,
@@ -252,7 +252,7 @@ class UserMemoryManager {
 
     const recentEntries = this.memory.journalEntries
       .slice(-5)
-      .map(entry => `Journal (${entry.date.toLocaleDateString()}): Mood ${entry.mood}/6 - ${entry.content.substring(0, 200)}...`)
+      .map(entry => `Journal (${entry.date instanceof Date ? entry.date.toLocaleDateString() : new Date(entry.date).toLocaleDateString()}): Mood ${entry.mood}/6 - ${entry.content.substring(0, 200)}...`)
       .join('\n');
 
     const recentMeditations = this.memory.meditationHistory

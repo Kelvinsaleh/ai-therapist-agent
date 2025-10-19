@@ -207,7 +207,10 @@ export const getAllChatSessions = async (): Promise<ChatSession[]> => {
     const data = await parseJsonSafely(response);
     logger.debug("Received chat sessions", data);
 
-    return data.map((session: any) => {
+    // Ensure data is an array
+    const sessions = Array.isArray(data) ? data : (data.sessions || []);
+    
+    return sessions.map((session: any) => {
       // Ensure dates are valid
       const createdAt = new Date(session.createdAt || Date.now());
       const updatedAt = new Date(session.updatedAt || Date.now());
@@ -224,6 +227,6 @@ export const getAllChatSessions = async (): Promise<ChatSession[]> => {
     });
   } catch (error) {
     logger.error("Error fetching chat sessions", error);
-    throw error;
+    return []; // Return empty array instead of throwing
   }
 };
