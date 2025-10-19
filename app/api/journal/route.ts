@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 
 const BACKEND_API_URL = process.env.BACKEND_API_URL || "https://hope-backend-2.onrender.com";
 
@@ -20,8 +18,8 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
 
-    // Fetch from backend
-    const response = await fetch(`${BACKEND_API_URL}/cbt/thought-records`, {
+    // Save journal entry to backend
+    const response = await fetch(`${BACKEND_API_URL}/journal`, {
       method: 'POST',
       headers: {
         'Authorization': authHeader,
@@ -34,7 +32,7 @@ export async function POST(req: NextRequest) {
 
     if (!response.ok) {
       return NextResponse.json(
-        { success: false, error: data.message || 'Failed to save thought record' },
+        { success: false, error: data.message || 'Failed to save journal entry' },
         { status: response.status }
       );
     }
@@ -42,11 +40,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(data);
 
   } catch (error) {
-    console.error("Error saving thought record:", error);
+    console.error("Error saving journal entry:", error);
     return NextResponse.json(
       { 
         success: false, 
-        error: "Failed to save thought record",
+        error: "Failed to save journal entry",
         details: error instanceof Error ? error.message : "Unknown error"
       },
       { status: 500 }
@@ -66,11 +64,11 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const limit = searchParams.get('limit') || '10';
+    const limit = searchParams.get('limit') || '20';
     const offset = searchParams.get('offset') || '0';
 
-    // Fetch from backend
-    const response = await fetch(`${BACKEND_API_URL}/cbt/thought-records?limit=${limit}&offset=${offset}`, {
+    // Fetch journal entries from backend
+    const response = await fetch(`${BACKEND_API_URL}/journal?limit=${limit}&offset=${offset}`, {
       headers: {
         'Authorization': authHeader,
         'Content-Type': 'application/json'
@@ -82,7 +80,7 @@ export async function GET(req: NextRequest) {
 
     if (!response.ok) {
       return NextResponse.json(
-        { success: false, error: data.message || 'Failed to fetch thought records' },
+        { success: false, error: data.message || 'Failed to fetch journal entries' },
         { status: response.status }
       );
     }
@@ -90,11 +88,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(data);
 
   } catch (error) {
-    console.error("Error fetching thought records:", error);
+    console.error("Error fetching journal entries:", error);
     return NextResponse.json(
       { 
         success: false, 
-        error: "Failed to fetch thought records",
+        error: "Failed to fetch journal entries",
         details: error instanceof Error ? error.message : "Unknown error"
       },
       { status: 500 }

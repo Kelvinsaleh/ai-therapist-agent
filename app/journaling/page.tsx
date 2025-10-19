@@ -255,7 +255,7 @@ export default function JournalingPage() {
       mood,
       tags,
       createdAt: new Date(),
-      insights: userTier === "premium" ? generateInsights(currentEntry, mood) : undefined,
+      insights: userTier === "premium" ? await generateInsights(currentEntry, mood) : undefined,
       // CBT fields
       cbtTemplate,
       situation: cbtData.situation,
@@ -293,7 +293,7 @@ export default function JournalingPage() {
         // Save to backend with AI analysis
         try {
           const { backendService } = await import("@/lib/api/backend-service");
-          const insights = generateInsights(currentEntry, mood);
+          const insights = await generateInsights(currentEntry, mood);
           const emotionalState = analyzeEmotionalState(currentEntry, mood);
           const keyThemes = extractKeyThemes(currentEntry);
           const concerns = extractConcerns(currentEntry);
@@ -301,7 +301,9 @@ export default function JournalingPage() {
           
           const response = await backendService.createJournalEntry({
             title: entryTitle || `Entry ${format(new Date(), "MMM dd, yyyy")}`,
-            content: currentEntry,
+            content: cbtTemplate === 'thought_record' 
+              ? `Situation: ${cbtData.situation}\n\nAutomatic Thoughts: ${cbtData.automaticThoughts}\n\nEmotions: ${cbtData.emotions.join(', ')} (${cbtData.emotionIntensity}/10)\n\nEvidence For: ${cbtData.evidenceFor}\n\nEvidence Against: ${cbtData.evidenceAgainst}\n\nBalanced Thought: ${cbtData.balancedThought}`
+              : currentEntry,
             mood,
             tags,
             createdAt: new Date(),
@@ -309,7 +311,18 @@ export default function JournalingPage() {
             emotionalState,
             keyThemes,
             concerns,
-            achievements
+            achievements,
+            // CBT fields
+            cbtTemplate,
+            situation: cbtData.situation,
+            automaticThoughts: cbtData.automaticThoughts,
+            emotions: cbtData.emotions,
+            emotionIntensity: cbtData.emotionIntensity,
+            evidenceFor: cbtData.evidenceFor,
+            evidenceAgainst: cbtData.evidenceAgainst,
+            balancedThought: cbtData.balancedThought,
+            cognitiveDistortions: cbtInsights?.cognitiveDistortions || [],
+            cbtInsights
           });
           
           if (response.success) {
@@ -318,6 +331,44 @@ export default function JournalingPage() {
             const updatedEntry = { ...newEntry, insights, emotionalState, keyThemes, concerns, achievements };
             const updatedEntries = [updatedEntry, ...entries.slice(1)];
             saveEntries(updatedEntries);
+
+            // If it's a CBT thought record, also save it to the CBT system
+            if (cbtTemplate === 'thought_record' && cbtData.automaticThoughts) {
+              try {
+                const cbtResponse = await fetch('/api/cbt/thought-records', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token') || localStorage.getItem('authToken')}`
+                  },
+                  body: JSON.stringify({
+                    situation: cbtData.situation,
+                    automaticThoughts: cbtData.automaticThoughts,
+                    emotions: cbtData.emotions,
+                    emotionIntensity: cbtData.emotionIntensity,
+                    evidenceFor: cbtData.evidenceFor,
+                    evidenceAgainst: cbtData.evidenceAgainst,
+                    balancedThought: cbtData.balancedThought,
+                    cognitiveDistortions: cbtInsights?.cognitiveDistortions || [],
+                    insights: cbtInsights,
+                    mood: mood,
+                    tags: tags
+                  })
+                });
+
+                if (cbtResponse.ok) {
+                  const cbtData = await cbtResponse.json();
+                  console.log('CBT thought record saved to backend:', cbtData);
+                  toast.success("CBT thought record saved successfully!");
+                } else {
+                  console.error('Failed to save CBT thought record to backend');
+                  toast.error("Failed to save CBT thought record to backend");
+                }
+              } catch (error) {
+                console.error('Error saving CBT thought record:', error);
+                toast.error("Failed to save CBT thought record");
+              }
+            }
           }
         } catch (error) {
           console.error("Failed to save journal entry to backend:", error);
@@ -343,7 +394,44 @@ export default function JournalingPage() {
     setTimeout(() => setSaved(false), 2000);
   };
 
-  const generateInsights = (content: string, mood: number): string[] => {
+  const generateInsights = async (content: string, mood: number, entryId?: string): Promise<string[]> => {
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      if (!token) {
+        console.warn('No auth token available for AI insights');
+        return getFallbackInsights(content, mood);
+      }
+
+      const response = await fetch('/api/cbt/insights', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          content,
+          mood,
+          entryId,
+          type: 'journal_insights'
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.insights) {
+          return data.insights;
+        }
+      }
+
+      console.warn('AI insights failed, using fallback');
+      return getFallbackInsights(content, mood);
+    } catch (error) {
+      console.error('Error generating AI insights:', error);
+      return getFallbackInsights(content, mood);
+    }
+  };
+
+  const getFallbackInsights = (content: string, mood: number): string[] => {
     const insights = [];
     const lowerContent = content.toLowerCase();
     
