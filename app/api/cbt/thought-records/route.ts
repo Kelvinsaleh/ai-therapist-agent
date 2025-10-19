@@ -15,45 +15,28 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Accept mock token for testing
-    const token = authHeader.replace('Bearer ', '');
-    if (token !== "mock-jwt-token-for-testing") {
-      return NextResponse.json(
-        { success: false, error: "Invalid token" },
-        { status: 401 }
-      );
-    }
-
     const body = await req.json();
-    const { situation, automaticThoughts, emotions, emotionIntensity, evidenceFor, evidenceAgainst, balancedThought, cognitiveDistortions } = body;
 
-    // Validate required fields
-    if (!situation || !automaticThoughts) {
+    // Fetch from backend
+    const response = await fetch(`${BACKEND_API_URL}/cbt/thought-records`, {
+      method: 'POST',
+      headers: {
+        'Authorization': authHeader,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
       return NextResponse.json(
-        { success: false, error: "Situation and automatic thoughts are required" },
-        { status: 400 }
+        { success: false, error: data.message || 'Failed to save thought record' },
+        { status: response.status }
       );
     }
 
-    // Return mock data for testing
-    const mockThoughtRecord = {
-      id: `thought-record-${Date.now()}`,
-      userId: 'test-user-id',
-      situation,
-      automaticThoughts,
-      emotions: emotions || [],
-      emotionIntensity: emotionIntensity || 5,
-      evidenceFor: evidenceFor || '',
-      evidenceAgainst: evidenceAgainst || '',
-      balancedThought: balancedThought || '',
-      cognitiveDistortions: cognitiveDistortions || [],
-      createdAt: new Date().toISOString()
-    };
-
-    return NextResponse.json({
-      success: true,
-      data: mockThoughtRecord
-    });
+    return NextResponse.json(data);
 
   } catch (error) {
     console.error("Error saving thought record:", error);
@@ -79,40 +62,29 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Accept mock token for testing
-    const token = authHeader.replace('Bearer ', '');
-    if (token !== "mock-jwt-token-for-testing") {
-      return NextResponse.json(
-        { success: false, error: "Invalid token" },
-        { status: 401 }
-      );
-    }
-
     const { searchParams } = new URL(req.url);
     const limit = searchParams.get('limit') || '10';
     const offset = searchParams.get('offset') || '0';
 
-    // Return mock data for testing
-    const mockThoughtRecords = [
-      {
-        id: 'thought-record-1',
-        userId: 'test-user-id',
-        situation: 'Had a disagreement with my boss',
-        automaticThoughts: 'I always mess up everything',
-        emotions: ['Anxious', 'Frustrated'],
-        emotionIntensity: 8,
-        evidenceFor: 'I made a mistake last week',
-        evidenceAgainst: 'I\'ve been praised before',
-        balancedThought: 'I made a mistake, but that doesn\'t mean I\'m terrible',
-        cognitiveDistortions: ['All-or-nothing thinking'],
-        createdAt: new Date().toISOString()
-      }
-    ];
-
-    return NextResponse.json({
-      success: true,
-      data: mockThoughtRecords
+    // Fetch from backend
+    const response = await fetch(`${BACKEND_API_URL}/cbt/thought-records?limit=${limit}&offset=${offset}`, {
+      headers: {
+        'Authorization': authHeader,
+        'Content-Type': 'application/json'
+      },
+      cache: 'no-store'
     });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return NextResponse.json(
+        { success: false, error: data.message || 'Failed to fetch thought records' },
+        { status: response.status }
+      );
+    }
+
+    return NextResponse.json(data);
 
   } catch (error) {
     console.error("Error fetching thought records:", error);

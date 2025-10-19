@@ -15,11 +15,14 @@ import {
   Search,
   Loader2,
   ListPlus,
-  PlayCircle
+  PlayCircle,
+  Heart,
+  HeartOff
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { logger } from "@/lib/utils/logger";
 import { useAudioPlayer } from "@/lib/contexts/audio-player-context";
+import { useSession } from "@/lib/contexts/session-context";
 import { toast } from "sonner";
 import { PageLoading } from "@/components/ui/page-loading";
 import { MeditationsFloatingPlayer } from "@/components/audio/meditations-floating-player";
@@ -37,14 +40,15 @@ interface Meditation {
 }
 
 export default function MeditationsPage() {
-  // TODO: Replace with your actual session hook or logic
-  const user = null;
-  const isAuthenticated = false;
+  const { user, isAuthenticated, userTier } = useSession();
   const [meditations, setMeditations] = useState<Meditation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterPremium, setFilterPremium] = useState<boolean | null>(null);
-  const [userTier, setUserTier] = useState<"free" | "premium">("free");
+  const [showFavorites, setShowFavorites] = useState(false);
+  const [favoriteStatus, setFavoriteStatus] = useState<Record<string, boolean>>({});
+  const [favoriteLoading, setFavoriteLoading] = useState<Record<string, boolean>>({});
+  const [favoriteMeditations, setFavoriteMeditations] = useState<Meditation[]>([]);
   
   // Use ONLY the global audio player - no local audio state
   const { 
@@ -138,35 +142,67 @@ export default function MeditationsPage() {
     }
   }, [searchQuery, filterPremium]);
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      const checkUserTier = async () => {
-        try {
-          const response = await fetch('/api/auth/me', {
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
-          });
-          
-          if (response.ok) {
-            const userData = await response.json();
-            setUserTier(userData.user?.subscription?.tier || 'free');
-          } else {
-            setUserTier('free');
-          }
-        } catch (error) {
-          console.error('Error checking user tier:', error);
-          setUserTier('free');
-        }
-      };
-      
-      checkUserTier();
-    }
-  }, [isAuthenticated]);
 
   useEffect(() => {
     loadMeditations();
   }, [loadMeditations]);
+
+  // Check favorite status for all meditations when they load
+  useEffect(() => {
+    if (isAuthenticated && meditations.length > 0) {
+      meditations.forEach(meditation => {
+        checkFavoriteStatus(meditation.id);
+      });
+    }
+  }, [isAuthenticated, meditations]);
+
+  const loadFavorites = useCallback(async () => {
+    if (!isAuthenticated) return;
+
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      const response = await fetch('/api/meditations/favorites?limit=100', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        cache: 'no-store'
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const favorites = data.favorites || [];
+        
+        // Convert favorites to meditation format
+        const favoriteMeditations = favorites
+          .filter((fav: any) => fav.meditationId) // Filter out deleted meditations
+          .map((fav: any) => ({
+            id: fav.meditationId._id,
+            title: fav.meditationId.title,
+            description: fav.meditationId.description,
+            duration: fav.meditationId.duration,
+            audioUrl: fav.meditationId.audioUrl,
+            category: fav.meditationId.category,
+            isPremium: fav.meditationId.isPremium,
+            tags: fav.meditationId.tags || [],
+            createdAt: fav.meditationId.createdAt,
+          }));
+
+        setFavoriteMeditations(favoriteMeditations);
+        logger.debug('Loaded favorite meditations:', favoriteMeditations);
+      }
+    } catch (error) {
+      console.error('Error loading favorites:', error);
+      setFavoriteMeditations([]);
+    }
+  }, [isAuthenticated]);
+
+  // Load favorites when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadFavorites();
+    }
+  }, [isAuthenticated, loadFavorites]);
 
   const handlePlay = async (meditationId: string) => {
     logger.debug('Play button clicked for meditation:', meditationId);
@@ -241,6 +277,79 @@ export default function MeditationsPage() {
     toast.success(`Added "${meditation.title}" to playlist`);
   };
 
+  const toggleFavorite = async (meditationId: string) => {
+    if (!isAuthenticated) {
+      toast.error("Please log in to add favorites");
+      return;
+    }
+
+    setFavoriteLoading(prev => ({ ...prev, [meditationId]: true }));
+
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      const isCurrentlyFavorited = favoriteStatus[meditationId];
+
+      const response = await fetch(`/api/meditations/${meditationId}/favorite`, {
+        method: isCurrentlyFavorited ? 'DELETE' : 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setFavoriteStatus(prev => ({
+          ...prev,
+          [meditationId]: !isCurrentlyFavorited
+        }));
+        
+        // Refresh favorites list if we're viewing favorites
+        if (showFavorites) {
+          loadFavorites();
+        }
+        
+        toast.success(
+          isCurrentlyFavorited 
+            ? "Removed from favorites" 
+            : "Added to favorites"
+        );
+      } else {
+        toast.error(data.error || "Failed to update favorite status");
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      toast.error("Failed to update favorite status");
+    } finally {
+      setFavoriteLoading(prev => ({ ...prev, [meditationId]: false }));
+    }
+  };
+
+  const checkFavoriteStatus = async (meditationId: string) => {
+    if (!isAuthenticated) return;
+
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      const response = await fetch(`/api/meditations/${meditationId}/favorite-status`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setFavoriteStatus(prev => ({
+          ...prev,
+          [meditationId]: data.isFavorited
+        }));
+      }
+    } catch (error) {
+      console.error('Error checking favorite status:', error);
+    }
+  };
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     loadMeditations();
@@ -275,7 +384,7 @@ export default function MeditationsPage() {
     toast.success(`Playing ${meditationsForPlayer.length} meditations`);
   };
 
-  const filteredMeditations = meditations.filter(meditation => {
+  const filteredMeditations = (showFavorites ? favoriteMeditations : meditations).filter(meditation => {
     const matchesSearch = meditation.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          meditation.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          meditation.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -292,10 +401,13 @@ export default function MeditationsPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Meditation Library
+            {showFavorites ? "My Favorite Meditations" : "Meditation Library"}
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Discover guided meditations to help you find peace, reduce stress, and improve your well-being.
+            {showFavorites 
+              ? "Your personal collection of meditations that bring you peace and mindfulness."
+              : "Discover guided meditations to help you find peace, reduce stress, and improve your well-being."
+            }
           </p>
         </div>
 
@@ -316,11 +428,31 @@ export default function MeditationsPage() {
               <div className="flex gap-2">
                 <Button
                   type="button"
+                  variant={!showFavorites ? "default" : "outline"}
+                  onClick={() => setShowFavorites(false)}
+                  size="sm"
+                >
+                  All
+                </Button>
+                {isAuthenticated && (
+                  <Button
+                    type="button"
+                    variant={showFavorites ? "default" : "outline"}
+                    onClick={() => setShowFavorites(true)}
+                    size="sm"
+                    className="gap-2"
+                  >
+                    <Heart className="w-4 h-4" />
+                    Favorites ({favoriteMeditations.length})
+                  </Button>
+                )}
+                <Button
+                  type="button"
                   variant={filterPremium === null ? "default" : "outline"}
                   onClick={() => setFilterPremium(null)}
                   size="sm"
                 >
-                  All
+                  All Types
                 </Button>
                 <Button
                   type="button"
@@ -461,6 +593,25 @@ export default function MeditationsPage() {
                           <ListPlus className="w-4 h-4" />
                           Add
                         </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => toggleFavorite(meditation.id)}
+                          disabled={favoriteLoading[meditation.id]}
+                          className={`gap-2 ${
+                            favoriteStatus[meditation.id] 
+                              ? 'text-red-500 hover:text-red-600' 
+                              : 'text-gray-500 hover:text-red-500'
+                          }`}
+                        >
+                          {favoriteLoading[meditation.id] ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : favoriteStatus[meditation.id] ? (
+                            <Heart className="w-4 h-4 fill-current" />
+                          ) : (
+                            <HeartOff className="w-4 h-4" />
+                          )}
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
@@ -473,11 +624,28 @@ export default function MeditationsPage() {
         {/* Empty State */}
         {!isLoading && filteredMeditations.length === 0 && (
           <div className="text-center py-12">
-            <Headphones className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-600 mb-2">No meditations found</h3>
-            <p className="text-gray-500">
-              {searchQuery ? "Try adjusting your search terms" : "Check back later for new meditations"}
-            </p>
+            {showFavorites ? (
+              <>
+                <Heart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-600 mb-2">No favorite meditations yet</h3>
+                <p className="text-gray-500 mb-6">
+                  {searchQuery ? "No favorites match your search" : "Start exploring meditations and add them to your favorites"}
+                </p>
+                {!searchQuery && (
+                  <Button onClick={() => setShowFavorites(false)}>
+                    Browse All Meditations
+                  </Button>
+                )}
+              </>
+            ) : (
+              <>
+                <Headphones className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-600 mb-2">No meditations found</h3>
+                <p className="text-gray-500">
+                  {searchQuery ? "Try adjusting your search terms" : "Check back later for new meditations"}
+                </p>
+              </>
+            )}
           </div>
         )}
       </div>

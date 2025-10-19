@@ -15,48 +15,28 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Accept mock token for testing
-    const token = authHeader.replace('Bearer ', '');
-    if (token !== "mock-jwt-token-for-testing") {
-      return NextResponse.json(
-        { success: false, error: "Invalid token" },
-        { status: 401 }
-      );
-    }
-
     const body = await req.json();
-    const { 
-      type, 
-      data, 
-      effectiveness, 
-      moodBefore, 
-      moodAfter 
-    } = body;
 
-    // Validate required fields
-    if (!type || !data) {
+    // Fetch from backend
+    const response = await fetch(`${BACKEND_API_URL}/cbt/activities`, {
+      method: 'POST',
+      headers: {
+        'Authorization': authHeader,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
       return NextResponse.json(
-        { success: false, error: "Activity type and data are required" },
-        { status: 400 }
+        { success: false, error: data.message || 'Failed to save CBT activity' },
+        { status: response.status }
       );
     }
 
-    // Return mock data for testing
-    const mockActivity = {
-      id: `cbt-activity-${Date.now()}`,
-      userId: 'test-user-id',
-      type,
-      data,
-      effectiveness: effectiveness || null,
-      moodBefore: moodBefore || null,
-      moodAfter: moodAfter || null,
-      createdAt: new Date().toISOString()
-    };
-
-    return NextResponse.json({
-      success: true,
-      data: mockActivity
-    });
+    return NextResponse.json(data);
 
   } catch (error) {
     console.error("Error saving CBT activity:", error);
@@ -73,9 +53,9 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const authHeader = req.headers.get('authorization');
     
-    if (!session?.user?.token) {
+    if (!authHeader) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 401 }
@@ -94,10 +74,11 @@ export async function GET(req: NextRequest) {
 
     // Fetch from backend
     const response = await fetch(url, {
-      method: "GET",
       headers: {
-        "Authorization": `Bearer ${session.user.token}`,
+        'Authorization': authHeader,
+        'Content-Type': 'application/json'
       },
+      cache: 'no-store'
     });
 
     const data = await response.json();
@@ -109,10 +90,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      data: data
-    });
+    return NextResponse.json(data);
 
   } catch (error) {
     console.error("Error fetching CBT activities:", error);

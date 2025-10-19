@@ -1,13 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { rateLimiters } from "@/lib/utils/rate-limit";
 
 const BACKEND_API_URL = process.env.BACKEND_API_URL || "https://hope-backend-2.onrender.com";
 
-export async function POST(req: NextRequest) {
-  // Rate limit AI insights (10 per minute - expensive operation)
-  const rateLimitError = rateLimiters.ai(req);
-  if (rateLimitError) return rateLimitError;
-  
+export async function POST(req: NextRequest, { params }: { params: { meditationId: string } }) {
   try {
     const authHeader = req.headers.get('authorization');
     
@@ -18,23 +13,28 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = await req.json();
+    const { meditationId } = params;
 
-    // Call backend AI-powered insights endpoint
-    const response = await fetch(`${BACKEND_API_URL}/cbt/insights/generate`, {
+    if (!meditationId) {
+      return NextResponse.json(
+        { success: false, error: 'Meditation ID is required' },
+        { status: 400 }
+      );
+    }
+
+    const response = await fetch(`${BACKEND_API_URL}/meditations/${meditationId}/favorite`, {
       method: 'POST',
       headers: {
         'Authorization': authHeader,
         'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
+      }
     });
 
     const data = await response.json();
 
     if (!response.ok) {
       return NextResponse.json(
-        { success: false, error: data.message || 'Failed to generate CBT insights' },
+        { success: false, error: data.message || 'Failed to add meditation to favorites' },
         { status: response.status }
       );
     }
@@ -42,11 +42,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(data);
 
   } catch (error) {
-    console.error('CBT insights error:', error);
+    console.error('Error adding meditation to favorites:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Failed to generate CBT insights',
+      {
+        success: false,
+        error: 'Failed to add meditation to favorites',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
@@ -54,8 +54,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Also support GET for historical insights
-export async function GET(req: NextRequest) {
+export async function DELETE(req: NextRequest, { params }: { params: { meditationId: string } }) {
   try {
     const authHeader = req.headers.get('authorization');
     
@@ -66,20 +65,28 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Get user's historical insights from backend
-    const response = await fetch(`${BACKEND_API_URL}/cbt/insights`, {
+    const { meditationId } = params;
+
+    if (!meditationId) {
+      return NextResponse.json(
+        { success: false, error: 'Meditation ID is required' },
+        { status: 400 }
+      );
+    }
+
+    const response = await fetch(`${BACKEND_API_URL}/meditations/${meditationId}/favorite`, {
+      method: 'DELETE',
       headers: {
         'Authorization': authHeader,
         'Content-Type': 'application/json'
-      },
-      cache: 'no-store'
+      }
     });
 
     const data = await response.json();
 
     if (!response.ok) {
       return NextResponse.json(
-        { success: false, error: data.message || 'Failed to fetch insights' },
+        { success: false, error: data.message || 'Failed to remove meditation from favorites' },
         { status: response.status }
       );
     }
@@ -87,11 +94,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(data);
 
   } catch (error) {
-    console.error('Error fetching insights:', error);
+    console.error('Error removing meditation from favorites:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Failed to fetch insights',
+      {
+        success: false,
+        error: 'Failed to remove meditation from favorites',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }

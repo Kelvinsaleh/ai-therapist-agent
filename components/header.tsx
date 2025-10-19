@@ -25,6 +25,7 @@ export function Header() {
     { href: "/features", label: "Features" },
     { href: "/pricing", label: "Pricing" },
     { href: "/matching", label: "Find Support" },
+    { href: "/cbt/dashboard", label: "CBT Tools" },
     { href: "/about", label: "About HOPE" },
   ];
 

@@ -2,22 +2,45 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.BACKEND_API_URL || "https://hope-backend-2.onrender.com";
+
 export async function GET(req: NextRequest) {
   try {
     // Check for token in Authorization header
     const authHeader = req.headers.get('authorization');
     const token = authHeader?.replace('Bearer ', '');
     
-    if (token === "mock-jwt-token-for-testing") {
-      return NextResponse.json({
-        isAuthenticated: true,
-        user: {
-          id: "test-user-id",
-          email: "test@example.com",
-          name: "Test User",
-          _id: "test-user-id"
+    // Validate backend JWT token
+    if (token) {
+      try {
+        const response = await fetch(`${BACKEND_URL}/auth/me`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          cache: 'no-store'
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.user) {
+            return NextResponse.json({
+              isAuthenticated: true,
+              user: {
+                id: data.user._id || data.user.id,
+                _id: data.user._id || data.user.id,
+                name: data.user.name,
+                email: data.user.email,
+                createdAt: data.user.createdAt,
+                updatedAt: data.user.updatedAt
+              }
+            });
+          }
         }
-      });
+      } catch (error) {
+        console.error("Backend token validation error:", error);
+        // Continue to NextAuth fallback
+      }
     }
     
     // Fallback to NextAuth session

@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimiters } from "@/lib/utils/rate-limit";
 
 const API_URL = process.env.BACKEND_API_URL || "https://hope-backend-2.onrender.com";
 
 export async function POST(req: NextRequest) {
+  // Rate limiting for login attempts (5 per minute)
+  const rateLimitError = rateLimiters.strict(req);
+  if (rateLimitError) return rateLimitError;
+  
   const body = await req.json();
   
   try {
@@ -15,7 +20,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(data, { status: res.status });
   } catch (error) {
     return NextResponse.json(
-      { message: "Server error", error },
+      { success: false, message: "Server error", error },
       { status: 500 }
     );
   }

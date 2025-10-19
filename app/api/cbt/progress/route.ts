@@ -13,27 +13,25 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // For now, return mock data since backend CBT endpoints may not exist yet
-    // In production, this would fetch from the backend
-    const mockProgress = {
-      thoughtRecordsCompleted: 3,
-      activitiesScheduled: 7,
-      moodEntries: 12,
-      relaxationSessions: 5,
-      goalsAchieved: 2,
-      weeklyStreak: 4,
-      lastActivity: new Date().toISOString(),
-      insights: [
-        "You've been consistent with mood tracking this week",
-        "Consider trying more thought records when feeling anxious",
-        "Your relaxation practice is helping with sleep quality"
-      ]
-    };
-
-    return NextResponse.json({
-      success: true,
-      progress: mockProgress
+    // Fetch from backend
+    const response = await fetch(`${BACKEND_API_URL}/cbt/progress`, {
+      headers: {
+        'Authorization': authHeader,
+        'Content-Type': 'application/json'
+      },
+      cache: 'no-store'
     });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return NextResponse.json(
+        { success: false, error: data.message || 'Failed to fetch CBT progress' },
+        { status: response.status }
+      );
+    }
+
+    return NextResponse.json(data);
 
   } catch (error) {
     console.error('CBT progress fetch error:', error);

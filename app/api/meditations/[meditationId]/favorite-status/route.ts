@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { CBTAnalytics } from "@/lib/cbt/analytics";
 
 const BACKEND_API_URL = process.env.BACKEND_API_URL || "https://hope-backend-2.onrender.com";
 
-export async function GET(req: NextRequest) {
+export async function GET(req: NextRequest, { params }: { params: { meditationId: string } }) {
   try {
     const authHeader = req.headers.get('authorization');
     
@@ -14,11 +13,16 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const { searchParams } = new URL(req.url);
-    const period = searchParams.get('period') || '30days';
+    const { meditationId } = params;
 
-    // Fetch CBT analytics from backend
-    const response = await fetch(`${BACKEND_API_URL}/cbt/analytics?period=${period}`, {
+    if (!meditationId) {
+      return NextResponse.json(
+        { success: false, error: 'Meditation ID is required' },
+        { status: 400 }
+      );
+    }
+
+    const response = await fetch(`${BACKEND_API_URL}/meditations/${meditationId}/favorite-status`, {
       headers: {
         'Authorization': authHeader,
         'Content-Type': 'application/json'
@@ -30,7 +34,7 @@ export async function GET(req: NextRequest) {
 
     if (!response.ok) {
       return NextResponse.json(
-        { success: false, error: data.message || 'Failed to fetch CBT analytics' },
+        { success: false, error: data.message || 'Failed to check favorite status' },
         { status: response.status }
       );
     }
@@ -38,11 +42,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(data);
 
   } catch (error) {
-    console.error('CBT analytics error:', error);
+    console.error('Error checking favorite status:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Failed to fetch CBT analytics',
+      {
+        success: false,
+        error: 'Failed to check favorite status',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
