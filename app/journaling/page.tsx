@@ -184,7 +184,18 @@ export default function JournalingPage() {
   };
 
   const handleSave = async () => {
-    if (!currentEntry.trim()) {
+    console.log('Save button clicked');
+    console.log('Current entry:', currentEntry);
+    console.log('CBT template:', cbtTemplate);
+    console.log('CBT data:', cbtData);
+    
+    // Check if there's content to save
+    const hasContent = currentEntry.trim() || 
+      (cbtTemplate === 'thought_record' && cbtData.automaticThoughts.trim());
+    
+    console.log('Has content:', hasContent);
+    
+    if (!hasContent) {
       toast.error("Please write something before saving");
       return;
     }
@@ -392,6 +403,8 @@ export default function JournalingPage() {
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+    
+    console.log('Save completed successfully');
   };
 
   const generateInsights = async (content: string, mood: number, entryId?: string): Promise<string[]> => {
@@ -916,7 +929,7 @@ export default function JournalingPage() {
                     disabled={
                       cbtTemplate === 'regular' 
                         ? !currentEntry.trim()
-                        : !cbtData.situation.trim() || !cbtData.automaticThoughts.trim()
+                        : !cbtData.automaticThoughts.trim()
                     }
                     className="bg-primary/90 hover:bg-primary"
                   >

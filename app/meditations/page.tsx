@@ -280,16 +280,23 @@ export default function MeditationsPage() {
   };
 
   const toggleFavorite = async (meditationId: string) => {
+    console.log('Toggle favorite clicked for:', meditationId);
+    
     if (!isAuthenticated) {
       toast.error("Please log in to add favorites");
       return;
     }
 
+    console.log('Setting loading to true for:', meditationId);
     setFavoriteLoading(prev => ({ ...prev, [meditationId]: true }));
 
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
       const isCurrentlyFavorited = favoriteStatus[meditationId];
+      
+      console.log('Current favorite status:', isCurrentlyFavorited);
+      console.log('Making request to:', `/api/meditations/${meditationId}/favorite`);
+      console.log('Method:', isCurrentlyFavorited ? 'DELETE' : 'POST');
 
       const response = await fetch(`/api/meditations/${meditationId}/favorite`, {
         method: isCurrentlyFavorited ? 'DELETE' : 'POST',
@@ -299,9 +306,12 @@ export default function MeditationsPage() {
         }
       });
 
+      console.log('Response status:', response.status);
       const data = await response.json();
+      console.log('Response data:', data);
 
       if (response.ok) {
+        console.log('Success! Updating favorite status');
         setFavoriteStatus(prev => ({
           ...prev,
           [meditationId]: !isCurrentlyFavorited
@@ -318,12 +328,14 @@ export default function MeditationsPage() {
             : "Added to favorites"
         );
       } else {
+        console.error('Response not ok:', data);
         toast.error(data.error || "Failed to update favorite status");
       }
     } catch (error) {
       console.error('Error toggling favorite:', error);
       toast.error("Failed to update favorite status");
     } finally {
+      console.log('Setting loading to false for:', meditationId);
       setFavoriteLoading(prev => ({ ...prev, [meditationId]: false }));
     }
   };
@@ -455,13 +467,13 @@ export default function MeditationsPage() {
                 {isAuthenticated && (
                   <Button
                     type="button"
-                    variant={showFavorites ? "default" : "outline"}
-                    onClick={() => setShowFavorites(true)}
+                    variant="outline"
+                    onClick={() => setShowFavorites(!showFavorites)}
                     size="sm"
-                    className={`gap-2 ${
+                    className={`gap-2 transition-colors ${
                       showFavorites 
-                        ? 'bg-red-500 hover:bg-red-600 text-white border-red-500' 
-                        : 'text-red-500 hover:text-red-600 hover:border-red-500'
+                        ? 'text-red-500 border-red-500 hover:bg-red-50' 
+                        : 'text-gray-500 border-gray-300 hover:text-red-500 hover:border-red-500'
                     }`}
                   >
                     <Heart className={`w-4 h-4 ${showFavorites ? 'fill-current' : ''}`} />
@@ -641,13 +653,13 @@ export default function MeditationsPage() {
                         </AccessibleButton>
                         <AccessibleButton
                           size="sm"
-                          variant={favoriteStatus[meditation.id] ? "default" : "outline"}
+                          variant="outline"
                           onClick={() => toggleFavorite(meditation.id)}
                           disabled={favoriteLoading[meditation.id]}
-                          className={`gap-2 ${
+                          className={`gap-2 transition-colors ${
                             favoriteStatus[meditation.id] 
-                              ? 'bg-red-500 hover:bg-red-600 text-white border-red-500' 
-                              : 'text-gray-500 hover:text-red-500 hover:border-red-500'
+                              ? 'text-red-500 border-red-500 hover:bg-red-50' 
+                              : 'text-gray-500 border-gray-300 hover:text-red-500 hover:border-red-500'
                           }`}
                           ariaLabel={favoriteStatus[meditation.id] ? "Remove from favorites" : "Add to favorites"}
                           loading={favoriteLoading[meditation.id]}
@@ -655,10 +667,8 @@ export default function MeditationsPage() {
                         >
                           {favoriteLoading[meditation.id] ? (
                             <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
-                          ) : favoriteStatus[meditation.id] ? (
-                            <Heart className="w-4 h-4 fill-current" aria-hidden="true" />
                           ) : (
-                            <HeartOff className="w-4 h-4" aria-hidden="true" />
+                            <Heart className={`w-4 h-4 ${favoriteStatus[meditation.id] ? 'fill-current' : ''}`} aria-hidden="true" />
                           )}
                         </AccessibleButton>
                       </div>
