@@ -26,7 +26,7 @@ import {
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format, startOfDay, isToday, isYesterday } from "date-fns";
-import { useSession } from "@/lib/hooks/use-session";
+import { useSession } from "@/lib/contexts/session-context";
 import { getFeatureLimits, checkJournalLimit } from "@/lib/session-limits";
 import { toast } from "sonner";
 

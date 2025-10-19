@@ -19,7 +19,7 @@ import {
   Calendar
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useSession } from "@/lib/hooks/use-session";
+import { useSession } from "@/lib/contexts/session-context";
 import { toast } from "sonner";
 
 interface MatchingPreferences {

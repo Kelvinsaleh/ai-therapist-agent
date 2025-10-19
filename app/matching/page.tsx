@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { UserMatching } from "@/components/matching/user-matching";
-import { useSession } from "@/lib/hooks/use-session";
+import { useSession } from "@/lib/contexts/session-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 
