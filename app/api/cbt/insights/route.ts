@@ -3,6 +3,9 @@ import { rateLimiters } from "@/lib/utils/rate-limit";
 
 const BACKEND_API_URL = process.env.BACKEND_API_URL || "https://hope-backend-2.onrender.com";
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: NextRequest) {
   // Rate limit AI insights (10 per minute - expensive operation)
   const rateLimitError = rateLimiters.ai(req);
@@ -19,6 +22,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
+    console.log('CBT insights API received:', body);
 
     // Call backend AI-powered insights endpoint
     const response = await fetch(`${BACKEND_API_URL}/cbt/insights/generate`, {
@@ -30,7 +34,9 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify(body)
     });
 
+    console.log('Backend response status:', response.status);
     const data = await response.json();
+    console.log('Backend response data:', data);
 
     if (!response.ok) {
       return NextResponse.json(

@@ -4,6 +4,9 @@ const BACKEND_API_URL = process.env.BACKEND_API_URL || "https://hope-backend-2.o
 const RETRIES = 1;
 const TIMEOUT_MS = 30000;
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: NextRequest) {
   try {
     console.log("Memory-enhanced API: Received request");

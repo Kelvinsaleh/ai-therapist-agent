@@ -3,6 +3,9 @@ import { rateLimiters } from "@/lib/utils/rate-limit";
 
 const API_URL = process.env.BACKEND_API_URL || "https://hope-backend-2.onrender.com";
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: NextRequest) {
   // Rate limiting for registration attempts (5 per minute)
   const rateLimitError = rateLimiters.strict(req);

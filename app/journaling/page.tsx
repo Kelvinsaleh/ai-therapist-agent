@@ -236,21 +236,33 @@ export default function JournalingPage() {
     let cbtInsights = undefined;
     if (cbtTemplate === 'thought_record' && userTier === 'premium' && cbtData.automaticThoughts) {
       try {
+        const requestData = {
+          text: cbtData.automaticThoughts,
+          type: 'thought_analysis',
+          mood: mood,
+          emotions: cbtData.emotions,
+          situation: cbtData.situation
+        };
+        
+        console.log('Sending CBT insights request:', requestData);
+        
         const response = await fetch('/api/cbt/insights', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${localStorage.getItem('token') || localStorage.getItem('authToken')}`
           },
-          body: JSON.stringify({
-            text: cbtData.automaticThoughts,
-            type: 'thought_analysis'
-          })
+          body: JSON.stringify(requestData)
         });
         
+        console.log('CBT insights response status:', response.status);
+        const data = await response.json();
+        console.log('CBT insights response data:', data);
+        
         if (response.ok) {
-          const data = await response.json();
           cbtInsights = data.data;
+        } else {
+          console.error('CBT insights failed:', data);
         }
       } catch (error) {
         console.error('Failed to get CBT insights:', error);

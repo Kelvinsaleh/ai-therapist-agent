@@ -9,6 +9,10 @@ export async function POST(req: NextRequest, { params }: { params: { meditationI
   try {
     const authHeader = req.headers.get('authorization');
     
+    console.log('Favorites API - POST request received');
+    console.log('Meditation ID:', params.meditationId);
+    console.log('Auth header exists:', !!authHeader);
+    
     if (!authHeader) {
       return NextResponse.json(
         { success: false, error: 'Authorization required' },
@@ -25,6 +29,8 @@ export async function POST(req: NextRequest, { params }: { params: { meditationI
       );
     }
 
+    console.log('Making request to backend:', `${BACKEND_API_URL}/meditations/${meditationId}/favorite`);
+
     const response = await fetch(`${BACKEND_API_URL}/meditations/${meditationId}/favorite`, {
       method: 'POST',
       headers: {
@@ -33,7 +39,9 @@ export async function POST(req: NextRequest, { params }: { params: { meditationI
       }
     });
 
+    console.log('Backend response status:', response.status);
     const data = await response.json();
+    console.log('Backend response data:', data);
 
     if (!response.ok) {
       return NextResponse.json(
@@ -61,6 +69,10 @@ export async function DELETE(req: NextRequest, { params }: { params: { meditatio
   try {
     const authHeader = req.headers.get('authorization');
     
+    console.log('Favorites API - DELETE request received');
+    console.log('Meditation ID:', params.meditationId);
+    console.log('Auth header exists:', !!authHeader);
+    
     if (!authHeader) {
       return NextResponse.json(
         { success: false, error: 'Authorization required' },
@@ -77,6 +89,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { meditatio
       );
     }
 
+    console.log('Making request to backend:', `${BACKEND_API_URL}/meditations/${meditationId}/favorite`);
+
     const response = await fetch(`${BACKEND_API_URL}/meditations/${meditationId}/favorite`, {
       method: 'DELETE',
       headers: {
@@ -85,7 +99,9 @@ export async function DELETE(req: NextRequest, { params }: { params: { meditatio
       }
     });
 
+    console.log('Backend response status:', response.status);
     const data = await response.json();
+    console.log('Backend response data:', data);
 
     if (!response.ok) {
       return NextResponse.json(

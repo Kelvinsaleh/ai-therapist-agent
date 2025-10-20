@@ -281,6 +281,8 @@ export default function MeditationsPage() {
 
   const toggleFavorite = async (meditationId: string) => {
     console.log('Toggle favorite clicked for:', meditationId);
+    console.log('Meditation ID type:', typeof meditationId);
+    console.log('Meditation ID length:', meditationId.length);
     
     if (!isAuthenticated) {
       toast.error("Please log in to add favorites");
@@ -295,6 +297,7 @@ export default function MeditationsPage() {
       const isCurrentlyFavorited = favoriteStatus[meditationId];
       
       console.log('Current favorite status:', isCurrentlyFavorited);
+      console.log('Token exists:', !!token);
       console.log('Making request to:', `/api/meditations/${meditationId}/favorite`);
       console.log('Method:', isCurrentlyFavorited ? 'DELETE' : 'POST');
 
