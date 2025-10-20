@@ -380,7 +380,7 @@ export default function MemoryEnhancedTherapyPage() {
     const textarea = textareaRef.current;
     if (textarea) {
       textarea.style.height = 'auto';
-      const maxHeight = 160; // max-h-[160px]
+      const maxHeight = 200; // max-h-[200px]
       textarea.style.height = Math.min(textarea.scrollHeight, maxHeight) + 'px';
     }
   };
@@ -692,7 +692,7 @@ export default function MemoryEnhancedTherapyPage() {
 
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background w-full">
       {/* Mobile bar for sessions toggle */}
       <div className="md:hidden fixed top-16 left-0 right-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex items-center justify-between px-4 py-3">
@@ -710,7 +710,7 @@ export default function MemoryEnhancedTherapyPage() {
       </div>
 
       <div 
-        className="flex gap-0"
+        className="flex gap-0 w-full"
         style={{ 
           height: `calc(100vh - 4rem - ${keyboardHeight}px)`,
           marginTop: '5rem'
@@ -719,7 +719,7 @@ export default function MemoryEnhancedTherapyPage() {
         {/* Sessions Sidebar */}
         <div
           className={cn(
-            "flex flex-col border-r bg-background md:w-80 md:static md:translate-x-0 transition-transform duration-200",
+            "flex flex-col border-r bg-background md:w-72 md:static md:translate-x-0 transition-transform duration-200",
             isSidebarOpen
               ? "fixed inset-y-20 left-0 right-0 z-40 translate-x-0 md:static md:inset-auto"
               : "fixed inset-y-20 left-0 right-0 z-40 -translate-x-full md:translate-x-0 md:static md:inset-auto"
@@ -828,14 +828,13 @@ export default function MemoryEnhancedTherapyPage() {
         </div>
 
         {/* Main chat area */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-background">
+        <div className="flex-1 flex flex-col overflow-hidden bg-background min-w-0">
           {/* Chat header (minimal) */}
           <div className="px-4 py-3 border-b bg-background flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center ring-1 ring-primary/20">
                 <Bot className="w-5 h-5" />
               </div>
-              <h2 className="font-semibold">AI Therapist</h2>
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -875,7 +874,7 @@ export default function MemoryEnhancedTherapyPage() {
           {messages.length === 0 ? (
             // Enhanced welcome screen
             <div className="flex-1 flex items-center justify-center p-6">
-              <div className="max-w-3xl w-full space-y-8 text-center">
+              <div className="max-w-5xl w-full space-y-8 text-center">
                 {/* Welcome header */}
                 <motion.div 
                   initial={{ opacity: 0, y: 20 }}
@@ -887,9 +886,6 @@ export default function MemoryEnhancedTherapyPage() {
                     <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 text-primary flex items-center justify-center ring-2 ring-primary/20 shadow-lg">
                       <Bot className="w-6 h-6" />
                     </div>
-                    <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                      AI Therapist
-                    </h2>
                   </div>
                   <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
                     I'm here to provide compassionate support and practical guidance. 
@@ -902,7 +898,7 @@ export default function MemoryEnhancedTherapyPage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.2 }}
-                  className="grid gap-3 max-w-2xl mx-auto"
+                  className="grid gap-3 max-w-4xl mx-auto"
                 >
                   <p className="text-sm text-muted-foreground mb-2">Try asking:</p>
                   {SUGGESTED_QUESTIONS.map((q, index) => (
@@ -931,7 +927,7 @@ export default function MemoryEnhancedTherapyPage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.6 }}
-                  className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto"
+                  className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto"
                 >
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <div className="w-2 h-2 rounded-full bg-green-500" />
@@ -950,7 +946,7 @@ export default function MemoryEnhancedTherapyPage() {
             </div>
           ) : (
             <div className="flex-1 overflow-y-auto scroll-smooth pb-20 overscroll-contain">
-              <div className="max-w-4xl mx-auto px-4">
+              <div className="max-w-6xl mx-auto px-4">
                 <AnimatePresence initial={false}>
                   {messages.map((msg, index) => (
                     <motion.div
@@ -970,13 +966,13 @@ export default function MemoryEnhancedTherapyPage() {
                           </div>
                         )}
                         <div className={cn(
-                          "max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed",
+                          "max-w-[90%] rounded-2xl px-4 py-3 text-base leading-relaxed",
                           "shadow-sm transition-all duration-200",
                           msg.role === "assistant" 
                             ? "bg-gradient-to-br from-muted/60 to-muted/40 border border-muted/60" 
                             : "bg-gradient-to-br from-primary to-primary/90 text-primary-foreground shadow-primary/20"
                         )}>
-                          <div className="prose prose-sm max-w-none dark:prose-invert">
+                          <div className="prose prose-base max-w-none dark:prose-invert">
                             <ReactMarkdown
                               components={{
                                 p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
@@ -1050,7 +1046,7 @@ export default function MemoryEnhancedTherapyPage() {
             )}
 
             <form onSubmit={handleSubmit} className="px-4 py-3">
-              <div className="max-w-4xl mx-auto">
+              <div className="max-w-6xl mx-auto">
                 <div className="relative group">
                   {/* Input container with enhanced styling */}
                   <div className={cn(
@@ -1079,7 +1075,7 @@ export default function MemoryEnhancedTherapyPage() {
                       }
                       className={cn(
                         "w-full resize-none bg-transparent",
-                        "px-4 py-3 pr-20 min-h-[48px] max-h-[160px]",
+                        "px-4 py-4 pr-20 min-h-[60px] max-h-[200px]",
                         "focus:outline-none",
                         "transition-all duration-200",
                         "placeholder:text-muted-foreground/70 placeholder:font-normal",
