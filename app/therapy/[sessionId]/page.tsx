@@ -579,12 +579,7 @@ export default function TherapyPage() {
   };
 
   const handleSuggestedQuestion = async (text: string) => {
-    if (!sessionId) {
-      const newSessionId = await createChatSession();
-      setSessionId(newSessionId);
-      router.push(`/therapy/${newSessionId}`);
-    }
-
+    // Don't create a new session - use the existing one
     setMessage(text);
     setTimeout(() => {
       const event = new Event("submit") as unknown as React.FormEvent;
