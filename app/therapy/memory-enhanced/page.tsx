@@ -829,124 +829,22 @@ export default function MemoryEnhancedTherapyPage() {
 
         {/* Main chat area */}
         <div className="flex-1 flex flex-col overflow-hidden bg-background min-w-0">
-          {/* Chat header (minimal) */}
-          <div className="px-4 py-3 border-b bg-background flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center ring-1 ring-primary/20">
-                <Bot className="w-5 h-5" />
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant={isVoiceMode ? "default" : "outline"}
-                size="sm"
-                onClick={() => {
-                  if (!isPremium) {
-                    toast.error("Voice Mode is a Premium feature.");
-                    router.push("/pricing");
-                    return;
-                  }
-                  const next = !isVoiceMode;
-                  setIsVoiceMode(next);
-                  if (next) {
-                    if (recognitionRef.current && !isListening) {
-                      try { recognitionRef.current.start(); setIsListening(true); } catch {}
-                    }
-                  } else {
-                    if (recognitionRef.current && isListening) {
-                      try { recognitionRef.current.stop(); } catch {}
-                      setIsListening(false);
-                    }
-                    if (typeof window !== 'undefined' && window.speechSynthesis?.speaking) {
-                      window.speechSynthesis.cancel();
-                    }
-                  }
-                }}
-                className="gap-2"
-                title={isVoiceMode ? "Voice on" : "Voice off"}
-              >
-                {isVoiceMode ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
-              </Button>
-            </div>
-          </div>
 
 
           {messages.length === 0 ? (
-            // Enhanced welcome screen
             <div className="flex-1 flex items-center justify-center p-6">
-              <div className="max-w-5xl w-full space-y-8 text-center">
-                {/* Welcome header */}
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6 }}
-                  className="space-y-4"
-                >
-                  <div className="flex items-center justify-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 text-primary flex items-center justify-center ring-2 ring-primary/20 shadow-lg">
-                      <Bot className="w-6 h-6" />
-                    </div>
-                  </div>
-                  <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-                    I'm here to provide compassionate support and practical guidance. 
-                    Share what's on your mind, and let's work through it together.
-                  </p>
-                </motion.div>
-
-                {/* Suggested questions with enhanced styling */}
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.2 }}
-                  className="grid gap-3 max-w-4xl mx-auto"
-                >
-                  <p className="text-sm text-muted-foreground mb-2">Try asking:</p>
-                  {SUGGESTED_QUESTIONS.map((q, index) => (
-                    <motion.div
-                      key={q.text}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.4, delay: 0.3 + index * 0.1 }}
-                    >
-                      <Button
-                        variant="outline"
-                        className="w-full h-auto py-4 px-6 justify-start text-left hover:bg-primary/5 hover:border-primary/30 transition-all duration-200 group"
-                        onClick={() => handleSuggestedQuestion(q.text)}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-2 h-2 rounded-full bg-primary/60 group-hover:bg-primary transition-colors" />
-                          <span className="text-sm font-medium">{q.text}</span>
-                        </div>
-                      </Button>
-                    </motion.div>
-                  ))}
-                </motion.div>
-
-                {/* Features highlight */}
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.6 }}
-                  className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto"
-                >
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <div className="w-2 h-2 rounded-full bg-green-500" />
-                    <span>Memory-enhanced conversations</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <div className="w-2 h-2 rounded-full bg-blue-500" />
-                    <span>Voice input support</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <div className="w-2 h-2 rounded-full bg-purple-500" />
-                    <span>24/7 available</span>
-                  </div>
-                </motion.div>
+              <div className="text-center">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 text-primary flex items-center justify-center ring-2 ring-primary/20 shadow-lg mx-auto mb-4">
+                  <Bot className="w-8 h-8" />
+                </div>
+                <p className="text-lg text-muted-foreground mb-6">
+                  Start a conversation by typing your message below.
+                </p>
               </div>
             </div>
           ) : (
-            <div className="flex-1 overflow-y-auto scroll-smooth pb-20 overscroll-contain">
-              <div className="max-w-6xl mx-auto px-4">
+            <div className="flex-1 overflow-y-auto scroll-smooth pb-4 overscroll-contain">
+              <div className="max-w-6xl mx-auto px-2">
                 <AnimatePresence initial={false}>
                   {messages.map((msg, index) => (
                     <motion.div
@@ -1045,7 +943,7 @@ export default function MemoryEnhancedTherapyPage() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="px-4 py-3">
+            <form onSubmit={handleSubmit} className="px-2 py-2">
               <div className="max-w-6xl mx-auto">
                 <div className="relative group">
                   {/* Input container with enhanced styling */}

@@ -303,7 +303,7 @@ export default function ProfilePage() {
               My Profile
             </h1>
             <p className="text-muted-foreground mt-1">
-              Manage your profile and view your mental health journey analytics
+              Manage your profile and track your CBT therapy progress
             </p>
           </div>
           <Badge variant={userTier === "premium" ? "default" : "secondary"} className="text-sm">
@@ -390,120 +390,188 @@ export default function ProfilePage() {
               </motion.div>
             </div>
 
-            {/* Charts Section */}
+            {/* CBT Progress Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Mood Chart */}
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <Heart className="w-5 h-5 text-primary" />
-                      Mood Trends
-                    </CardTitle>
-                    <div className="flex gap-2">
-                      <Button
-                        variant={moodPeriod === "7days" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setMoodPeriod("7days")}
-                      >
-                        7D
-                      </Button>
-                      <Button
-                        variant={moodPeriod === "30days" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setMoodPeriod("30days")}
-                      >
-                        30D
-                      </Button>
-                      <Button
-                        variant={moodPeriod === "90days" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setMoodPeriod("90days")}
-                      >
-                        90D
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {moodChartData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={250}>
-                      <AreaChart data={moodChartData}>
-                        <defs>
-                          <linearGradient id="moodGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                            <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
-                        <XAxis 
-                          dataKey="date" 
-                          tick={{ fontSize: 12 }}
-                          interval={moodPeriod === "7days" ? 0 : "preserveStartEnd"}
-                        />
-                        <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} />
-                        <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: 'hsl(var(--popover))',
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '8px'
-                          }}
-                        />
-                        <Area
-                          type="monotone"
-                          dataKey="mood"
-                          stroke="hsl(var(--primary))"
-                          fill="url(#moodGradient)"
-                          strokeWidth={2}
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="h-[250px] flex items-center justify-center text-muted-foreground">
-                      <div className="text-center">
-                        <Heart className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                        <p>No mood data yet</p>
-                        <p className="text-sm">Start tracking your mood to see trends</p>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Activity Chart */}
+              {/* CBT Progress Tracker */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Activity className="w-5 h-5 text-primary" />
-                    Activity Breakdown
+                    <Brain className="w-5 h-5 text-primary" />
+                    CBT Progress Tracker
                   </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Track your cognitive behavioral therapy journey
+                  </p>
                 </CardHeader>
                 <CardContent>
-                  {activityChartData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={250}>
-                      <BarChart data={activityChartData}>
-                        <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
-                        <XAxis dataKey="type" tick={{ fontSize: 12 }} />
-                        <YAxis tick={{ fontSize: 12 }} />
-                        <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: 'hsl(var(--popover))',
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '8px'
-                          }}
-                        />
-                        <Bar dataKey="count" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="h-[250px] flex items-center justify-center text-muted-foreground">
-                      <div className="text-center">
-                        <Activity className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                        <p>No activity data yet</p>
-                        <p className="text-sm">Your activities will appear here</p>
+                  <div className="space-y-4">
+                    {/* Thought Records Progress */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
+                          <Brain className="w-4 h-4 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">Thought Records</p>
+                          <p className="text-xs text-muted-foreground">Challenge negative thoughts</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-lg">{stats?.thoughtRecordsCompleted || 0}</p>
+                        <p className="text-xs text-muted-foreground">completed</p>
                       </div>
                     </div>
-                  )}
+
+                    {/* Mood Tracking Progress */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-pink-100 dark:bg-pink-900/20 flex items-center justify-center">
+                          <Heart className="w-4 h-4 text-pink-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">Mood Entries</p>
+                          <p className="text-xs text-muted-foreground">Track emotional patterns</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-lg">{stats?.moodEntries || 0}</p>
+                        <p className="text-xs text-muted-foreground">entries</p>
+                      </div>
+                    </div>
+
+                    {/* Relaxation Sessions */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
+                          <Wind className="w-4 h-4 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">Relaxation Sessions</p>
+                          <p className="text-xs text-muted-foreground">Meditation & breathing</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-lg">{stats?.relaxationSessions || 0}</p>
+                        <p className="text-xs text-muted-foreground">sessions</p>
+                      </div>
+                    </div>
+
+                    {/* Weekly Streak */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center">
+                          <Target className="w-4 h-4 text-orange-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">Weekly Streak</p>
+                          <p className="text-xs text-muted-foreground">Consistent practice</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-lg">{stats?.weeklyStreak || 0}</p>
+                        <p className="text-xs text-muted-foreground">weeks</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 pt-4 border-t">
+                    <Button asChild className="w-full">
+                      <Link href="/cbt/dashboard">
+                        <Brain className="w-4 h-4 mr-2" />
+                        View Full CBT Dashboard
+                      </Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* CBT Quick Actions */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Target className="w-5 h-5 text-primary" />
+                    CBT Quick Actions
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Quick access to therapeutic tools
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {/* Thought Record */}
+                    <Button asChild variant="outline" className="w-full justify-start h-auto p-4">
+                      <Link href="/journaling">
+                        <div className="flex items-center gap-3 w-full">
+                          <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
+                            <Brain className="w-4 h-4 text-blue-600" />
+                          </div>
+                          <div className="text-left">
+                            <p className="font-medium">Thought Record</p>
+                            <p className="text-xs text-muted-foreground">Challenge negative thoughts</p>
+                          </div>
+                        </div>
+                      </Link>
+                    </Button>
+
+                    {/* Mood Check-in */}
+                    <Button asChild variant="outline" className="w-full justify-start h-auto p-4">
+                      <Link href="/dashboard">
+                        <div className="flex items-center gap-3 w-full">
+                          <div className="w-8 h-8 rounded-full bg-pink-100 dark:bg-pink-900/20 flex items-center justify-center">
+                            <Heart className="w-4 h-4 text-pink-600" />
+                          </div>
+                          <div className="text-left">
+                            <p className="font-medium">Mood Check-in</p>
+                            <p className="text-xs text-muted-foreground">Track your current mood</p>
+                          </div>
+                        </div>
+                      </Link>
+                    </Button>
+
+                    {/* Meditation */}
+                    <Button asChild variant="outline" className="w-full justify-start h-auto p-4">
+                      <Link href="/meditations">
+                        <div className="flex items-center gap-3 w-full">
+                          <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
+                            <Wind className="w-4 h-4 text-green-600" />
+                          </div>
+                          <div className="text-left">
+                            <p className="font-medium">Relaxation</p>
+                            <p className="text-xs text-muted-foreground">Meditation & breathing</p>
+                          </div>
+                        </div>
+                      </Link>
+                    </Button>
+
+                    {/* AI Chat */}
+                    <Button asChild variant="outline" className="w-full justify-start h-auto p-4">
+                      <Link href="/therapy/memory-enhanced">
+                        <div className="flex items-center gap-3 w-full">
+                          <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center">
+                            <MessageSquare className="w-4 h-4 text-purple-600" />
+                          </div>
+                          <div className="text-left">
+                            <p className="font-medium">AI Therapy Chat</p>
+                            <p className="text-xs text-muted-foreground">Memory-enhanced support</p>
+                          </div>
+                        </div>
+                      </Link>
+                    </Button>
+                  </div>
+
+                  <div className="mt-6 pt-4 border-t">
+                    <div className="text-center">
+                      <p className="text-sm text-muted-foreground mb-2">Your CBT Journey</p>
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                        <div className="w-2 h-2 rounded-full bg-muted"></div>
+                        <div className="w-2 h-2 rounded-full bg-muted"></div>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">3 of 5 tools active</p>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </div>
