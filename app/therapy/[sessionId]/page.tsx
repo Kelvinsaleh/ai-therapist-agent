@@ -596,9 +596,21 @@ export default function TherapyPage() {
     if (isCompletingSession) return;
     setIsCompletingSession(true);
     try {
+      // Call the completion API
+      if (sessionId) {
+        const { completeChatSession } = await import("@/lib/api/chat");
+        await completeChatSession(sessionId);
+        logger.info(`Session ${sessionId} completed successfully`);
+      }
+      
       setShowNFTCelebration(true);
+      
+      // Show success toast
+      toast.success("Session completed successfully!");
+      
     } catch (error) {
       logger.error("Error completing session", error);
+      toast.error("Failed to complete session. Please try again.");
     } finally {
       setIsCompletingSession(false);
     }

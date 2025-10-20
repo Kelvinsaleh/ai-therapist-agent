@@ -94,6 +94,7 @@ export default function MemoryEnhancedTherapyPage() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [isPremium, setIsPremium] = useState<boolean>(false);
   const [isVoiceMode, setIsVoiceMode] = useState<boolean>(false);
+  const [isCompletingSession, setIsCompletingSession] = useState(false);
   
   // Voice controls
   const [isListening, setIsListening] = useState(false);
@@ -635,6 +636,28 @@ export default function MemoryEnhancedTherapyPage() {
       const event = new Event("submit") as unknown as React.FormEvent;
       handleSubmit(event);
     }, 0);
+  };
+
+  const handleCompleteSession = async () => {
+    if (isCompletingSession) return;
+    setIsCompletingSession(true);
+    try {
+      // Call the completion API
+      if (sessionId) {
+        const { completeChatSession } = await import("@/lib/api/chat");
+        await completeChatSession(sessionId);
+        logger.info(`Memory-enhanced session ${sessionId} completed successfully`);
+      }
+      
+      // Show success toast
+      toast.success("Session completed successfully!");
+      
+    } catch (error) {
+      logger.error("Error completing session", error);
+      toast.error("Failed to complete session. Please try again.");
+    } finally {
+      setIsCompletingSession(false);
+    }
   };
 
   const handleSessionSelect = async (selectedSessionId: string) => {

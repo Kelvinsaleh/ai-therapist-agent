@@ -230,3 +230,31 @@ export const getAllChatSessions = async (): Promise<ChatSession[]> => {
     return []; // Return empty array instead of throwing
   }
 };
+
+export const completeChatSession = async (sessionId: string): Promise<ApiResponse> => {
+  try {
+    logger.debug(`Completing chat session ${sessionId}`);
+    const response = await fetchWithRetry(
+      `${API_BASE}/sessions/${sessionId}/complete`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(),
+      },
+      1,
+      20000
+    );
+
+    if (!response.ok) {
+      const error = await parseJsonSafely(response);
+      logger.error("Failed to complete chat session", error);
+      throw new Error(error.error || "Failed to complete chat session");
+    }
+
+    const data = await parseJsonSafely(response);
+    logger.debug("Chat session completed successfully", data);
+    return data;
+  } catch (error) {
+    logger.error("Error completing chat session", error);
+    throw error;
+  }
+};

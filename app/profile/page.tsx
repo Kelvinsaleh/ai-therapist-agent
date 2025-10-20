@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useSession } from "@/lib/contexts/session-context";
 import { backendService } from "@/lib/api/backend-service";
 import { dashboardService } from "@/lib/api/dashboard-service";
@@ -36,23 +37,11 @@ import {
   Smile,
   ChevronDown,
   BarChart3,
-  CheckCircle
+  CheckCircle,
+  Wind
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Area,
-  AreaChart
-} from "recharts";
 
 interface UserProfile {
   bio: string;
@@ -232,40 +221,6 @@ export default function ProfilePage() {
     setEditedProfile({ ...editedProfile, goals: updated });
   };
 
-  // Process mood data for charts
-  const getMoodChartData = () => {
-    if (!moodHistory || moodHistory.length === 0) return [];
-    
-    const days = moodPeriod === "7days" ? 7 : moodPeriod === "30days" ? 30 : 90;
-    const now = new Date();
-    const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-    
-    const filtered = moodHistory
-      .filter((entry: any) => new Date(entry.timestamp) >= startDate)
-      .sort((a: any, b: any) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-    
-    return filtered.map((entry: any) => ({
-      date: new Date(entry.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      mood: entry.score,
-      fullDate: entry.timestamp
-    }));
-  };
-
-  const getActivityChartData = () => {
-    if (!recentActivity || recentActivity.length === 0) return [];
-    
-    const activityCounts: { [key: string]: number } = {};
-    
-    recentActivity.forEach((activity: any) => {
-      const type = activity.type;
-      activityCounts[type] = (activityCounts[type] || 0) + 1;
-    });
-    
-    return Object.entries(activityCounts).map(([type, count]) => ({
-      type: type.charAt(0).toUpperCase() + type.slice(1),
-      count
-    }));
-  };
 
   if (isLoading || loading) {
     return (
@@ -289,8 +244,6 @@ export default function ProfilePage() {
     );
   }
 
-  const moodChartData = getMoodChartData();
-  const activityChartData = getActivityChartData();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 p-6">
