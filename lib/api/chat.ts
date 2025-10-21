@@ -173,13 +173,17 @@ export const getChatHistory = async (
     const data = await parseJsonSafely(response);
     logger.debug("Received chat history", data);
 
-    if (!Array.isArray(data)) {
+    // Handle both direct array and wrapped response formats
+    let messages = data;
+    if (data && data.history && Array.isArray(data.history)) {
+      messages = data.history;
+    } else if (!Array.isArray(data)) {
       logger.error("Invalid chat history format", undefined, data);
       throw new Error("Invalid chat history format");
     }
 
     // Ensure each message has the correct format
-    return data.map((msg: any) => ({
+    return messages.map((msg: any) => ({
       role: msg.role,
       content: msg.content,
       timestamp: new Date(msg.timestamp),

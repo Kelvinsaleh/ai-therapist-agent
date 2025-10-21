@@ -124,14 +124,12 @@ export default function MemoryEnhancedTherapyPage() {
   useEffect(() => {
     const ensureSession = async () => {
       try {
-        // Try to reuse a previously stored session
         const storedId = typeof window !== 'undefined' ? localStorage.getItem('memoryEnhancedSessionId') : null;
         if (storedId) {
           setSessionId(storedId);
           return;
         }
 
-        // Otherwise create a new one (once) and persist it
         const newId = await createChatSession();
         setSessionId(newId);
         if (typeof window !== 'undefined') {
@@ -142,10 +140,26 @@ export default function MemoryEnhancedTherapyPage() {
       }
     };
 
-    // Only run if we don't already have a session in state
     if (!sessionId) {
       ensureSession();
     }
+  }, [sessionId]);
+
+  // Load chat history whenever we have a valid sessionId
+  useEffect(() => {
+    const loadHistory = async () => {
+      try {
+        if (!sessionId) return;
+        const history = await getChatHistory(sessionId);
+        if (Array.isArray(history)) {
+          const formatted = history.map((m) => ({ ...m, timestamp: new Date(m.timestamp) }));
+          setMessages(formatted);
+        }
+      } catch (e) {
+        logger.error('Failed to load memory-enhanced session history', e);
+      }
+    };
+    loadHistory();
   }, [sessionId]);
 
   useEffect(() => {
@@ -403,7 +417,7 @@ export default function MemoryEnhancedTherapyPage() {
     }
 
     try {
-      // Require auth token before sending to backend
+      // Require auth and valid session
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
       if (!token) {
         toast.error("Please sign in to continue the conversation.");
@@ -411,22 +425,15 @@ export default function MemoryEnhancedTherapyPage() {
         router.push('/login');
         return;
       }
-
-      // Ensure we have a valid user id
-      if (!userId) {
+      if (!userId || !sessionId) {
         toast.error("Session not fully loaded. Please refresh or sign in again.");
         setIsTyping(false);
         return;
       }
 
-      logger.info("Memory-enhanced chat: About to send message", { 
-        currentMessage, 
-        userId, 
-        sessionId,
-        hasToken: !!token 
-      });
+      logger.info("Memory-enhanced chat: Sending via session endpoint", { currentMessage, sessionId });
 
-      // Add user message
+      // Add user message locally for immediacy
       const userMessage: ChatMessage = {
         role: "user",
         content: currentMessage,
@@ -434,26 +441,26 @@ export default function MemoryEnhancedTherapyPage() {
       };
       setMessages((prev) => [...prev, userMessage]);
 
-      // Send message with memory context
-      logger.info("Memory-enhanced chat: Calling sendMemoryEnhancedMessage...");
-      const response = await sendMemoryEnhancedMessage(currentMessage);
-      logger.info("Memory-enhanced chat: Received response", { response });
-      
+      // Use the unified session-based endpoint so the backend has full context
+      const response = await sendChatMessage(sessionId, currentMessage);
+
       const assistantMessage: ChatMessage = {
         role: "assistant",
-        content: response.response || "I'm here to support you. Could you tell me more about what's on your mind?",
+        content:
+          (response as any).response || (response as any).message ||
+          "I'm here to support you. Could you tell me more about what's on your mind?",
         timestamp: new Date(),
         metadata: {
-          analysis: response.analysis || {
+          analysis: (response as any).analysis || {
             emotionalState: "neutral",
             riskLevel: 0,
             themes: [],
             recommendedApproach: "supportive",
             progressIndicators: [],
           },
-          technique: response.metadata?.technique || "supportive",
-          goal: response.metadata?.currentGoal || "Provide support",
-          progress: response.metadata?.progress || {
+          technique: (response as any).metadata?.technique || "supportive",
+          goal: (response as any).metadata?.currentGoal || "Provide support",
+          progress: (response as any).metadata?.progress || {
             emotionalState: "neutral",
             riskLevel: 0,
           },
@@ -464,23 +471,23 @@ export default function MemoryEnhancedTherapyPage() {
       setIsTyping(false);
       scrollToBottom();
 
-      // In Voice Mode, auto-play assistant reply
       if (isVoiceMode) {
         speakText(assistantMessage.content);
       }
 
-      // Update user memory
-      await userMemoryManager.addTherapySession({
-        date: new Date(),
-        topics: extractTopics(currentMessage),
-        techniques: response.techniques || [],
-        breakthroughs: response.breakthroughs || [],
-        concerns: extractConcerns(currentMessage),
-        goals: [],
-        mood: 3,
-        summary: `Discussed: ${extractTopics(currentMessage).join(', ')}`
-      });
-
+      // Optional: keep memory updates; safe to leave as-is without blocking UX
+      try {
+        await userMemoryManager.addTherapySession({
+          date: new Date(),
+          topics: extractTopics(currentMessage),
+          techniques: [],
+          breakthroughs: [],
+          concerns: extractConcerns(currentMessage),
+          goals: [],
+          mood: 3,
+          summary: `Discussed: ${extractTopics(currentMessage).join(', ')}`
+        });
+      } catch {}
 
     } catch (error: any) {
       logger.error("Error in chat", error);
@@ -511,99 +518,7 @@ export default function MemoryEnhancedTherapyPage() {
     }
   };
 
-  const sendMemoryEnhancedMessage = async (message: string) => {
-    try {
-      logger.info('Memory-enhanced chat: Starting sendMemoryEnhancedMessage', { message, userId, sessionId });
-      
-      const userMemory = await userMemoryManager.loadUserMemory(userId);
-      const context = userMemoryManager.getTherapyContext();
-      const suggestions = userMemoryManager.getTherapySuggestions();
-
-      logger.info('Memory-enhanced chat: Loaded user memory', { 
-        journalEntries: userMemory.journalEntries.length,
-        meditationHistory: userMemory.meditationHistory.length,
-        moodPatterns: userMemory.moodPatterns.length
-      });
-
-      const requestPayload = {
-        message,
-        sessionId,
-        userId,
-        context,
-        suggestions,
-        userMemory: {
-          journalEntries: userMemory.journalEntries.slice(-5),
-          meditationHistory: userMemory.meditationHistory.slice(-3),
-          moodPatterns: userMemory.moodPatterns.slice(-7),
-          insights: userMemory.insights.slice(-3),
-          profile: userMemory.profile
-        }
-      };
-
-      logger.info('Memory-enhanced chat: Sending request to /api/chat/memory-enhanced', { 
-        payloadSize: JSON.stringify(requestPayload).length 
-      });
-      
-      const response = await fetch('/api/chat/memory-enhanced', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token') || localStorage.getItem('authToken') || ''}`
-        },
-        body: JSON.stringify(requestPayload)
-      });
-
-      logger.info(`Memory-enhanced chat: API response status: ${response.status}`, {
-        statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries())
-      });
-
-      // Graceful handling for rate limiting and auth errors
-      if (response.status === 429) {
-        const data = await response.json();
-        logger.warn('Rate limit exceeded, using fallback response');
-        return {
-          response: data.fallbackResponse || "I understand you'd like to continue our conversation. Please wait a moment before sending your next message.",
-          techniques: [],
-          breakthroughs: [],
-          isRateLimit: true
-        };
-      }
-
-      if (response.status === 401) {
-        toast.error("Your session expired. Please sign in again.");
-        router.push('/login');
-        throw new Error('Unauthorized');
-      }
-
-      if (!response.ok) {
-        const errBody = await response.text();
-        logger.error(`API error: ${response.status} - ${errBody}`);
-        throw new Error(`HTTP ${response.status}: ${errBody}`);
-      }
-
-      const data = await response.json();
-      logger.info('Received successful response from API');
-      
-      // Ensure we have a valid response
-      if (!data.response) {
-        logger.warn('No response content in API data');
-        throw new Error('No response content received');
-      }
-      
-      return data;
-    } catch (error) {
-      logger.error('Error sending memory-enhanced message:', error);
-      
-      // Only use fallback for actual errors, not for successful API responses
-      return {
-        response: "I'm here to support you. Your thoughts and feelings are important. Please try again in a moment.",
-        techniques: [],
-        breakthroughs: [],
-        isError: true
-      };
-    }
-  };
+  // Removed custom memory-enhanced API call in favor of unified session flow
 
   const extractTopics = (text: string): string[] => {
     const topics = [];

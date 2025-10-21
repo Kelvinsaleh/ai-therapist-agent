@@ -187,16 +187,16 @@ export default function TherapyPage() {
           logger.debug("Loading existing chat session", { sessionId });
           try {
             const history = await getChatHistory(sessionId);
-            logger.debug("Loaded chat history", { history });
-            if (Array.isArray(history)) {
+            logger.debug("Loaded chat history", { history, historyLength: history?.length });
+            if (Array.isArray(history) && history.length > 0) {
               const formattedHistory = history.map((msg) => ({
                 ...msg,
                 timestamp: new Date(msg.timestamp),
               }));
-              logger.debug("Formatted history", { formattedHistory });
+              logger.debug("Formatted history", { formattedHistory, count: formattedHistory.length });
               setMessages(formattedHistory);
             } else {
-              logger.error("History is not an array", history);
+              logger.warn("No chat history found or empty array", { history, sessionId });
               setMessages([]);
             }
           } catch (historyError) {

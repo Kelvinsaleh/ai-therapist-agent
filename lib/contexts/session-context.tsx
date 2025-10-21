@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { backendService } from "@/lib/api/backend-service";
 import { logger } from "@/lib/utils/logger";
+import { initBackendWakeUp } from "@/lib/utils/backend-wakeup";
 
 interface User {
   id: string;
@@ -58,38 +59,107 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // Check if user is authenticated
-      const response = await fetch('/api/auth/session', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
+      // Check cache first to avoid unnecessary API calls
+      const cachedUser = localStorage.getItem('cachedUser');
+      const cacheTime = localStorage.getItem('userCacheTime');
+      const now = Date.now();
+      
+      // Use cache if less than 5 minutes old
+      if (cachedUser && cacheTime && (now - parseInt(cacheTime)) < 300000) {
+        try {
+          const userData = JSON.parse(cachedUser);
+          setUser(userData);
+          setIsAuthenticated(true);
+          setIsLoading(false);
+          
+          // Still fetch tier in background but don't block
+          fetchTierInBackground(token);
+          return;
+        } catch (e) {
+          logger.error("Error parsing cached user:", e);
+        }
+      }
 
-      if (response.ok) {
+      // Check if user is authenticated with timeout and retry
+      const fetchWithRetry = async (retries = 2): Promise<Response | null> => {
+        for (let i = 0; i <= retries; i++) {
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout
+            
+            const response = await fetch('/api/auth/session', {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+              },
+              signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+            return response;
+          } catch (error: any) {
+            if (i === retries) {
+              logger.error("Session check failed after retries:", error);
+              return null;
+            }
+            // Exponential backoff
+            await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+          }
+        }
+        return null;
+      };
+
+      const response = await fetchWithRetry();
+
+      if (response && response.ok) {
         const data = await response.json();
         if (data.isAuthenticated && data.user) {
           setUser(data.user);
           setIsAuthenticated(true);
           
+          // Cache the user data
+          localStorage.setItem('cachedUser', JSON.stringify(data.user));
+          localStorage.setItem('userCacheTime', Date.now().toString());
+          
           // Get user tier/subscription status
+          await fetchTierInBackground(token);
+        } else {
+          setIsAuthenticated(false);
+          setUser(null);
+          setUserTier("free");
+          localStorage.removeItem('cachedUser');
+          localStorage.removeItem('userCacheTime');
+        }
+      } else {
+        // Session check failed, but if we have a valid token, keep user logged in with cached data
+        if (cachedUser) {
           try {
-            const tierResponse = await fetch((process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.BACKEND_API_URL || 'https://hope-backend-2.onrender.com') + '/payments/subscription/status', {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-              },
-            });
-            
-            if (tierResponse.ok) {
-              const tierData = await tierResponse.json();
-              setUserTier(tierData.isPremium ? "premium" : "free");
-            } else {
-              setUserTier("free");
-            }
-          } catch (error) {
-            logger.error("Error fetching user tier:", error);
+            const userData = JSON.parse(cachedUser);
+            setUser(userData);
+            setIsAuthenticated(true);
+            logger.warn("Using cached user data due to session check failure");
+          } catch (e) {
+            setIsAuthenticated(false);
+            setUser(null);
             setUserTier("free");
           }
         } else {
+          setIsAuthenticated(false);
+          setUser(null);
+          setUserTier("free");
+        }
+      }
+    } catch (error) {
+      logger.error("Error checking auth status:", error);
+      
+      // Try to use cached data on error
+      const cachedUser = localStorage.getItem('cachedUser');
+      if (cachedUser) {
+        try {
+          const userData = JSON.parse(cachedUser);
+          setUser(userData);
+          setIsAuthenticated(true);
+          logger.warn("Using cached user data due to error");
+        } catch (e) {
           setIsAuthenticated(false);
           setUser(null);
           setUserTier("free");
@@ -99,15 +169,36 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
         setUserTier("free");
       }
-    } catch (error) {
-      logger.error("Error checking auth status:", error);
-      setIsAuthenticated(false);
-      setUser(null);
-      setUserTier("free");
     } finally {
       setIsLoading(false);
     }
   }, []);
+
+  const fetchTierInBackground = async (token: string) => {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const tierResponse = await fetch((process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.BACKEND_API_URL || 'https://hope-backend-2.onrender.com') + '/payments/subscription/status', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (tierResponse.ok) {
+        const tierData = await tierResponse.json();
+        setUserTier(tierData.isPremium ? "premium" : "free");
+      } else {
+        setUserTier("free");
+      }
+    } catch (error) {
+      logger.error("Error fetching user tier:", error);
+      setUserTier("free");
+    }
+  };
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
@@ -215,7 +306,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
+    // Initialize backend wake-up to prevent cold starts
+    const cleanup = initBackendWakeUp();
+    
+    // Check auth status
     checkAuthStatus();
+    
+    return cleanup;
   }, [checkAuthStatus]);
 
   const value: SessionContextType = {
