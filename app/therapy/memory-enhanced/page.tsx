@@ -605,12 +605,12 @@ export default function MemoryEnhancedTherapyPage() {
 
 
           {messages.length === 0 ? (
-            <div className="flex-1 flex items-center justify-center p-6">
+            <div className="flex-1 flex items-center justify-center p-4">
               <div className="text-center">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 text-primary flex items-center justify-center ring-2 ring-primary/20 shadow-lg mx-auto mb-4">
-                  <Bot className="w-8 h-8" />
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 text-primary flex items-center justify-center ring-1 ring-primary/20 shadow-sm mx-auto mb-3">
+                  <Bot className="w-6 h-6" />
                 </div>
-                <p className="text-lg text-muted-foreground mb-6">
+                <p className="text-sm text-muted-foreground">
                   Start a conversation by typing your message below.
                 </p>
               </div>
@@ -619,7 +619,6 @@ export default function MemoryEnhancedTherapyPage() {
             <div 
               className={cn(
                 "flex-1 overflow-y-auto chat-messages",
-                "pt-4", // Padding top to prevent header overlap
                 "pb-[calc(80px+env(safe-area-inset-bottom)+var(--keyboard-offset,0px))]"
               )}
             >
@@ -631,25 +630,25 @@ export default function MemoryEnhancedTherapyPage() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.3, delay: index * 0.05 }}
-                      className="py-4 group"
+                      className="py-3 group"
                     >
                       <div className={cn(
-                        "flex gap-3 max-w-full",
+                        "flex gap-2.5 max-w-full",
                         msg.role === "assistant" ? "" : "justify-end"
                       )}>
                         {msg.role === "assistant" && (
-                          <div className="w-10 h-10 shrink-0 mt-0.5 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 text-primary flex items-center justify-center ring-2 ring-primary/20 shadow-sm">
-                            <Bot className="w-5 h-5" />
+                          <div className="w-7 h-7 shrink-0 mt-0.5 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 text-primary flex items-center justify-center ring-1 ring-primary/20 shadow-sm">
+                            <Bot className="w-4 h-4" />
                           </div>
                         )}
                         <div className={cn(
-                          "max-w-[90%] rounded-2xl px-4 py-3 text-base leading-relaxed",
+                          "max-w-[90%] rounded-xl px-3 py-2 text-sm leading-relaxed",
                           "shadow-sm transition-all duration-200",
                           msg.role === "assistant" 
                             ? "bg-gradient-to-br from-muted/60 to-muted/40 border border-muted/60" 
                             : "bg-gradient-to-br from-primary to-primary/90 text-primary-foreground shadow-primary/20"
                         )}>
-                          <div className="prose prose-base max-w-none dark:prose-invert">
+                          <div className="prose prose-sm max-w-none dark:prose-invert text-sm">
                             <ReactMarkdown
                               components={{
                                 p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
@@ -686,8 +685,8 @@ export default function MemoryEnhancedTherapyPage() {
                           </div>
                         </div>
                         {msg.role !== "assistant" && (
-                          <div className="w-10 h-10 shrink-0 mt-0.5 rounded-full bg-gradient-to-br from-secondary to-secondary/80 text-secondary-foreground flex items-center justify-center ring-2 ring-secondary/20 shadow-sm">
-                            <User className="w-5 h-5" />
+                          <div className="w-7 h-7 shrink-0 mt-0.5 rounded-full bg-gradient-to-br from-secondary to-secondary/80 text-secondary-foreground flex items-center justify-center ring-1 ring-secondary/20 shadow-sm">
+                            <User className="w-4 h-4" />
                           </div>
                         )}
                       </div>

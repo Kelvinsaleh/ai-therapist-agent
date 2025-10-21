@@ -774,7 +774,6 @@ export default function TherapyPage() {
               className={cn(
                 "flex-1 overflow-y-auto chat-messages",
                 "transition-all duration-300 ease-out",
-                "pt-4", // Padding top to prevent header overlap
                 "pb-[calc(80px+env(safe-area-inset-bottom)+var(--keyboard-offset,0px))]"
               )}
               style={{
@@ -790,38 +789,38 @@ export default function TherapyPage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.3 }}
                       className={cn(
-                        "px-6 py-8",
+                        "px-4 py-4",
                         msg.role === "assistant"
                           ? "bg-muted/30"
                           : "bg-background"
                       )}
                     >
-                      <div className="flex gap-4">
-                        <div className="w-8 h-8 shrink-0 mt-1">
+                      <div className="flex gap-3">
+                        <div className="w-7 h-7 shrink-0 mt-1">
                           {msg.role === "assistant" ? (
-                            <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center ring-1 ring-primary/20">
-                              <Bot className="w-5 h-5" />
+                            <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center ring-1 ring-primary/20">
+                              <Bot className="w-4 h-4" />
                             </div>
                           ) : (
-                            <div className="w-8 h-8 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center">
-                              <User className="w-5 h-5" />
+                            <div className="w-7 h-7 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center">
+                              <User className="w-4 h-4" />
                             </div>
                           )}
                         </div>
-                        <div className="flex-1 space-y-2 overflow-hidden min-h-[2rem]">
+                        <div className="flex-1 space-y-1.5 overflow-hidden min-h-[2rem]">
                           <div className="flex items-center justify-between">
-                            <p className="font-medium text-sm">
+                            <p className="font-medium text-xs">
                               {msg.role === "assistant"
                                 ? "AI Therapist"
                                 : "You"}
                             </p>
                             {msg.metadata?.technique && (
-                              <Badge variant="secondary" className="text-xs">
+                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
                                 {msg.metadata.technique}
                               </Badge>
                             )}
                           </div>
-                          <div className="prose prose-sm dark:prose-invert leading-relaxed">
+                          <div className="prose prose-sm dark:prose-invert text-sm leading-relaxed">
                             <ReactMarkdown>{msg.content}</ReactMarkdown>
                           </div>
                           {msg.role === "assistant" && null}
