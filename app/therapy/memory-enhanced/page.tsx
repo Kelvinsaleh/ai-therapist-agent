@@ -574,12 +574,13 @@ export default function MemoryEnhancedTherapyPage() {
   return (
     <div className="h-screen bg-background w-full flex flex-col">
       
-      {/* Floating back button */}
+      {/* Floating back button - ALWAYS fixed to viewport top, never moves */}
       <Button
         variant="ghost"
         size="icon"
         onClick={() => router.push('/therapy/memory-enhanced/sessions')}
-        className="fixed top-4 left-4 z-50 w-10 h-10 rounded-full bg-background/80 backdrop-blur-sm shadow-lg border border-border hover:bg-background"
+        className="fixed top-4 left-4 z-[100] w-10 h-10 rounded-full bg-background/80 backdrop-blur-sm shadow-lg border border-border hover:bg-background"
+        style={{ position: 'fixed' }}
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="15 18 9 12 15 6"></polyline>

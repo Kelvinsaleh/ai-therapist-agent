@@ -12,8 +12,7 @@ export function Footer() {
   // Hide footer on individual chat pages (but show on sessions list)
   const hideFooter = 
     (pathname?.startsWith('/therapy/') && pathname !== '/therapy' && !pathname?.includes('/sessions')) ||
-    pathname?.includes('/matching/chat/') ||
-    pathname === '/journaling';
+    pathname?.includes('/matching/chat/');
   
   if (hideFooter) return null;
   

@@ -638,21 +638,22 @@ export default function TherapyPage() {
   // Single page - just the chat interface
   return (
     <div className="min-h-screen bg-background">
+      {/* Floating back button - ALWAYS fixed to viewport top, never moves */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => router.push('/therapy')}
+        className="fixed top-4 left-4 z-[100] w-10 h-10 rounded-full bg-background/80 backdrop-blur-sm shadow-lg border border-border hover:bg-background"
+        style={{ position: 'fixed' }}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </Button>
+      
       <div className="flex h-screen">
         {/* Main chat area - full width, no sidebar */}
         <div className="flex-1 flex flex-col overflow-hidden bg-background w-full">
-          
-          {/* Floating back button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => router.push('/therapy')}
-            className="fixed top-4 left-4 z-50 w-10 h-10 rounded-full bg-background/80 backdrop-blur-sm shadow-lg border border-border hover:bg-background"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="15 18 9 12 15 6"></polyline>
-            </svg>
-          </Button>
 
           {messages.length === 0 ? (
             // Welcome screen with suggested questions

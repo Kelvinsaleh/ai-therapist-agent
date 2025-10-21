@@ -24,6 +24,11 @@ html.keyboard-open body {
   overflow: hidden;
 }
 
+/* Ensure fixed elements stay truly fixed when keyboard opens */
+.fixed {
+  position: fixed !important;
+}
+
 /* Dynamic viewport height for chat containers */
 @supports (height: 100dvh) {
   .chat-container {

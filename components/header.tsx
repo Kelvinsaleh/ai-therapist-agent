@@ -26,8 +26,7 @@ export function Header() {
   // Hide header on individual therapy chat pages (but show on sessions list)
   const hideHeader = 
     (pathname?.startsWith('/therapy/') && pathname !== '/therapy' && !pathname?.includes('/sessions')) ||
-    pathname === '/matching/chat' ||
-    pathname === '/journaling';
+    pathname === '/matching/chat';
   
   if (hideHeader) return null;
 
