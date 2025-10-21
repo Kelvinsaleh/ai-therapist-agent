@@ -635,134 +635,7 @@ export default function TherapyPage() {
     }
   };
 
-  // Show sessions list if no session is selected or sessionId is 'new'
-  const showSessionsList = !sessionId || sessionId === 'new' || messages.length === 0;
-
-  // If no active session or empty session, show sessions list as main view
-  if (showSessionsList) {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="max-w-4xl mx-auto pt-20 px-4 pb-8">
-          {/* Header */}
-          <div className="mb-8 text-center">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 text-primary flex items-center justify-center ring-2 ring-primary/20 shadow-lg mx-auto mb-4">
-              <Bot className="w-8 h-8" />
-            </div>
-            <h1 className="text-3xl font-bold mb-2">AI Therapy Sessions</h1>
-            <p className="text-muted-foreground">
-              Choose a session to continue or start a new conversation
-            </p>
-          </div>
-
-          {/* New Session Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="mb-6"
-          >
-            <Card
-              className="cursor-pointer hover:shadow-lg transition-all duration-200 border-2 border-primary/20 hover:border-primary/40 bg-gradient-to-br from-primary/5 to-primary/10"
-              onClick={handleNewSession}
-            >
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
-                    <PlusCircle className="w-6 h-6" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-lg mb-1">
-                      Start New Session
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      Begin a fresh conversation with your AI therapist
-                    </p>
-                  </div>
-                  {isLoading && <Loader2 className="w-5 h-5 animate-spin text-primary" />}
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* Previous Sessions */}
-          {sessions.length > 0 && (
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold flex items-center gap-2">
-                <Clock className="w-5 h-5 text-primary" />
-                Recent Sessions
-              </h2>
-
-              <div className="grid gap-4">
-                {sessions.map((session, index) => (
-                  <motion.div
-                    key={session.sessionId}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: index * 0.1 }}
-                  >
-                    <Card
-                      className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:border-primary/40"
-                      onClick={() => handleSessionSelect(session.sessionId)}
-                    >
-                      <CardContent className="p-5">
-                        <div className="flex items-start gap-4">
-                          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0">
-                            <MessageSquare className="w-5 h-5 text-muted-foreground" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold mb-1 truncate">
-                              {session.messages[0]?.content.slice(0, 60) || "New Session"}
-                              {session.messages[0]?.content.length > 60 && "..."}
-                            </h3>
-                            <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-                              {session.messages[session.messages.length - 1]?.content ||
-                                "No messages yet"}
-                            </p>
-                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                              <span className="flex items-center gap-1">
-                                <MessageSquare className="w-3 h-3" />
-                                {session.messages.length} messages
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                {(() => {
-                                  try {
-                                    const date = new Date(session.updatedAt);
-                                    if (isNaN(date.getTime())) return "Just now";
-                                    return formatDistanceToNow(date, { addSuffix: true });
-                                  } catch {
-                                    return "Just now";
-                                  }
-                                })()}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {sessions.length === 0 && (
-            <div className="text-center py-12">
-              <div className="w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
-                <MessageSquare className="w-10 h-10 text-muted-foreground/50" />
-              </div>
-              <p className="text-muted-foreground mb-2">No previous sessions</p>
-              <p className="text-sm text-muted-foreground">
-                Start your first conversation above
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // Active chat session view (NO footer, only fixed input at bottom)
+  // Single page - just the chat interface
   return (
     <div className="min-h-screen bg-background">
       <div className="flex h-screen pt-16 gap-0">
@@ -884,11 +757,7 @@ export default function TherapyPage() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => {
-                  setSessionId(null);
-                  setMessages([]);
-                  router.push('/therapy/new');
-                }}
+                onClick={() => router.push('/therapy')}
                 className="md:hidden"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

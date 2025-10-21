@@ -26,7 +26,7 @@ export function FixedChat() {
   const router = useRouter();
 
   const handleClick = () => {
-    router.push("/therapy/new");
+    router.push("/therapy");
   };
 
   return (
