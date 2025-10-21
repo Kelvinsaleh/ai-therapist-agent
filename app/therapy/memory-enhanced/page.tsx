@@ -572,9 +572,9 @@ export default function MemoryEnhancedTherapyPage() {
 
 
   return (
-    <div className="min-h-screen bg-background w-full">
-      {/* Mobile header with back button */}
-      <div className="md:hidden fixed top-16 left-0 right-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <div className="h-screen bg-background w-full flex flex-col">
+      {/* Chat header with back button */}
+      <div className="fixed top-0 left-0 right-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex items-center justify-between px-4 py-3">
           <Button
             variant="ghost"
@@ -585,20 +585,19 @@ export default function MemoryEnhancedTherapyPage() {
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="15 18 9 12 15 6"></polyline>
             </svg>
-            Sessions
+            Back
           </Button>
           <h2 className="text-sm font-medium text-muted-foreground flex items-center gap-1">
             <Sparkles className="w-4 h-4 text-primary" />
-            Memory-Enhanced
+            Memory-Enhanced Chat
           </h2>
         </div>
       </div>
 
       <div 
-        className="flex w-full"
+        className="flex w-full flex-1 pt-[3.5rem]"
         style={{ 
-          height: `calc(100vh - 4rem - ${keyboardHeight}px)`,
-          marginTop: '5rem'
+          height: `calc(100vh - ${keyboardHeight}px)`,
         }}
       >
         {/* Main chat area - full width, no sidebar */}

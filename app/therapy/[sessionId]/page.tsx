@@ -638,7 +638,7 @@ export default function TherapyPage() {
   // Single page - just the chat interface
   return (
     <div className="min-h-screen bg-background">
-      <div className="flex h-screen pt-16">
+      <div className="flex h-screen">
         {/* Main chat area - full width, no sidebar */}
         <div className="flex-1 flex flex-col overflow-hidden bg-background w-full">
           {/* Chat header with back button */}

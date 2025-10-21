@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   Heart,
   MessageCircle,
@@ -20,6 +21,15 @@ import { useSession } from "@/lib/contexts/session-context";
 export function Header() {
   const { isAuthenticated, logout, user } = useSession();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const pathname = usePathname();
+  
+  // Hide header on individual therapy chat pages (but show on sessions list)
+  const hideHeader = 
+    (pathname?.startsWith('/therapy/') && pathname !== '/therapy' && !pathname?.includes('/sessions')) ||
+    pathname === '/matching/chat' ||
+    pathname === '/journaling';
+  
+  if (hideHeader) return null;
 
   const navItems = [
     { href: "/features", label: "Features" },

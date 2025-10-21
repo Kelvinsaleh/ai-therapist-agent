@@ -36,7 +36,7 @@ export default function RootLayout({
           <SessionProvider>
             <AudioPlayerProvider>
               <Header />
-              <main id="main-content" className="pt-16 pb-28" role="main">
+              <main id="main-content" className="min-h-screen" role="main">
                 {children}
               </main>
               <Footer />
