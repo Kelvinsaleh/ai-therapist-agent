@@ -180,32 +180,38 @@ export default function TherapyPage() {
     const initChat = async () => {
       try {
         setIsLoading(true);
-        if (!sessionId || sessionId === "new") {
-          logger.debug("Creating new chat session");
-          const newSessionId = await createChatSession();
-          logger.debug("New session created", { sessionId: newSessionId });
-          setSessionId(newSessionId);
-          window.history.pushState({}, "", `/therapy/${newSessionId}`);
-        } else {
-          logger.debug("Loading existing chat session", { sessionId });
-          try {
-            const history = await getChatHistory(sessionId);
-            logger.debug("Loaded chat history", { history, historyLength: history?.length });
-            if (Array.isArray(history) && history.length > 0) {
-              const formattedHistory = history.map((msg) => ({
-                ...msg,
-                timestamp: new Date(msg.timestamp),
-              }));
-              logger.debug("Formatted history", { formattedHistory, count: formattedHistory.length });
-              setMessages(formattedHistory);
-            } else {
-              logger.warn("No chat history found or empty array", { history, sessionId });
-              setMessages([]);
-            }
-          } catch (historyError) {
-            logger.error("Error loading chat history", historyError);
+        
+        // Validate sessionId - if it's invalid, redirect to sessions page
+        if (!sessionId || sessionId === "new" || sessionId === "undefined" || sessionId === "null") {
+          logger.debug("Invalid or missing sessionId, redirecting to sessions page", { sessionId });
+          router.push("/therapy");
+          return;
+        }
+        
+        logger.debug("Loading existing chat session", { sessionId });
+        try {
+          const history = await getChatHistory(sessionId);
+          logger.debug("Loaded chat history", { history, historyLength: history?.length });
+          if (Array.isArray(history) && history.length > 0) {
+            const formattedHistory = history.map((msg) => ({
+              ...msg,
+              timestamp: new Date(msg.timestamp),
+            }));
+            logger.debug("Formatted history", { formattedHistory, count: formattedHistory.length });
+            setMessages(formattedHistory);
+          } else {
+            logger.warn("No chat history found or empty array", { history, sessionId });
             setMessages([]);
           }
+        } catch (historyError) {
+          logger.error("Error loading chat history", historyError);
+          // If session not found, redirect to sessions page
+          if (historyError instanceof Error && historyError.message.includes("not found")) {
+            logger.debug("Session not found, redirecting to sessions page");
+            router.push("/therapy");
+            return;
+          }
+          setMessages([]);
         }
       } catch (error) {
         logger.error("Failed to initialize chat", error);
@@ -223,7 +229,7 @@ export default function TherapyPage() {
     };
 
     initChat();
-  }, [sessionId]);
+  }, [sessionId, router]);
 
   // Load subscription status to gate premium features
   useEffect(() => {
