@@ -120,30 +120,22 @@ export default function MemoryEnhancedTherapyPage() {
     loadSessions();
   }, [messages]);
 
-  // Ensure we always reuse a single session for memory-enhanced chat
+  // Check for existing session or redirect to sessions list
   useEffect(() => {
-    const ensureSession = async () => {
-      try {
-        const storedId = typeof window !== 'undefined' ? localStorage.getItem('memoryEnhancedSessionId') : null;
-        if (storedId) {
-          setSessionId(storedId);
-          return;
-        }
-
-        const newId = await createChatSession();
-        setSessionId(newId);
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('memoryEnhancedSessionId', newId);
-        }
-      } catch (e) {
-        logger.error('Failed to ensure memory-enhanced session', e);
+    const checkSession = async () => {
+      const storedId = typeof window !== 'undefined' ? localStorage.getItem('memoryEnhancedSessionId') : null;
+      
+      if (!storedId) {
+        // No session found, redirect to sessions list
+        router.push('/therapy/memory-enhanced/sessions');
+        return;
       }
+      
+      setSessionId(storedId);
     };
 
-    if (!sessionId) {
-      ensureSession();
-    }
-  }, [sessionId]);
+    checkSession();
+  }, [router]);
 
   // Load chat history whenever we have a valid sessionId
   useEffect(() => {
@@ -598,12 +590,12 @@ export default function MemoryEnhancedTherapyPage() {
   };
 
 
-  if (authLoading) {
+  if (authLoading || !mounted || isLoading || !sessionId) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-muted-foreground">Checking your session...</p>
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
@@ -620,30 +612,27 @@ export default function MemoryEnhancedTherapyPage() {
     );
   }
 
-  if (!mounted || isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
-  }
-
 
   return (
     <div className="min-h-screen bg-background w-full">
-      {/* Mobile bar for sessions toggle */}
+      {/* Mobile header with back button */}
       <div className="md:hidden fixed top-16 left-0 right-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex items-center justify-between px-4 py-3">
-          <h2 className="text-sm font-medium text-muted-foreground">Memory-Enhanced Therapy</h2>
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
-            onClick={() => setIsSidebarOpen((p) => !p)}
+            onClick={() => router.push('/therapy/memory-enhanced/sessions')}
             className="gap-2"
           >
-            <MessageSquare className="w-4 h-4" />
-            {isSidebarOpen ? "Hide Sessions" : "Show Sessions"}
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+            Sessions
           </Button>
+          <h2 className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+            <Sparkles className="w-4 h-4 text-primary" />
+            Memory-Enhanced
+          </h2>
         </div>
       </div>
 
@@ -654,57 +643,34 @@ export default function MemoryEnhancedTherapyPage() {
           marginTop: '5rem'
         }}
       >
-        {/* Sessions Sidebar */}
-        <div
-          className={cn(
-            "flex flex-col border-r bg-background md:w-72 md:static md:translate-x-0 transition-transform duration-200",
-            isSidebarOpen
-              ? "fixed inset-y-20 left-0 right-0 z-40 translate-x-0 md:static md:inset-auto"
-              : "fixed inset-y-20 left-0 right-0 z-40 -translate-x-full md:translate-x-0 md:static md:inset-auto"
-          )}
-        >
+        {/* Sessions Sidebar (desktop only) */}
+        <div className={cn(
+          "flex flex-col border-r bg-background w-72 transition-transform duration-200",
+          "hidden md:flex" // Hidden on mobile
+        )}>
           <div className="p-6 border-b bg-muted/30">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold flex items-center gap-2">
-                <MessageSquare className="w-5 h-5 text-primary" />
-                Chat Sessions
+                <Sparkles className="w-5 h-5 text-primary" />
+                Sessions
               </h2>
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={handleNewSession}
+                onClick={() => router.push('/therapy/memory-enhanced/sessions')}
                 className="hover:bg-primary/10"
-                disabled={isLoading}
               >
-                {isLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <PlusCircle className="w-5 h-5" />
-                )}
+                <PlusCircle className="w-5 h-5" />
               </Button>
             </div>
             <Button
               variant="default"
               className="w-full justify-start gap-2"
-              onClick={handleNewSession}
-              disabled={isLoading}
+              onClick={() => router.push('/therapy/memory-enhanced/sessions')}
             >
-              {isLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <MessageSquare className="w-4 h-4" />
-              )}
-              New Session
+              <MessageSquare className="w-4 h-4" />
+              View All Sessions
             </Button>
-            <div className="md:hidden mt-3">
-              <Button
-                variant="ghost"
-                className="w-full"
-                onClick={() => setIsSidebarOpen(false)}
-              >
-                Close
-              </Button>
-            </div>
           </div>
 
           <ScrollArea className="flex-1 p-4">
