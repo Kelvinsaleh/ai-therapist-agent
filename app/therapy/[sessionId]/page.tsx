@@ -637,7 +637,7 @@ export default function TherapyPage() {
 
   // Single page - just the chat interface
   return (
-    <div className="min-h-screen bg-background">
+    <div className="fixed inset-0 bg-background" style={{ position: 'fixed', width: '100%', height: '100vh' }}>
       {/* Floating back button - ALWAYS fixed to viewport top, never moves */}
       <Button
         variant="ghost"
@@ -651,9 +651,9 @@ export default function TherapyPage() {
         </svg>
       </Button>
       
-      <div className="flex h-screen">
+      <div className="flex h-full w-full">
         {/* Main chat area - full width, no sidebar */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-background w-full">
+        <div className="flex-1 flex flex-col overflow-hidden bg-background w-full h-full">
 
           {messages.length === 0 ? (
             // Welcome screen with suggested questions
@@ -720,10 +720,10 @@ export default function TherapyPage() {
             <div 
               className={cn(
                 "flex-1 overflow-y-auto chat-messages",
-                "transition-all duration-300 ease-out",
-                "pb-[calc(80px+env(safe-area-inset-bottom)+var(--keyboard-offset,0px))]"
+                "pb-[calc(80px+env(safe-area-inset-bottom))]"
               )}
               style={{
+                height: '100%',
                 marginBottom: isPopupOpen ? '0' : undefined,
               }}
             >

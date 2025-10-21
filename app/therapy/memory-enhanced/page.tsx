@@ -572,7 +572,7 @@ export default function MemoryEnhancedTherapyPage() {
 
 
   return (
-    <div className="h-screen bg-background w-full flex flex-col">
+    <div className="fixed inset-0 bg-background w-full" style={{ position: 'fixed', width: '100%', height: '100vh' }}>
       
       {/* Floating back button - ALWAYS fixed to viewport top, never moves */}
       <Button
@@ -587,14 +587,9 @@ export default function MemoryEnhancedTherapyPage() {
         </svg>
       </Button>
 
-      <div 
-        className="flex w-full flex-1 h-full"
-        style={{ 
-          height: `calc(100vh - ${keyboardHeight}px)`,
-        }}
-      >
+      <div className="flex w-full h-full">
         {/* Main chat area - full width, no sidebar */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-background w-full">
+        <div className="flex-1 flex flex-col overflow-hidden bg-background w-full h-full">
 
 
           {messages.length === 0 ? (
@@ -612,8 +607,9 @@ export default function MemoryEnhancedTherapyPage() {
             <div 
               className={cn(
                 "flex-1 overflow-y-auto chat-messages",
-                "pb-[calc(80px+env(safe-area-inset-bottom)+var(--keyboard-offset,0px))]"
+                "pb-[calc(80px+env(safe-area-inset-bottom))]"
               )}
+              style={{ height: '100%' }}
             >
               <div className="max-w-6xl mx-auto px-2">
                 <AnimatePresence initial={false}>

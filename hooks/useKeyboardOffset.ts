@@ -10,52 +10,43 @@ export function useKeyboardOffset() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    let initialViewportHeight = window.visualViewport?.height || window.innerHeight;
     let rafId: number | null = null;
+    let isKeyboardOpen = false;
 
     const updateOffset = () => {
       const visualViewport = window.visualViewport;
       
       if (visualViewport) {
         // Use visual viewport for accurate keyboard detection
-        const currentViewportHeight = visualViewport.height;
         const windowHeight = window.innerHeight;
+        const viewportHeight = visualViewport.height;
         
-        // Calculate keyboard height (the difference between window and viewport)
-        const keyboardHeight = windowHeight - currentViewportHeight;
-        const newOffset = Math.max(0, keyboardHeight);
+        // Calculate keyboard height
+        const keyboardHeight = Math.max(0, windowHeight - viewportHeight);
         
-        // Update if there's a meaningful change (>5px threshold)
-        if (Math.abs(newOffset - offset) > 5) {
-          setOffset(newOffset);
-          
-          // Add/remove keyboard-open class for CSS hooks
-          if (newOffset > 50) {
-            document.documentElement.classList.add("keyboard-open");
-          } else {
-            document.documentElement.classList.remove("keyboard-open");
-          }
+        // Determine if keyboard is open (threshold of 150px to avoid false positives)
+        const wasOpen = isKeyboardOpen;
+        isKeyboardOpen = keyboardHeight > 150;
+        
+        // Lock body scroll when keyboard opens
+        if (isKeyboardOpen && !wasOpen) {
+          document.body.style.position = 'fixed';
+          document.body.style.width = '100%';
+          document.body.style.overflow = 'hidden';
+          document.documentElement.classList.add("keyboard-open");
+        } else if (!isKeyboardOpen && wasOpen) {
+          document.body.style.position = '';
+          document.body.style.width = '';
+          document.body.style.overflow = '';
+          document.documentElement.classList.remove("keyboard-open");
         }
-      } else {
-        // Fallback for browsers without visualViewport
-        const currentHeight = window.innerHeight;
-        const heightDiff = initialViewportHeight - currentHeight;
-        const newOffset = Math.max(0, heightDiff);
         
-        if (Math.abs(newOffset - offset) > 5) {
-          setOffset(newOffset);
-        }
+        setOffset(keyboardHeight);
       }
     };
 
     const handleResize = () => {
-      // Debounce with RAF for smooth updates
-      if (rafId) cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(updateOffset);
-    };
-
-    const handleScroll = () => {
-      // Handle viewport scroll events on mobile
+      // Update immediately without debounce for responsiveness
       if (rafId) cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(updateOffset);
     };
@@ -66,24 +57,22 @@ export function useKeyboardOffset() {
     // Use visualViewport for better mobile keyboard detection
     if (window.visualViewport) {
       window.visualViewport.addEventListener("resize", handleResize);
-      window.visualViewport.addEventListener("scroll", handleScroll);
     }
-    
-    // Fallback for older browsers
-    window.addEventListener("resize", handleResize);
 
     return () => {
       if (rafId) cancelAnimationFrame(rafId);
       
       if (window.visualViewport) {
         window.visualViewport.removeEventListener("resize", handleResize);
-        window.visualViewport.removeEventListener("scroll", handleScroll);
       }
       
-      window.removeEventListener("resize", handleResize);
+      // Clean up body styles
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.overflow = '';
       document.documentElement.classList.remove("keyboard-open");
     };
-  }, [offset]);
+  }, []);
 
   // Set CSS variable for use in components
   useEffect(() => {

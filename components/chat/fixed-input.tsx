@@ -73,16 +73,26 @@ export function FixedInput({
       document.body.style.overflow = "hidden";
       document.body.style.position = "fixed";
       document.body.style.width = "100%";
-    } else {
-      document.body.style.overflow = "";
-      document.body.style.position = "";
-      document.body.style.width = "";
+      document.body.style.top = '0';
+    } else if (!isPopupOpen) {
+      // Don't reset if keyboard is handling it
+      const isKeyboardOpen = document.documentElement.classList.contains('keyboard-open');
+      if (!isKeyboardOpen) {
+        document.body.style.overflow = "";
+        document.body.style.position = "";
+        document.body.style.width = "";
+        document.body.style.top = "";
+      }
     }
 
     return () => {
-      document.body.style.overflow = "";
-      document.body.style.position = "";
-      document.body.style.width = "";
+      const isKeyboardOpen = document.documentElement.classList.contains('keyboard-open');
+      if (!isKeyboardOpen) {
+        document.body.style.overflow = "";
+        document.body.style.position = "";
+        document.body.style.width = "";
+        document.body.style.top = "";
+      }
     };
   }, [isPopupOpen]);
 
