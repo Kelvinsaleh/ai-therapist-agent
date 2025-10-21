@@ -1,77 +1,82 @@
-"use client";
-
 import { useEffect, useState } from "react";
 
 /**
- * useKeyboardOffset
- * - Returns the current keyboard height in pixels (0 when closed or not detected).
- * - Sets CSS variable --keyboard-offset on document.documentElement for CSS usage as well.
+ * Enhanced keyboard offset hook that intelligently handles mobile keyboards
+ * Returns the keyboard height in pixels for proper positioning
  */
-export function useKeyboardOffset(): number {
+export function useKeyboardOffset() {
   const [offset, setOffset] = useState(0);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const root = document.documentElement;
-    const safeSet = (value: number) => {
-      const clamped = Math.max(0, Math.round(value));
-      setOffset(clamped);
-      root.style.setProperty("--keyboard-offset", `${clamped}px`);
-      if (clamped > 0) {
-        root.classList.add("keyboard-open");
-      } else {
-        root.classList.remove("keyboard-open");
+    let initialHeight = window.innerHeight;
+    let rafId: number | null = null;
+
+    const updateOffset = () => {
+      const currentHeight = window.visualViewport?.height || window.innerHeight;
+      const newOffset = Math.max(0, initialHeight - currentHeight);
+      
+      // Only update if there's a significant change (>10px) to avoid jitter
+      if (Math.abs(newOffset - offset) > 10) {
+        setOffset(newOffset);
       }
     };
 
-    const vv = (window as any).visualViewport as VisualViewport | undefined;
-    let lastHeight = vv?.height ?? window.innerHeight;
-
-    const computeFromVisualViewport = () => {
-      if (!vv) return;
-      const layoutHeight = window.innerHeight;
-      const keyboard = Math.max(0, layoutHeight - vv.height - (vv.offsetTop || 0));
-      safeSet(keyboard);
-      lastHeight = vv.height;
+    const handleResize = () => {
+      // Use RAF to debounce rapid resize events
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(updateOffset);
     };
 
-    const computeFromResize = () => {
-      const current = window.innerHeight;
-      // Heuristic: difference from initial innerHeight suggests keyboard.
-      const baseline = (window as any).__baselineInnerHeight || current;
-      (window as any).__baselineInnerHeight = baseline;
-      const diff = Math.max(0, baseline - current);
-      safeSet(diff);
-      lastHeight = current;
+    const handleFocus = () => {
+      initialHeight = window.innerHeight;
+      handleResize();
     };
 
-    if (vv) {
-      computeFromVisualViewport();
-      vv.addEventListener("resize", computeFromVisualViewport);
-      vv.addEventListener("scroll", computeFromVisualViewport);
+    const handleBlur = () => {
+      // Smooth transition back to 0 when keyboard closes
+      rafId = requestAnimationFrame(() => {
+        setOffset(0);
+      });
+    };
+
+    // Use visualViewport if available (better for mobile)
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", handleResize);
+      window.visualViewport.addEventListener("scroll", handleResize);
+    } else {
+      window.addEventListener("resize", handleResize);
     }
 
-    // Fallbacks for older browsers/iOS
-    window.addEventListener("resize", computeFromResize);
-    window.addEventListener("orientationchange", computeFromResize);
-
-    // Initial compute for fallback
-    if (!vv) computeFromResize();
+    // Track focus/blur on inputs
+    window.addEventListener("focusin", handleFocus);
+    window.addEventListener("focusout", handleBlur);
 
     return () => {
-      if (vv) {
-        vv.removeEventListener("resize", computeFromVisualViewport);
-        vv.removeEventListener("scroll", computeFromVisualViewport);
+      if (rafId) cancelAnimationFrame(rafId);
+      
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener("resize", handleResize);
+        window.visualViewport.removeEventListener("scroll", handleResize);
+      } else {
+        window.removeEventListener("resize", handleResize);
       }
-      window.removeEventListener("resize", computeFromResize);
-      window.removeEventListener("orientationchange", computeFromResize);
-      root.style.removeProperty("--keyboard-offset");
-      root.classList.remove("keyboard-open");
+      
+      window.removeEventListener("focusin", handleFocus);
+      window.removeEventListener("focusout", handleBlur);
     };
-  }, []);
+  }, [offset]);
+
+  // Set CSS variable for use in components
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.style.setProperty(
+        "--keyboard-offset",
+        `${offset}px`
+      );
+    }
+  }, [offset]);
 
   return offset;
 }
-
-

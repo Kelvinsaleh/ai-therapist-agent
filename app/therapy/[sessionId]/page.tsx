@@ -141,6 +141,8 @@ export default function TherapyPage() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [isPremium, setIsPremium] = useState<boolean>(false);
   const [isVoiceMode, setIsVoiceMode] = useState<boolean>(false);
+  const [isPopupOpen, setIsPopupOpen] = useState<boolean>(false);
+  const [hideFooter, setHideFooter] = useState<boolean>(false);
 
   const handleNewSession = async () => {
     try {
@@ -884,7 +886,16 @@ export default function TherapyPage() {
             </div>
           ) : (
             // Chat messages
-            <div className="flex-1 overflow-y-auto scroll-smooth pb-[calc(120px+env(safe-area-inset-bottom))] overscroll-contain">
+            <div 
+              className={cn(
+                "flex-1 overflow-y-auto scroll-smooth overscroll-contain",
+                "transition-all duration-300 ease-out",
+                "pb-[calc(120px+env(safe-area-inset-bottom)+var(--keyboard-offset,0px))]"
+              )}
+              style={{
+                marginBottom: isPopupOpen ? '0' : undefined,
+              }}
+            >
               <div className="max-w-3xl mx-auto">
                 <AnimatePresence initial={false}>
                   {messages.map((msg) => (
@@ -969,17 +980,19 @@ export default function TherapyPage() {
 
           {/* Fixed Input */}
           <FixedInput
-                  value={message}
+            value={message}
             onChange={setMessage}
             onSend={handleSubmit}
-                  placeholder={
-                    isChatPaused
-                      ? "Complete the activity to continue..."
-                      : isListening 
-                        ? "Listening... Speak now"
-                        : "Type or speak your message..."
-                  }
-                  disabled={isTyping || isChatPaused}
+            placeholder={
+              isChatPaused
+                ? "Complete the activity to continue..."
+                : isListening 
+                  ? "Listening... Speak now"
+                  : "Type or speak your message..."
+            }
+            disabled={isTyping || isChatPaused}
+            isPopupOpen={isPopupOpen}
+            hideFooter={hideFooter}
             onFocusScrollIntoView={() => {
               try { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); } catch {}
             }}

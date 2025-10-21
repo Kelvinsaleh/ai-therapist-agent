@@ -2,6 +2,56 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Keyboard and popup management styles */
+:root {
+  --keyboard-offset: 0px;
+}
+
+/* Smooth transitions for keyboard open/close */
+html.keyboard-open {
+  transition: none;
+}
+
+html.keyboard-open body {
+  transition: none;
+}
+
+/* Prevent layout shift when keyboard opens */
+@supports (height: 100dvh) {
+  .chat-container {
+    height: 100dvh;
+  }
+}
+
+/* Smooth scroll behavior for chat */
+.chat-messages {
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+}
+
+/* Input stability during keyboard transitions */
+.fixed-input-container {
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Popup overlay transitions */
+.popup-overlay {
+  transition: opacity 300ms ease-out, backdrop-filter 300ms ease-out;
+}
+
+.popup-overlay.open {
+  opacity: 1;
+  backdrop-filter: blur(4px);
+}
+
+.popup-overlay.closed {
+  opacity: 0;
+  backdrop-filter: blur(0px);
+  pointer-events: none;
+}
+
 /* Accessibility utilities */
 @layer utilities {
   .sr-only {
