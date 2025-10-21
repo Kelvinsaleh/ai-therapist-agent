@@ -4,10 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useSession } from "@/lib/contexts/session-context";
-import { backendService } from "@/lib/api/backend-service";
-import { dashboardService } from "@/lib/api/dashboard-service";
-import { getMoodHistory, getMoodStats } from "@/lib/api/mood";
-import { paystackService } from "@/lib/payments/paystack-service";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -34,7 +30,8 @@ import {
   Lock,
   Smile,
   ChevronDown,
-  BarChart3
+  BarChart3,
+  CheckCircle
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -292,8 +289,33 @@ export default function ProfilePage() {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 p-6 pt-20">
       <div className="max-w-7xl mx-auto space-y-6">
+        {/* Simple Profile Header */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="w-6 h-6" />
+              Profile
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <Label>Name</Label>
+                <p className="text-lg font-medium">{user?.name || 'Not set'}</p>
+              </div>
+              <div>
+                <Label>Email</Label>
+                <p className="text-lg font-medium">{user?.email || 'Not set'}</p>
+              </div>
+              <div>
+                <Label>Account Tier</Label>
+                <Badge className="mt-2">{userTier}</Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
