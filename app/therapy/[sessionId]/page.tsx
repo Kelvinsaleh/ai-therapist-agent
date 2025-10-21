@@ -120,6 +120,7 @@ export default function TherapyPage() {
   const [message, setMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [mounted, setMounted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -258,9 +259,13 @@ export default function TherapyPage() {
   }, [messages]);
 
   const scrollToBottom = () => {
-    if (messagesEndRef.current) {
+    // Scroll the messages container to bottom, not the entire viewport
+    // This prevents the input from jumping when new messages arrive
+    if (scrollContainerRef.current) {
       setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        if (scrollContainerRef.current) {
+          scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+        }
       }, 100);
     }
   };
@@ -718,6 +723,7 @@ export default function TherapyPage() {
           ) : (
             // Chat messages
             <div 
+              ref={scrollContainerRef}
               className={cn(
                 "flex-1 overflow-y-auto chat-messages",
                 "pb-[calc(80px+env(safe-area-inset-bottom))]"
@@ -827,7 +833,12 @@ export default function TherapyPage() {
         isPopupOpen={isPopupOpen}
         hideFooter={hideFooter}
         onFocusScrollIntoView={() => {
-          try { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); } catch {}
+          try {
+            // Scroll the container to bottom, not the viewport
+            if (scrollContainerRef.current) {
+              scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+            }
+          } catch {}
         }}
         rightAccessories={(
             <Button

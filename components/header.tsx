@@ -15,7 +15,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "./theme-toggle";
 import { SignInButton } from "@/components/auth/sign-in-button";
-import { MentalHealthData } from "@/components/mental-health-data";
 import { useSession } from "@/lib/contexts/session-context";
 
 export function Header() {
@@ -34,7 +33,6 @@ export function Header() {
     { href: "/features", label: "Features" },
     { href: "/pricing", label: "Pricing" },
     { href: "/matching", label: "Find Support" },
-    { href: "/cbt/dashboard", label: "CBT Tools" },
     { href: "/about", label: "About HOPE" },
   ];
 
@@ -82,13 +80,6 @@ export function Header() {
             </nav>
 
             <div className="flex items-center gap-3">
-              {/* Mental Health Data - only show for authenticated users */}
-              {isAuthenticated && (
-                <div className="hidden lg:block">
-                  <MentalHealthData compact={true} showInsights={false} />
-                </div>
-              )}
-              
               <ThemeToggle />
 
               {/* Mobile menu button */}
@@ -152,12 +143,6 @@ export function Header() {
               role="navigation"
               aria-label="Mobile navigation"
             >
-              {/* Mental Health Data for mobile */}
-              {isAuthenticated && (
-                <div className="p-4 border-b border-primary/10">
-                  <MentalHealthData compact={true} showInsights={false} />
-                </div>
-              )}
               <nav className="flex flex-col space-y-1 py-4">
                 {navItems.map((item) => (
                   <Link

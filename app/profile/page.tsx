@@ -10,6 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { backendService } from "@/lib/api/backend-service";
+import { dashboardService } from "@/lib/api/dashboard-service";
+import { getMoodHistory, getMoodStats } from "@/lib/api/mood";
+import { paystackService } from "@/lib/payments/paystack-service";
 import { 
   User, 
   Settings, 
@@ -31,7 +35,10 @@ import {
   Smile,
   ChevronDown,
   BarChart3,
-  CheckCircle
+  CheckCircle,
+  Target,
+  Plus,
+  Trash2
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -100,6 +107,10 @@ export default function ProfilePage() {
   const [editedName, setEditedName] = useState("");
   const [editedEmail, setEditedEmail] = useState("");
   const [passwordData, setPasswordData] = useState({ current: "", new: "", confirm: "" });
+  
+  // Goals state
+  const [goals, setGoals] = useState<string[]>([]);
+  const [newGoal, setNewGoal] = useState("");
   
   // Analytics data
   const [stats, setStats] = useState<any>(null);
@@ -316,6 +327,103 @@ export default function ProfilePage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Goal Setting Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="w-5 h-5 text-primary" />
+              My Goals
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* Add new goal */}
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Enter a new goal..."
+                  value={newGoal}
+                  onChange={(e) => setNewGoal(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && newGoal.trim()) {
+                      setGoals([...goals, newGoal.trim()]);
+                      setNewGoal("");
+                    }
+                  }}
+                />
+                <Button
+                  onClick={() => {
+                    if (newGoal.trim()) {
+                      setGoals([...goals, newGoal.trim()]);
+                      setNewGoal("");
+                    }
+                  }}
+                  disabled={!newGoal.trim()}
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add
+                </Button>
+              </div>
+
+              {/* Goals list */}
+              {goals.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Target className="w-12 h-12 mx-auto mb-2 opacity-20" />
+                  <p className="text-sm">No goals yet. Add your first goal above!</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {goals.map((goal, index) => (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      className="flex items-center justify-between p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <CheckCircle className="w-4 h-4 text-primary" />
+                        <span className="text-sm">{goal}</span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setGoals(goals.filter((_, i) => i !== index));
+                        }}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+
+              {/* Suggested goals */}
+              {goals.length < 5 && (
+                <div className="pt-4 border-t">
+                  <p className="text-xs text-muted-foreground mb-2">Suggested goals:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {COMMON_GOALS.filter(g => !goals.includes(g)).slice(0, 6).map((goal) => (
+                      <Button
+                        key={goal}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setGoals([...goals, goal])}
+                        className="text-xs"
+                      >
+                        <Plus className="w-3 h-3 mr-1" />
+                        {goal}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>

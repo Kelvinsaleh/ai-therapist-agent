@@ -598,6 +598,46 @@ class BackendService {
       body: JSON.stringify({ details, timestamp: new Date().toISOString() }),
     });
   }
+
+  // Meditation session methods
+  async getMeditationSessions(): Promise<ApiResponse> {
+    return this.makeRequest('/meditation-sessions');
+  }
+
+  async createMeditationSession(sessionData: any): Promise<ApiResponse> {
+    return this.makeRequest('/meditation-sessions', {
+      method: 'POST',
+      body: JSON.stringify(sessionData),
+    });
+  }
+
+  // Mood entries methods
+  async getMoodEntries(): Promise<ApiResponse> {
+    return this.makeRequest('/mood');
+  }
+
+  async createMoodEntry(moodData: any): Promise<ApiResponse> {
+    return this.makeRequest('/mood', {
+      method: 'POST',
+      body: JSON.stringify(moodData),
+    });
+  }
+
+  // Activity methods
+  async createActivity(activityData: any): Promise<ApiResponse> {
+    return this.makeRequest('/activities', {
+      method: 'POST',
+      body: JSON.stringify(activityData),
+    });
+  }
+
+  // Chat message methods
+  async sendChatMessage(sessionId: string, message: string): Promise<ApiResponse> {
+    return this.makeRequest(`/chat/sessions/${sessionId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ message }),
+    });
+  }
 }
 
 export const backendService = new BackendService();

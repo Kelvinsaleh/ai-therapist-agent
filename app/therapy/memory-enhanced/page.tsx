@@ -97,6 +97,9 @@ export default function MemoryEnhancedTherapyPage() {
   const [isVoiceMode, setIsVoiceMode] = useState<boolean>(false);
   const [isCompletingSession, setIsCompletingSession] = useState(false);
   
+  // Scroll container ref
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  
   // Voice controls
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -220,9 +223,13 @@ export default function MemoryEnhancedTherapyPage() {
   };
 
   const scrollToBottom = () => {
-    if (messagesEndRef.current) {
+    // Scroll the messages container to bottom, not the entire viewport
+    // This prevents the input from jumping when new messages arrive
+    if (scrollContainerRef.current) {
       setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        if (scrollContainerRef.current) {
+          scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+        }
       }, 100);
     }
   };
@@ -605,6 +612,7 @@ export default function MemoryEnhancedTherapyPage() {
             </div>
           ) : (
             <div 
+              ref={scrollContainerRef}
               className={cn(
                 "flex-1 overflow-y-auto chat-messages",
                 "pb-[calc(80px+env(safe-area-inset-bottom))]"
@@ -730,7 +738,10 @@ export default function MemoryEnhancedTherapyPage() {
                       }}
                       onFocus={() => { 
                         try { 
-                          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); 
+                          // Scroll the container to bottom, not the viewport
+                          if (scrollContainerRef.current) {
+                            scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+                          }
                         } catch {} 
                       }}
                       placeholder={
