@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 
 const BACKEND_API_URL = process.env.BACKEND_API_URL || "https://hope-backend-2.onrender.com";
 
@@ -9,9 +7,9 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const authHeader = req.headers.get('authorization');
     
-    if (!session?.user?.accessToken) {
+    if (!authHeader) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -30,9 +28,10 @@ export async function GET(req: NextRequest) {
 
     const response = await fetch(url, {
       headers: {
-        Authorization: `Bearer ${session.user.accessToken}`,
+        'Authorization': authHeader,
         "Content-Type": "application/json",
       },
+      cache: 'no-store'
     });
 
     const data = await response.json();
@@ -48,9 +47,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const authHeader = req.headers.get('authorization');
     
-    if (!session?.user?.accessToken) {
+    if (!authHeader) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -62,7 +61,7 @@ export async function POST(req: NextRequest) {
     const response = await fetch(`${BACKEND_API_URL}/meditation-sessions`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${session.user.accessToken}`,
+        'Authorization': authHeader,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),

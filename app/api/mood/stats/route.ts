@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 
 const BACKEND_API_URL = process.env.BACKEND_API_URL || "https://hope-backend-2.onrender.com";
 
@@ -9,9 +7,9 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const authHeader = req.headers.get('authorization');
     
-    if (!session?.user?.accessToken) {
+    if (!authHeader) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -25,9 +23,10 @@ export async function GET(req: NextRequest) {
       `${BACKEND_API_URL}/mood/stats?period=${period}`,
       {
         headers: {
-          Authorization: `Bearer ${session.user.accessToken}`,
+          'Authorization': authHeader,
           "Content-Type": "application/json",
         },
+        cache: 'no-store'
       }
     );
 
