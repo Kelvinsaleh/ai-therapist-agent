@@ -45,12 +45,11 @@ html.keyboard-open body {
 
 /* Input container stability - prevent repaints and ensure smooth positioning */
 .fixed-input-container {
-  will-change: bottom, transform;
+  will-change: bottom;
   transform: translateZ(0);
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-  perspective: 1000px;
-  -webkit-perspective: 1000px;
+  contain: layout style paint;
 }
 
 /* Popup overlay transitions */

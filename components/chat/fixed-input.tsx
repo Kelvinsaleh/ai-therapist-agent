@@ -90,18 +90,19 @@ export function FixedInput({
     <div
       className={cn(
         // ALWAYS fixed positioning relative to viewport
-        "fixed inset-x-0 z-[60]",
+        "fixed left-0 right-0 z-[60]",
         "border-t bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80",
-        "transition-all duration-300 ease-out fixed-input-container",
+        "fixed-input-container",
         (hideFooter || isPopupOpen) && "opacity-0 pointer-events-none",
         className
       )}
       style={{
-        // Always stay above keyboard, positioned from bottom of viewport
-        position: 'fixed', // Ensure fixed positioning
+        // Always stay fixed to bottom, positioned from bottom of viewport
+        position: 'fixed',
         bottom: (hideFooter || isPopupOpen) 
-          ? `calc(-100% - 100px)` // Move completely out of view
-          : `calc(var(--keyboard-offset, 0px) + env(safe-area-inset-bottom))`,
+          ? '-200px' // Move completely out of view
+          : `calc(${offset}px + env(safe-area-inset-bottom))`,
+        transition: 'none', // Remove transitions to prevent jumping
       }}
     >
       <form
