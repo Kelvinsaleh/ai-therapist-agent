@@ -340,7 +340,7 @@ export default function MemoryEnhancedTherapyPage() {
     const textarea = textareaRef.current;
     if (textarea) {
       textarea.style.height = 'auto';
-      const maxHeight = 200; // max-h-[200px]
+      const maxHeight = 120; // max-h-[120px] - compact for better screen fit
       textarea.style.height = Math.min(textarea.scrollHeight, maxHeight) + 'px';
     }
   };
@@ -415,6 +415,11 @@ export default function MemoryEnhancedTherapyPage() {
       setMessages((prev) => [...prev, assistantMessage]);
       setIsTyping(false);
       scrollToBottom();
+
+      // Keep textarea focused to maintain keyboard visibility on mobile
+      setTimeout(() => {
+        textareaRef.current?.focus();
+      }, 100);
 
       if (isVoiceMode) {
         speakText(assistantMessage.content);
@@ -615,7 +620,8 @@ export default function MemoryEnhancedTherapyPage() {
             <div 
               className={cn(
                 "flex-1 overflow-y-auto chat-messages",
-                "pb-[calc(120px+env(safe-area-inset-bottom)+var(--keyboard-offset,0px))]"
+                "pt-4", // Padding top to prevent header overlap
+                "pb-[calc(80px+env(safe-area-inset-bottom)+var(--keyboard-offset,0px))]"
               )}
             >
               <div className="max-w-6xl mx-auto px-2">
@@ -717,12 +723,12 @@ export default function MemoryEnhancedTherapyPage() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="px-2 py-2">
+            <form onSubmit={handleSubmit} className="px-3 py-2">
               <div className="max-w-6xl mx-auto">
                 <div className="relative group">
                   {/* Input container with enhanced styling */}
                   <div className={cn(
-                    "relative rounded-2xl border-2 transition-all duration-200",
+                    "relative rounded-xl border transition-all duration-200",
                     "bg-background shadow-sm",
                     message.trim() ? "border-primary/30 shadow-primary/10" : "border-border",
                     isListening && "border-red-500/50 bg-red-50 dark:bg-red-950/20",
@@ -747,11 +753,12 @@ export default function MemoryEnhancedTherapyPage() {
                       }
                       className={cn(
                         "w-full resize-none bg-transparent",
-                        "px-4 py-4 pr-20 min-h-[60px] max-h-[200px]",
+                        "px-3 py-2.5 pr-16 min-h-[42px] max-h-[120px]",
+                        "text-sm",
                         "focus:outline-none",
                         "transition-all duration-200",
                         "placeholder:text-muted-foreground/70 placeholder:font-normal",
-                        "text-foreground font-medium",
+                        "text-foreground",
                         isTyping && "opacity-50 cursor-not-allowed"
                       )}
                       rows={1}
@@ -765,7 +772,7 @@ export default function MemoryEnhancedTherapyPage() {
                     />
 
                     {/* Action buttons with enhanced styling */}
-                    <div className="absolute right-2 bottom-2 flex items-center gap-1">
+                    <div className="absolute right-1.5 bottom-1.5 flex items-center gap-1">
                       {/* Voice button */}
                       <Button
                         type="button"
@@ -774,13 +781,13 @@ export default function MemoryEnhancedTherapyPage() {
                         onClick={toggleListening}
                         disabled={isTyping || !voiceSupported}
                         className={cn(
-                          "h-8 w-8 rounded-lg transition-all duration-200",
+                          "h-7 w-7 rounded-lg transition-all duration-200",
                           "hover:bg-muted/80",
                           isListening && "animate-pulse bg-red-500 hover:bg-red-600"
                         )}
                         title={!voiceSupported ? "Voice input not supported" : isListening ? "Stop listening" : "Start voice input"}
                       >
-                        {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                        {isListening ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
                       </Button>
 
                       {/* Send button with enhanced states */}
@@ -788,7 +795,7 @@ export default function MemoryEnhancedTherapyPage() {
                         type="submit"
                         size="icon"
                         className={cn(
-                          "h-8 w-8 rounded-lg transition-all duration-200",
+                          "h-7 w-7 rounded-lg transition-all duration-200",
                           "bg-primary hover:bg-primary/90 text-primary-foreground",
                           "shadow-sm hover:shadow-md",
                           (isTyping || !message.trim()) && "opacity-50 cursor-not-allowed",
@@ -799,31 +806,19 @@ export default function MemoryEnhancedTherapyPage() {
                         title="Send message"
                       >
                         {isTyping ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
                         ) : (
-                          <Send className="w-4 h-4" />
+                          <Send className="w-3.5 h-3.5" />
                         )}
                       </Button>
                     </div>
                   </div>
 
-                  {/* Helpful hints */}
-                  <div className="flex items-center justify-between mt-2 px-1">
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <kbd className="px-1.5 py-0.5 text-xs bg-muted rounded">Enter</kbd>
-                        to send
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <kbd className="px-1.5 py-0.5 text-xs bg-muted rounded">Shift</kbd>
-                        +
-                        <kbd className="px-1.5 py-0.5 text-xs bg-muted rounded">Enter</kbd>
-                        for new line
-                      </span>
-                    </div>
+                  {/* Helpful hints - compact version */}
+                  <div className="flex items-center justify-between mt-1.5 px-1 md:hidden">
                     {voiceSupported && (
-                      <div className="text-xs text-muted-foreground">
-                        Voice input available
+                      <div className="text-[10px] text-muted-foreground">
+                        Voice available
                       </div>
                     )}
                   </div>

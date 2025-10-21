@@ -50,8 +50,22 @@ export function FixedInput({
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
+    el.style.height = `${Math.min(el.scrollHeight, 120)}px`; // Match max-h-[120px]
   }, [value]);
+
+  // Handle form submission
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!value.trim() || disabled) return;
+    
+    // Call the parent's onSend handler
+    onSend(e);
+    
+    // Keep textarea focused after sending to maintain keyboard visibility
+    setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 50);
+  };
 
   // Prevent body scroll when popup is open
   useEffect(() => {
@@ -91,8 +105,8 @@ export function FixedInput({
       }}
     >
       <form
-        onSubmit={onSend}
-        className="max-w-3xl mx-auto p-4 pt-3 flex gap-3 items-end"
+        onSubmit={handleSubmit}
+        className="max-w-3xl mx-auto px-3 py-2 flex gap-2 items-end"
       >
         <textarea
           ref={textareaRef}
@@ -105,19 +119,20 @@ export function FixedInput({
           onBlur={() => setIsFocused(false)}
           placeholder={placeholder}
           className={cn(
-            "flex-1 resize-none rounded-2xl border bg-background",
-            "p-3 pr-12 min-h-[44px] max-h-[200px]",
-            "focus:outline-none focus:ring-2 focus:ring-primary/50",
+            "flex-1 resize-none rounded-xl border bg-background",
+            "px-3 py-2 pr-10 min-h-[40px] max-h-[120px]",
+            "text-sm",
+            "focus:outline-none focus:ring-1 focus:ring-primary/50",
             "transition-all duration-200",
             disabled && "opacity-50 cursor-not-allowed",
-            isFocused && "ring-2 ring-primary/50 border-primary/50"
+            isFocused && "ring-1 ring-primary/50 border-primary/50"
           )}
           rows={1}
           disabled={disabled}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
-              onSend(e as unknown as FormEvent);
+              handleSubmit(e as unknown as FormEvent);
             }
           }}
         />
@@ -126,13 +141,13 @@ export function FixedInput({
           type="submit"
           size="icon"
           className={cn(
-            "h-[36px] w-[36px] rounded-xl transition-all duration-200",
+            "h-[32px] w-[32px] rounded-lg transition-all duration-200 shrink-0",
             "bg-primary hover:bg-primary/90 shadow-sm shadow-primary/20",
             (!value.trim() || disabled) && "opacity-50 cursor-not-allowed"
           )}
           disabled={!value.trim() || disabled}
         >
-          <Send className="w-4 h-4" />
+          <Send className="w-3.5 h-3.5" />
         </Button>
       </form>
     </div>

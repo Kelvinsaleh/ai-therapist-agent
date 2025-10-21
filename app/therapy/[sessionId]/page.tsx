@@ -774,7 +774,8 @@ export default function TherapyPage() {
               className={cn(
                 "flex-1 overflow-y-auto chat-messages",
                 "transition-all duration-300 ease-out",
-                "pb-[calc(120px+env(safe-area-inset-bottom)+var(--keyboard-offset,0px))]"
+                "pt-4", // Padding top to prevent header overlap
+                "pb-[calc(80px+env(safe-area-inset-bottom)+var(--keyboard-offset,0px))]"
               )}
               style={{
                 marginBottom: isPopupOpen ? '0' : undefined,
@@ -890,8 +891,8 @@ export default function TherapyPage() {
               onClick={toggleListening}
               disabled={isTyping || isChatPaused || !voiceSupported}
               className={cn(
-              "h-[36px] w-[36px]",
-                "rounded-xl transition-all duration-200",
+              "h-[32px] w-[32px] shrink-0",
+                "rounded-lg transition-all duration-200",
               "bg-background border",
                 isListening && "animate-pulse"
               )}
@@ -904,9 +905,9 @@ export default function TherapyPage() {
               }
             >
               {isListening ? (
-                <MicOff className="w-4 h-4" />
+                <MicOff className="w-3.5 h-3.5" />
               ) : (
-                <Mic className="w-4 h-4" />
+                <Mic className="w-3.5 h-3.5" />
               )}
             </Button>
         )}
