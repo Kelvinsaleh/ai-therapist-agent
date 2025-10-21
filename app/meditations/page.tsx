@@ -289,14 +289,21 @@ export default function MeditationsPage() {
       return;
     }
 
-    console.log('Setting loading to true for:', meditationId);
+    const isCurrentlyFavorited = favoriteStatus[meditationId];
+    const newFavoriteStatus = !isCurrentlyFavorited;
+    
+    // Optimistic UI update - update immediately for instant feedback
+    setFavoriteStatus(prev => ({
+      ...prev,
+      [meditationId]: newFavoriteStatus
+    }));
+    
+    console.log('Optimistically updated favorite status to:', newFavoriteStatus);
     setFavoriteLoading(prev => ({ ...prev, [meditationId]: true }));
 
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
-      const isCurrentlyFavorited = favoriteStatus[meditationId];
       
-      console.log('Current favorite status:', isCurrentlyFavorited);
       console.log('Token exists:', !!token);
       console.log('Making request to:', `/api/meditations/${meditationId}/favorite`);
       console.log('Method:', isCurrentlyFavorited ? 'DELETE' : 'POST');
@@ -314,11 +321,7 @@ export default function MeditationsPage() {
       console.log('Response data:', data);
 
       if (response.ok) {
-        console.log('Success! Updating favorite status');
-        setFavoriteStatus(prev => ({
-          ...prev,
-          [meditationId]: !isCurrentlyFavorited
-        }));
+        console.log('Success! Favorite status confirmed');
         
         // Refresh favorites list if we're viewing favorites
         if (showFavorites) {
@@ -331,11 +334,21 @@ export default function MeditationsPage() {
             : "Added to favorites"
         );
       } else {
-        console.error('Response not ok:', data);
+        // Roll back the optimistic update if API failed
+        console.error('Response not ok, rolling back:', data);
+        setFavoriteStatus(prev => ({
+          ...prev,
+          [meditationId]: isCurrentlyFavorited // Revert to original state
+        }));
         toast.error(data.error || "Failed to update favorite status");
       }
     } catch (error) {
-      console.error('Error toggling favorite:', error);
+      // Roll back the optimistic update on error
+      console.error('Error toggling favorite, rolling back:', error);
+      setFavoriteStatus(prev => ({
+        ...prev,
+        [meditationId]: isCurrentlyFavorited // Revert to original state
+      }));
       toast.error("Failed to update favorite status");
     } finally {
       console.log('Setting loading to false for:', meditationId);

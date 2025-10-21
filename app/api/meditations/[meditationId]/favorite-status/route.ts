@@ -1,54 +1,55 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND_API_URL = process.env.BACKEND_API_URL || "https://hope-backend-2.onrender.com";
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.BACKEND_API_URL || "https://hope-backend-2.onrender.com";
 
-export async function GET(req: NextRequest, { params }: { params: { meditationId: string } }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { meditationId: string } }
+) {
   try {
-    const authHeader = req.headers.get('authorization');
+    const { meditationId } = params;
+
+    // Get auth token
+    const token = request.headers.get("authorization")?.replace("Bearer ", "");
     
-    if (!authHeader) {
+    if (!token) {
       return NextResponse.json(
-        { success: false, error: 'Authorization required' },
+        { error: "Authentication required" },
         { status: 401 }
       );
     }
 
-    const { meditationId } = params;
-
-    if (!meditationId) {
+    // Validate meditation ID
+    if (!meditationId || meditationId.length !== 24) {
       return NextResponse.json(
-        { success: false, error: 'Meditation ID is required' },
+        { error: "Invalid meditation ID" },
         { status: 400 }
       );
     }
 
-    const response = await fetch(`${BACKEND_API_URL}/meditations/${meditationId}/favorite-status`, {
+    // Forward request to backend
+    const response = await fetch(`${BACKEND_URL}/meditations/${meditationId}/favorite-status`, {
+      method: "GET",
       headers: {
-        'Authorization': authHeader,
-        'Content-Type': 'application/json'
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
       },
-      cache: 'no-store'
     });
 
     const data = await response.json();
 
     if (!response.ok) {
       return NextResponse.json(
-        { success: false, error: data.message || 'Failed to check favorite status' },
+        { error: data.error || "Failed to check favorite status" },
         { status: response.status }
       );
     }
 
-    return NextResponse.json(data);
-
+    return NextResponse.json(data, { status: 200 });
   } catch (error) {
-    console.error('Error checking favorite status:', error);
+    console.error("Error checking meditation favorite status:", error);
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to check favorite status',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

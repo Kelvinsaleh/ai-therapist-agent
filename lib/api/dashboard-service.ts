@@ -55,47 +55,66 @@ class DashboardService {
   async getDashboardStats(): Promise<DashboardStats> {
     try {
       const [sessionsResponse, journalResponse, moodResponse] = await Promise.all([
-        backendService.getChatSessions(),
-        backendService.getJournalEntries(),
-        backendService.getMoodEntries?.() || Promise.resolve({ success: true, data: [] })
+        backendService.getChatSessions().catch(() => ({ success: false, data: [] })),
+        backendService.getJournalEntries().catch(() => ({ success: false, data: [] })),
+        backendService.getMoodEntries?.().catch(() => ({ success: false, data: [] })) || Promise.resolve({ success: false, data: [] })
       ]);
 
-      const sessions = sessionsResponse.success ? sessionsResponse.data || [] : [];
-      const journalEntries = journalResponse.success ? journalResponse.data || [] : [];
-      const moodEntries = moodResponse.success ? moodResponse.data || [] : [];
+      // Ensure we always have arrays, handle both array and object responses
+      let sessions = sessionsResponse.success && sessionsResponse.data ? sessionsResponse.data : [];
+      if (!Array.isArray(sessions)) {
+        // If data is an object with a sessions array property
+        sessions = (sessions as any).sessions || [];
+      }
+
+      let journalEntries = journalResponse.success && journalResponse.data ? journalResponse.data : [];
+      if (!Array.isArray(journalEntries)) {
+        journalEntries = (journalEntries as any).entries || [];
+      }
+
+      let moodEntries = moodResponse.success && moodResponse.data ? moodResponse.data : [];
+      if (!Array.isArray(moodEntries)) {
+        moodEntries = (moodEntries as any).moods || [];
+      }
 
       // Calculate statistics
-      const totalSessions = sessions.length;
+      const totalSessions = Array.isArray(sessions) ? sessions.length : 0;
       
       // Sessions this week
       const oneWeekAgo = new Date();
       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-      const sessionsThisWeek = sessions.filter((session: any) => 
-        new Date(session.createdAt) > oneWeekAgo
-      ).length;
+      const sessionsThisWeek = Array.isArray(sessions) 
+        ? sessions.filter((session: any) => 
+            session?.createdAt && new Date(session.createdAt) > oneWeekAgo
+          ).length 
+        : 0;
 
       // Total messages across all sessions
-      const totalMessages = sessions.reduce((total: number, session: any) => 
-        total + (session.messages?.length || 0), 0
-      );
+      const totalMessages = Array.isArray(sessions)
+        ? sessions.reduce((total: number, session: any) => 
+            total + (Array.isArray(session?.messages) ? session.messages.length : 0), 0
+          )
+        : 0;
 
       // Average session duration (mock for now)
       const averageSessionDuration = totalSessions > 0 ? 25 : 0;
 
       // Mood trend calculation
       let moodTrend: 'up' | 'down' | 'stable' = 'stable';
-      if (moodEntries.length >= 2) {
+      if (Array.isArray(moodEntries) && moodEntries.length >= 2) {
         const recentMoods = moodEntries.slice(-2);
-        const currentMood = recentMoods[1]?.mood || 3;
-        const previousMood = recentMoods[0]?.mood || 3;
+        const currentMood = recentMoods[1]?.mood || recentMoods[1]?.score || 3;
+        const previousMood = recentMoods[0]?.mood || recentMoods[0]?.score || 3;
         
         if (currentMood > previousMood) moodTrend = 'up';
         else if (currentMood < previousMood) moodTrend = 'down';
       }
 
       // Last session date
-      const lastSessionDate = sessions.length > 0 
-        ? sessions.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0].createdAt
+      const lastSessionDate = Array.isArray(sessions) && sessions.length > 0 
+        ? [...sessions].sort((a: any, b: any) => 
+            new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+          )[0]?.createdAt
         : undefined;
 
       return {
@@ -179,7 +198,7 @@ class DashboardService {
           createdAt: new Date(session.createdAt),
           updatedAt: new Date(session.updatedAt)
         }))
-        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+        .sort((a: Session, b: Session) => b.createdAt.getTime() - a.createdAt.getTime())
         .slice(0, 5);
     } catch (error) {
       console.error('Error getting recent sessions:', error);
@@ -191,40 +210,58 @@ class DashboardService {
   async getRecentActivities(): Promise<Activity[]> {
     try {
       const [journalResponse, meditationResponse] = await Promise.all([
-        backendService.getJournalEntries(),
-        backendService.getMeditationSessions()
+        backendService.getJournalEntries().catch(() => ({ success: false, data: [] })),
+        backendService.getMeditationSessions().catch(() => ({ success: false, data: [] }))
       ]);
 
       const activities: Activity[] = [];
 
-      // Add journal entries
+      // Add journal entries - handle both array and object responses
       if (journalResponse.success && journalResponse.data) {
-        journalResponse.data.forEach((entry: any) => {
-          activities.push({
-            id: entry.id,
-            userId: entry.userId,
-            type: 'journal',
-            title: entry.title || 'Journal Entry',
-            description: entry.content?.substring(0, 100) + "..." || "Journal entry",
-            mood: entry.mood,
-            timestamp: new Date(entry.createdAt)
+        let journalData = journalResponse.data;
+        if (!Array.isArray(journalData)) {
+          journalData = (journalData as any).entries || (journalData as any).journals || [];
+        }
+        
+        if (Array.isArray(journalData)) {
+          journalData.forEach((entry: any) => {
+            if (entry && entry.id) {
+              activities.push({
+                id: entry.id || entry._id,
+                userId: entry.userId,
+                type: 'journal',
+                title: entry.title || 'Journal Entry',
+                description: entry.content?.substring(0, 100) + "..." || "Journal entry",
+                mood: entry.mood,
+                timestamp: new Date(entry.createdAt || entry.date || Date.now())
+              });
+            }
           });
-        });
+        }
       }
 
-      // Add meditation sessions
+      // Add meditation sessions - handle both array and object responses
       if (meditationResponse.success && meditationResponse.data) {
-        meditationResponse.data.forEach((session: any) => {
-          activities.push({
-            id: session.id,
-            userId: session.userId,
-            type: 'meditation',
-            title: session.title || 'Meditation Session',
-            description: `${session.duration || 10} minute meditation`,
-            duration: session.duration,
-            timestamp: new Date(session.createdAt)
+        let meditationData = meditationResponse.data;
+        if (!Array.isArray(meditationData)) {
+          meditationData = (meditationData as any).sessions || (meditationData as any).meditations || [];
+        }
+        
+        if (Array.isArray(meditationData)) {
+          meditationData.forEach((session: any) => {
+            if (session && session.id) {
+              activities.push({
+                id: session.id || session._id,
+                userId: session.userId,
+                type: 'meditation',
+                title: session.title || 'Meditation Session',
+                description: `${session.duration || 10} minute meditation`,
+                duration: session.duration,
+                timestamp: new Date(session.createdAt || session.date || Date.now())
+              });
+            }
           });
-        });
+        }
       }
 
       // Sort by timestamp and return last 10

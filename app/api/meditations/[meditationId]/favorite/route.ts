@@ -1,125 +1,100 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND_API_URL = process.env.BACKEND_API_URL || "https://hope-backend-2.onrender.com";
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.BACKEND_API_URL || "https://hope-backend-2.onrender.com";
 
-// Force dynamic rendering
-export const dynamic = 'force-dynamic';
-
-export async function POST(req: NextRequest, { params }: { params: { meditationId: string } }) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { meditationId: string } }
+) {
   try {
-    const authHeader = req.headers.get('authorization');
+    const { meditationId } = params;
+
+    // Get auth token
+    const token = request.headers.get("authorization")?.replace("Bearer ", "");
     
-    console.log('Favorites API - POST request received');
-    console.log('Meditation ID:', params.meditationId);
-    console.log('Auth header exists:', !!authHeader);
-    
-    if (!authHeader) {
+    if (!token) {
       return NextResponse.json(
-        { success: false, error: 'Authorization required' },
+        { error: "Authentication required" },
         { status: 401 }
       );
     }
 
-    const { meditationId } = params;
-
-    if (!meditationId) {
+    // Validate meditation ID
+    if (!meditationId || meditationId.length !== 24) {
       return NextResponse.json(
-        { success: false, error: 'Meditation ID is required' },
+        { error: "Invalid meditation ID" },
         { status: 400 }
       );
     }
 
-    console.log('Making request to backend:', `${BACKEND_API_URL}/meditations/${meditationId}/favorite`);
-
-    const response = await fetch(`${BACKEND_API_URL}/meditations/${meditationId}/favorite`, {
-      method: 'POST',
+    // Forward request to backend
+    const response = await fetch(`${BACKEND_URL}/meditations/${meditationId}/favorite`, {
+      method: "POST",
       headers: {
-        'Authorization': authHeader,
-        'Content-Type': 'application/json'
-      }
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
     });
 
-    console.log('Backend response status:', response.status);
     const data = await response.json();
-    console.log('Backend response data:', data);
 
     if (!response.ok) {
       return NextResponse.json(
-        { success: false, error: data.message || 'Failed to add meditation to favorites' },
+        { error: data.error || "Failed to toggle favorite" },
         { status: response.status }
       );
     }
 
-    return NextResponse.json(data);
-
+    return NextResponse.json(data, { status: 200 });
   } catch (error) {
-    console.error('Error adding meditation to favorites:', error);
+    console.error("Error toggling meditation favorite:", error);
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to add meditation to favorites',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { meditationId: string } }) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { meditationId: string } }
+) {
   try {
-    const authHeader = req.headers.get('authorization');
+    const { meditationId } = params;
+
+    // Get auth token
+    const token = request.headers.get("authorization")?.replace("Bearer ", "");
     
-    console.log('Favorites API - DELETE request received');
-    console.log('Meditation ID:', params.meditationId);
-    console.log('Auth header exists:', !!authHeader);
-    
-    if (!authHeader) {
+    if (!token) {
       return NextResponse.json(
-        { success: false, error: 'Authorization required' },
+        { error: "Authentication required" },
         { status: 401 }
       );
     }
 
-    const { meditationId } = params;
-
-    if (!meditationId) {
-      return NextResponse.json(
-        { success: false, error: 'Meditation ID is required' },
-        { status: 400 }
-      );
-    }
-
-    console.log('Making request to backend:', `${BACKEND_API_URL}/meditations/${meditationId}/favorite`);
-
-    const response = await fetch(`${BACKEND_API_URL}/meditations/${meditationId}/favorite`, {
-      method: 'DELETE',
+    // Forward request to backend
+    const response = await fetch(`${BACKEND_URL}/meditations/${meditationId}/favorite`, {
+      method: "DELETE",
       headers: {
-        'Authorization': authHeader,
-        'Content-Type': 'application/json'
-      }
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
     });
 
-    console.log('Backend response status:', response.status);
     const data = await response.json();
-    console.log('Backend response data:', data);
 
     if (!response.ok) {
       return NextResponse.json(
-        { success: false, error: data.message || 'Failed to remove meditation from favorites' },
+        { error: data.error || "Failed to remove favorite" },
         { status: response.status }
       );
     }
 
-    return NextResponse.json(data);
-
+    return NextResponse.json(data, { status: 200 });
   } catch (error) {
-    console.error('Error removing meditation from favorites:', error);
+    console.error("Error removing meditation favorite:", error);
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to remove meditation from favorites',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

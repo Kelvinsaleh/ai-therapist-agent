@@ -1,52 +1,47 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
 
-const BACKEND_API_URL = process.env.BACKEND_API_URL || "https://hope-backend-2.onrender.com";
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.BACKEND_API_URL || "https://hope-backend-2.onrender.com";
 
-// Force dynamic rendering
-export const dynamic = 'force-dynamic';
-
-export async function GET(req: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const authHeader = req.headers.get('authorization');
+    // Get auth token
+    const token = request.headers.get("authorization")?.replace("Bearer ", "");
     
-    if (!authHeader) {
+    if (!token) {
       return NextResponse.json(
-        { success: false, error: 'Authorization required' },
+        { error: "Authentication required" },
         { status: 401 }
       );
     }
 
-    const { searchParams } = new URL(req.url);
-    const page = searchParams.get('page') || '1';
-    const limit = searchParams.get('limit') || '20';
+    // Get query parameters
+    const { searchParams } = new URL(request.url);
+    const limit = searchParams.get("limit") || "100";
 
-    const response = await fetch(`${BACKEND_API_URL}/meditations/favorites?page=${page}&limit=${limit}`, {
+    // Forward request to backend
+    const response = await fetch(`${BACKEND_URL}/meditations/favorites?limit=${limit}`, {
+      method: "GET",
       headers: {
-        'Authorization': authHeader,
-        'Content-Type': 'application/json'
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
       },
-      cache: 'no-store'
     });
 
     const data = await response.json();
 
     if (!response.ok) {
       return NextResponse.json(
-        { success: false, error: data.message || 'Failed to fetch favorite meditations' },
+        { error: data.error || "Failed to fetch favorites" },
         { status: response.status }
       );
     }
 
-    return NextResponse.json(data);
-
+    return NextResponse.json(data, { status: 200 });
   } catch (error) {
-    console.error('Error fetching favorite meditations:', error);
+    console.error("Error fetching meditation favorites:", error);
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to fetch favorite meditations',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

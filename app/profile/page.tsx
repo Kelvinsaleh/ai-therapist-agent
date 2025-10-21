@@ -132,14 +132,38 @@ export default function ProfilePage() {
     try {
       setLoading(true);
       
-      // Load all data in parallel
+      // Load all data in parallel with error handling for each
       const [profileRes, statsData, activityData, moodHistoryData, moodStatsData, subscriptionData] = await Promise.all([
-        backendService.getUserProfile(),
-        dashboardService.getDashboardStats(),
-        dashboardService.getRecentActivity(),
-        getMoodHistory({ limit: 90 }).catch(() => ({ success: false, data: [] })),
-        getMoodStats("week").catch(() => ({ success: false, data: null })),
-        paystackService.getSubscriptionStatus(user?._id || '').catch(() => ({ isActive: false, plan: null }))
+        backendService.getUserProfile().catch((e) => {
+          console.warn("Profile fetch failed:", e);
+          return { success: false, data: null };
+        }),
+        dashboardService.getDashboardStats().catch((e) => {
+          console.warn("Stats fetch failed:", e);
+          return {
+            totalSessions: 0,
+            sessionsThisWeek: 0,
+            totalMessages: 0,
+            averageSessionDuration: 0,
+            moodTrend: 'stable' as const
+          };
+        }),
+        dashboardService.getRecentActivity().catch((e) => {
+          console.warn("Activity fetch failed:", e);
+          return [];
+        }),
+        getMoodHistory({ limit: 90 }).catch((e) => {
+          console.warn("Mood history fetch failed (endpoint may not exist):", e);
+          return { success: false, data: [] };
+        }),
+        getMoodStats("week").catch((e) => {
+          console.warn("Mood stats fetch failed (endpoint may not exist):", e);
+          return { success: false, data: null };
+        }),
+        paystackService.getSubscriptionStatus(user?._id || '').catch((e) => {
+          console.warn("Subscription status fetch failed:", e);
+          return { isActive: false, plan: null };
+        })
       ]);
 
       // Set profile data
@@ -156,21 +180,30 @@ export default function ProfilePage() {
 
       // Set analytics data
       setStats(statsData);
-      setRecentActivity(activityData);
+      setRecentActivity(activityData || []);
       
-      if (moodHistoryData.success && moodHistoryData.data) {
-        setMoodHistory(moodHistoryData.data);
+      // Set mood data only if available
+      if (moodHistoryData && moodHistoryData.success && moodHistoryData.data) {
+        const historyArray = Array.isArray(moodHistoryData.data) 
+          ? moodHistoryData.data 
+          : [];
+        setMoodHistory(historyArray);
+      } else {
+        setMoodHistory([]);
       }
       
-      if (moodStatsData.success && moodStatsData.data) {
+      if (moodStatsData && moodStatsData.success && moodStatsData.data) {
         setMoodStats(moodStatsData.data);
+      } else {
+        setMoodStats(null);
       }
       
       // Set subscription data
       setSubscriptionStatus(subscriptionData);
     } catch (error) {
       console.error("Error loading profile data:", error);
-      toast.error("Failed to load profile data");
+      // Don't show error toast for partial failures
+      // toast.error("Failed to load profile data");
     } finally {
       setLoading(false);
     }
