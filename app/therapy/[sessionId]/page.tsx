@@ -642,7 +642,7 @@ export default function TherapyPage() {
         {/* Main chat area - full width, no sidebar */}
         <div className="flex-1 flex flex-col overflow-hidden bg-background w-full">
           {/* Chat header with back button */}
-          <div className="p-4 border-b bg-muted/30 flex items-center justify-between">
+          <div className="px-4 py-3 border-b bg-muted/30 flex items-center justify-between">
             <div className="flex items-center gap-3">
               {/* Back button to return to sessions list */}
               <Button

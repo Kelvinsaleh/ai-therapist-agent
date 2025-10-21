@@ -595,13 +595,13 @@ export default function MemoryEnhancedTherapyPage() {
       </div>
 
       <div 
-        className="flex w-full flex-1 pt-[3.5rem]"
+        className="flex w-full flex-1 mt-[3.5rem]"
         style={{ 
-          height: `calc(100vh - ${keyboardHeight}px)`,
+          height: `calc(100vh - 3.5rem - ${keyboardHeight}px)`,
         }}
       >
         {/* Main chat area - full width, no sidebar */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-background w-full">
+        <div className="flex-1 flex flex-col overflow-hidden bg-background w-full h-full">
 
 
           {messages.length === 0 ? (
@@ -642,11 +642,11 @@ export default function MemoryEnhancedTherapyPage() {
                           </div>
                         )}
                         <div className={cn(
-                          "max-w-[90%] rounded-xl px-3 py-2 text-sm leading-relaxed",
+                          "rounded-xl text-sm leading-relaxed",
                           "shadow-sm transition-all duration-200",
                           msg.role === "assistant" 
-                            ? "bg-gradient-to-br from-muted/60 to-muted/40 border border-muted/60" 
-                            : "bg-gradient-to-br from-primary to-primary/90 text-primary-foreground shadow-primary/20"
+                            ? "max-w-[85%] px-3 py-2 bg-gradient-to-br from-muted/60 to-muted/40 border border-muted/60" 
+                            : "max-w-[75%] px-2.5 py-1.5 bg-primary text-primary-foreground"
                         )}>
                           <div className="prose prose-sm max-w-none dark:prose-invert text-sm">
                             <ReactMarkdown
