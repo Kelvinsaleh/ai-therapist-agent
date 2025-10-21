@@ -641,72 +641,18 @@ export default function TherapyPage() {
       <div className="flex h-screen">
         {/* Main chat area - full width, no sidebar */}
         <div className="flex-1 flex flex-col overflow-hidden bg-background w-full">
-          {/* Chat header with back button */}
-          <div className="px-4 py-3 border-b bg-muted/30 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {/* Back button to return to sessions list */}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => router.push('/therapy')}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="15 18 9 12 15 6"></polyline>
-                </svg>
-              </Button>
-              <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center ring-1 ring-primary/20">
-                <Bot className="w-6 h-6" />
-              </div>
-              <div>
-                <h2 className="font-semibold text-lg">AI Therapist</h2>
-                <p className="text-sm text-muted-foreground">
-                  {messages.length} messages
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant={isVoiceMode ? "default" : "outline"}
-                size="sm"
-                onClick={() => {
-                  if (!isPremium) {
-                    toast.error("Voice Mode is a Premium feature.");
-                    router.push("/pricing");
-                    return;
-                  }
-                  const next = !isVoiceMode;
-                  setIsVoiceMode(next);
-                  if (next) {
-                    // Start listening immediately if supported
-                    if (recognitionRef.current && !isListening) {
-                      try { recognitionRef.current.start(); setIsListening(true); } catch {}
-                    }
-                  } else {
-                    if (recognitionRef.current && isListening) {
-                      try { recognitionRef.current.stop(); } catch {}
-                      setIsListening(false);
-                    }
-                    if (typeof window !== 'undefined' && window.speechSynthesis?.speaking) {
-                      window.speechSynthesis.cancel();
-                    }
-                  }
-                }}
-                className="gap-2"
-              >
-                {isVoiceMode ? (
-                  <>
-                    <Mic className="w-4 h-4" />
-                    Voice On
-                  </>
-                ) : (
-                  <>
-                    <MicOff className="w-4 h-4" />
-                    Voice Off
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
+          
+          {/* Floating back button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.push('/therapy')}
+            className="fixed top-4 left-4 z-50 w-10 h-10 rounded-full bg-background/80 backdrop-blur-sm shadow-lg border border-border hover:bg-background"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </Button>
 
           {messages.length === 0 ? (
             // Welcome screen with suggested questions

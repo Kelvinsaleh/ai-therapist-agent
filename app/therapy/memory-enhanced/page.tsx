@@ -573,35 +573,27 @@ export default function MemoryEnhancedTherapyPage() {
 
   return (
     <div className="h-screen bg-background w-full flex flex-col">
-      {/* Chat header with back button */}
-      <div className="fixed top-0 left-0 right-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex items-center justify-between px-4 py-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.push('/therapy/memory-enhanced/sessions')}
-            className="gap-2"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="15 18 9 12 15 6"></polyline>
-            </svg>
-            Back
-          </Button>
-          <h2 className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-            <Sparkles className="w-4 h-4 text-primary" />
-            Memory-Enhanced Chat
-          </h2>
-        </div>
-      </div>
+      
+      {/* Floating back button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => router.push('/therapy/memory-enhanced/sessions')}
+        className="fixed top-4 left-4 z-50 w-10 h-10 rounded-full bg-background/80 backdrop-blur-sm shadow-lg border border-border hover:bg-background"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </Button>
 
       <div 
-        className="flex w-full flex-1 mt-[3.5rem]"
+        className="flex w-full flex-1 h-full"
         style={{ 
-          height: `calc(100vh - 3.5rem - ${keyboardHeight}px)`,
+          height: `calc(100vh - ${keyboardHeight}px)`,
         }}
       >
         {/* Main chat area - full width, no sidebar */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-background w-full h-full">
+        <div className="flex-1 flex flex-col overflow-hidden bg-background w-full">
 
 
           {messages.length === 0 ? (
