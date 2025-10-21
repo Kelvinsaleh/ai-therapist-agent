@@ -638,118 +638,9 @@ export default function TherapyPage() {
   // Single page - just the chat interface
   return (
     <div className="min-h-screen bg-background">
-      <div className="flex h-screen pt-16 gap-0">
-        {/* Sessions sidebar (hidden on mobile by default when in chat) */}
-        <div
-          className={cn(
-            "flex flex-col border-r bg-background w-80 transition-transform duration-200",
-            "hidden md:flex" // Hidden on mobile, visible on desktop
-          )}
-        >
-          <div className="p-6 border-b bg-muted/30">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                <MessageSquare className="w-5 h-5 text-primary" />
-                Chat Sessions
-              </h2>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleNewSession}
-                className="hover:bg-primary/10"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <PlusCircle className="w-5 h-5" />
-                )}
-              </Button>
-            </div>
-            <Button
-              variant="default"
-              className="w-full justify-start gap-2"
-              onClick={handleNewSession}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <MessageSquare className="w-4 h-4" />
-              )}
-              New Session
-            </Button>
-            <div className="md:hidden mt-3">
-              <Button
-                variant="ghost"
-                className="w-full"
-                onClick={() => setIsSidebarOpen(false)}
-              >
-                Close
-              </Button>
-            </div>
-          </div>
-
-          <ScrollArea className="flex-1 p-4">
-            <div className="space-y-3">
-              {sessions.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No sessions yet</p>
-                  <p className="text-xs">Start a new conversation</p>
-                </div>
-              ) : (
-                sessions.map((session) => (
-                  <div
-                    key={session.sessionId}
-                    className={cn(
-                      "p-4 rounded-lg text-sm cursor-pointer hover:bg-muted/50 transition-all duration-200 border",
-                      session.sessionId === sessionId
-                        ? "bg-primary/10 text-primary border-primary/20 shadow-sm"
-                        : "bg-background border-border hover:border-primary/20"
-                    )}
-                    onClick={() => {
-                      handleSessionSelect(session.sessionId);
-                      setIsSidebarOpen(false);
-                    }}
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <MessageSquare className="w-4 h-4" />
-                      <span className="font-medium truncate">
-                        {session.messages[0]?.content.slice(0, 25) || "New Chat"}
-                      </span>
-                    </div>
-                    <p className="line-clamp-2 text-muted-foreground text-xs mb-2">
-                      {session.messages[session.messages.length - 1]?.content ||
-                        "No messages yet"}
-                    </p>
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>{session.messages.length} messages</span>
-                      <span>
-                        {(() => {
-                          try {
-                            const date = new Date(session.updatedAt);
-                            if (isNaN(date.getTime())) {
-                              return "Just now";
-                            }
-                            return formatDistanceToNow(date, {
-                              addSuffix: true,
-                            });
-                          } catch (error) {
-                            return "Just now";
-                          }
-                        })()}
-                      </span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </ScrollArea>
-        </div>
-
-        {/* Main chat area */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-background">
+      <div className="flex h-screen pt-16">
+        {/* Main chat area - full width, no sidebar */}
+        <div className="flex-1 flex flex-col overflow-hidden bg-background w-full">
           {/* Chat header with back button */}
           <div className="p-4 border-b bg-muted/30 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -758,7 +649,6 @@ export default function TherapyPage() {
                 variant="ghost"
                 size="icon"
                 onClick={() => router.push('/therapy')}
-                className="md:hidden"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="15 18 9 12 15 6"></polyline>
@@ -882,7 +772,7 @@ export default function TherapyPage() {
             // Chat messages
             <div 
               className={cn(
-                "flex-1 overflow-y-auto scroll-smooth overscroll-contain",
+                "flex-1 overflow-y-auto chat-messages",
                 "transition-all duration-300 ease-out",
                 "pb-[calc(120px+env(safe-area-inset-bottom)+var(--keyboard-offset,0px))]"
               )}
@@ -971,57 +861,58 @@ export default function TherapyPage() {
               </div>
             </div>
           )}
-
-          {/* Fixed Input */}
-          <FixedInput
-            value={message}
-            onChange={setMessage}
-            onSend={handleSubmit}
-            placeholder={
-              isChatPaused
-                ? "Complete the activity to continue..."
-                : isListening 
-                  ? "Listening... Speak now"
-                  : "Type or speak your message..."
-            }
-            disabled={isTyping || isChatPaused}
-            isPopupOpen={isPopupOpen}
-            hideFooter={hideFooter}
-            onFocusScrollIntoView={() => {
-              try { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); } catch {}
-            }}
-            rightAccessories={(
-                <Button
-                  type="button"
-                  size="icon"
-                  variant={isListening ? "destructive" : "outline"}
-                  onClick={toggleListening}
-                  disabled={isTyping || isChatPaused || !voiceSupported}
-                  className={cn(
-                  "h-[36px] w-[36px]",
-                    "rounded-xl transition-all duration-200",
-                  "bg-background border",
-                    isListening && "animate-pulse"
-                  )}
-                  title={
-                    !voiceSupported
-                      ? "Voice input not supported on this device"
-                      : isListening
-                        ? "Stop listening"
-                        : "Start voice input"
-                  }
-                >
-                  {isListening ? (
-                    <MicOff className="w-4 h-4" />
-                  ) : (
-                    <Mic className="w-4 h-4" />
-                  )}
-                </Button>
-            )}
-          />
         </div>
       </div>
+
+      {/* Fixed Input - Always fixed to viewport bottom, outside overflow containers */}
+      <FixedInput
+        value={message}
+        onChange={setMessage}
+        onSend={handleSubmit}
+        placeholder={
+          isChatPaused
+            ? "Complete the activity to continue..."
+            : isListening 
+              ? "Listening... Speak now"
+              : "Type or speak your message..."
+        }
+        disabled={isTyping || isChatPaused}
+        isPopupOpen={isPopupOpen}
+        hideFooter={hideFooter}
+        onFocusScrollIntoView={() => {
+          try { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); } catch {}
+        }}
+        rightAccessories={(
+            <Button
+              type="button"
+              size="icon"
+              variant={isListening ? "destructive" : "outline"}
+              onClick={toggleListening}
+              disabled={isTyping || isChatPaused || !voiceSupported}
+              className={cn(
+              "h-[36px] w-[36px]",
+                "rounded-xl transition-all duration-200",
+              "bg-background border",
+                isListening && "animate-pulse"
+              )}
+              title={
+                !voiceSupported
+                  ? "Voice input not supported on this device"
+                  : isListening
+                    ? "Stop listening"
+                    : "Start voice input"
+              }
+            >
+              {isListening ? (
+                <MicOff className="w-4 h-4" />
+              ) : (
+                <Mic className="w-4 h-4" />
+              )}
+            </Button>
+        )}
+      />
     </div>
   );
 }
+
 

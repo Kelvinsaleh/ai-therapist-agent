@@ -7,33 +7,45 @@
   --keyboard-offset: 0px;
 }
 
-/* Smooth transitions for keyboard open/close */
+/* Disable transitions when keyboard is opening/closing to prevent janky animations */
+html.keyboard-open,
+html.keyboard-open * {
+  transition-duration: 0ms !important;
+  animation-duration: 0ms !important;
+}
+
+/* Prevent layout shift and ensure viewport stability */
 html.keyboard-open {
-  transition: none;
+  overflow: hidden;
 }
 
 html.keyboard-open body {
-  transition: none;
+  position: relative;
+  overflow: hidden;
 }
 
-/* Prevent layout shift when keyboard opens */
+/* Dynamic viewport height for chat containers */
 @supports (height: 100dvh) {
   .chat-container {
     height: 100dvh;
   }
 }
 
-/* Smooth scroll behavior for chat */
+/* Smooth scroll behavior for chat messages */
 .chat-messages {
   scroll-behavior: smooth;
   overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
-/* Input stability during keyboard transitions */
+/* Input container stability - prevent repaints and ensure smooth positioning */
 .fixed-input-container {
-  will-change: transform;
+  will-change: bottom, transform;
   transform: translateZ(0);
   backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  perspective: 1000px;
+  -webkit-perspective: 1000px;
 }
 
 /* Popup overlay transitions */

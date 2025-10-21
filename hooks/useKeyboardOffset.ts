@@ -10,61 +10,78 @@ export function useKeyboardOffset() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    let initialHeight = window.innerHeight;
+    let initialViewportHeight = window.visualViewport?.height || window.innerHeight;
     let rafId: number | null = null;
 
     const updateOffset = () => {
-      const currentHeight = window.visualViewport?.height || window.innerHeight;
-      const newOffset = Math.max(0, initialHeight - currentHeight);
+      const visualViewport = window.visualViewport;
       
-      // Only update if there's a significant change (>10px) to avoid jitter
-      if (Math.abs(newOffset - offset) > 10) {
-        setOffset(newOffset);
+      if (visualViewport) {
+        // Use visual viewport for accurate keyboard detection
+        const currentViewportHeight = visualViewport.height;
+        const windowHeight = window.innerHeight;
+        
+        // Calculate keyboard height (the difference between window and viewport)
+        const keyboardHeight = windowHeight - currentViewportHeight;
+        const newOffset = Math.max(0, keyboardHeight);
+        
+        // Update if there's a meaningful change (>5px threshold)
+        if (Math.abs(newOffset - offset) > 5) {
+          setOffset(newOffset);
+          
+          // Add/remove keyboard-open class for CSS hooks
+          if (newOffset > 50) {
+            document.documentElement.classList.add("keyboard-open");
+          } else {
+            document.documentElement.classList.remove("keyboard-open");
+          }
+        }
+      } else {
+        // Fallback for browsers without visualViewport
+        const currentHeight = window.innerHeight;
+        const heightDiff = initialViewportHeight - currentHeight;
+        const newOffset = Math.max(0, heightDiff);
+        
+        if (Math.abs(newOffset - offset) > 5) {
+          setOffset(newOffset);
+        }
       }
     };
 
     const handleResize = () => {
-      // Use RAF to debounce rapid resize events
+      // Debounce with RAF for smooth updates
       if (rafId) cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(updateOffset);
     };
 
-    const handleFocus = () => {
-      initialHeight = window.innerHeight;
-      handleResize();
+    const handleScroll = () => {
+      // Handle viewport scroll events on mobile
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(updateOffset);
     };
 
-    const handleBlur = () => {
-      // Smooth transition back to 0 when keyboard closes
-      rafId = requestAnimationFrame(() => {
-        setOffset(0);
-      });
-    };
+    // Initialize
+    updateOffset();
 
-    // Use visualViewport if available (better for mobile)
+    // Use visualViewport for better mobile keyboard detection
     if (window.visualViewport) {
       window.visualViewport.addEventListener("resize", handleResize);
-      window.visualViewport.addEventListener("scroll", handleResize);
-    } else {
-      window.addEventListener("resize", handleResize);
+      window.visualViewport.addEventListener("scroll", handleScroll);
     }
-
-    // Track focus/blur on inputs
-    window.addEventListener("focusin", handleFocus);
-    window.addEventListener("focusout", handleBlur);
+    
+    // Fallback for older browsers
+    window.addEventListener("resize", handleResize);
 
     return () => {
       if (rafId) cancelAnimationFrame(rafId);
       
       if (window.visualViewport) {
         window.visualViewport.removeEventListener("resize", handleResize);
-        window.visualViewport.removeEventListener("scroll", handleResize);
-      } else {
-        window.removeEventListener("resize", handleResize);
+        window.visualViewport.removeEventListener("scroll", handleScroll);
       }
       
-      window.removeEventListener("focusin", handleFocus);
-      window.removeEventListener("focusout", handleBlur);
+      window.removeEventListener("resize", handleResize);
+      document.documentElement.classList.remove("keyboard-open");
     };
   }, [offset]);
 

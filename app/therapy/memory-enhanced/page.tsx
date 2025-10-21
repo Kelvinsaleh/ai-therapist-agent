@@ -36,6 +36,7 @@ import { logger } from "@/lib/utils/logger";
 import { LoadingDots } from "@/components/ui/loading-dots";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Skeleton, SkeletonChat } from "@/components/ui/skeleton";
+import { useKeyboardOffset } from "@/hooks/useKeyboardOffset";
 
 // TypeScript declarations for Speech Recognition
 declare global {
@@ -102,8 +103,8 @@ export default function MemoryEnhancedTherapyPage() {
   const [voiceSupported, setVoiceSupported] = useState(false);
   const recognitionRef = useRef<any>(null);
   
-  // Keyboard overlay adjustment
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  // Keyboard overlay adjustment using custom hook
+  const keyboardHeight = useKeyboardOffset();
 
   // Use authenticated user id (support both _id and id)
   const userId = (user?._id as unknown as string) || (user?.id as unknown as string) || "";
@@ -193,55 +194,7 @@ export default function MemoryEnhancedTherapyPage() {
     }
   }, []);
 
-  // ChatGPT-style keyboard overlay adjustment
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    let initialViewportHeight = window.innerHeight;
-    
-    const handleViewportChange = () => {
-      const currentHeight = window.visualViewport?.height || window.innerHeight;
-      const keyboardHeight = Math.max(0, initialViewportHeight - currentHeight);
-      setKeyboardHeight(keyboardHeight);
-    };
-
-    const handleFocus = () => {
-      // Store initial height when input is focused
-      initialViewportHeight = window.innerHeight;
-    };
-
-    const handleBlur = () => {
-      // Reset keyboard height when input loses focus
-      setTimeout(() => setKeyboardHeight(0), 100);
-    };
-
-    // Listen for viewport changes
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleViewportChange);
-    } else {
-      window.addEventListener('resize', handleViewportChange);
-    }
-
-    // Listen for focus/blur on textarea
-    const textarea = textareaRef.current;
-    if (textarea) {
-      textarea.addEventListener('focus', handleFocus);
-      textarea.addEventListener('blur', handleBlur);
-    }
-
-    return () => {
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', handleViewportChange);
-      } else {
-        window.removeEventListener('resize', handleViewportChange);
-      }
-      
-      if (textarea) {
-        textarea.removeEventListener('focus', handleFocus);
-        textarea.removeEventListener('blur', handleBlur);
-      }
-    };
-  }, []);
+  // Keyboard detection is now handled by useKeyboardOffset hook
 
 
   const loadSubscription = async () => {
@@ -637,102 +590,14 @@ export default function MemoryEnhancedTherapyPage() {
       </div>
 
       <div 
-        className="flex gap-0 w-full"
+        className="flex w-full"
         style={{ 
           height: `calc(100vh - 4rem - ${keyboardHeight}px)`,
           marginTop: '5rem'
         }}
       >
-        {/* Sessions Sidebar (desktop only) */}
-        <div className={cn(
-          "flex flex-col border-r bg-background w-72 transition-transform duration-200",
-          "hidden md:flex" // Hidden on mobile
-        )}>
-          <div className="p-6 border-b bg-muted/30">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-primary" />
-                Sessions
-              </h2>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => router.push('/therapy/memory-enhanced/sessions')}
-                className="hover:bg-primary/10"
-              >
-                <PlusCircle className="w-5 h-5" />
-              </Button>
-            </div>
-            <Button
-              variant="default"
-              className="w-full justify-start gap-2"
-              onClick={() => router.push('/therapy/memory-enhanced/sessions')}
-            >
-              <MessageSquare className="w-4 h-4" />
-              View All Sessions
-            </Button>
-          </div>
-
-          <ScrollArea className="flex-1 p-4">
-            <div className="space-y-3">
-              {sessions.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No sessions yet</p>
-                  <p className="text-xs">Start a new conversation</p>
-                </div>
-              ) : (
-                sessions.map((session) => (
-                  <div
-                    key={session.sessionId}
-                    className={cn(
-                      "p-4 rounded-lg text-sm cursor-pointer hover:bg-muted/50 transition-all duration-200 border",
-                      session.sessionId === sessionId
-                        ? "bg-primary/10 text-primary border-primary/20 shadow-sm"
-                        : "bg-background border-border hover:border-primary/20"
-                    )}
-                    onClick={() => {
-                      handleSessionSelect(session.sessionId);
-                      setIsSidebarOpen(false);
-                    }}
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <MessageSquare className="w-4 h-4" />
-                      <span className="font-medium truncate">
-                        {session.messages[0]?.content.slice(0, 25) || "New Chat"}
-                      </span>
-                    </div>
-                    <p className="line-clamp-2 text-muted-foreground text-xs mb-2">
-                      {session.messages[session.messages.length - 1]?.content ||
-                        "No messages yet"}
-                    </p>
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>{session.messages.length} messages</span>
-                      <span>
-                        {(() => {
-                          try {
-                            const date = new Date(session.updatedAt);
-                            if (isNaN(date.getTime())) {
-                              return "Just now";
-                            }
-                            return formatDistanceToNow(date, {
-                              addSuffix: true,
-                            });
-                          } catch (error) {
-                            return "Just now";
-                          }
-                        })()}
-                      </span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </ScrollArea>
-        </div>
-
-        {/* Main chat area */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-background min-w-0">
+        {/* Main chat area - full width, no sidebar */}
+        <div className="flex-1 flex flex-col overflow-hidden bg-background w-full">
 
 
           {messages.length === 0 ? (
@@ -747,7 +612,12 @@ export default function MemoryEnhancedTherapyPage() {
               </div>
             </div>
           ) : (
-            <div className="flex-1 overflow-y-auto scroll-smooth pb-4 overscroll-contain">
+            <div 
+              className={cn(
+                "flex-1 overflow-y-auto chat-messages",
+                "pb-[calc(120px+env(safe-area-inset-bottom)+var(--keyboard-offset,0px))]"
+              )}
+            >
               <div className="max-w-6xl mx-auto px-2">
                 <AnimatePresence initial={false}>
                   {messages.map((msg, index) => (
@@ -825,12 +695,12 @@ export default function MemoryEnhancedTherapyPage() {
             </div>
           )}
 
-          {/* Enhanced Composer */}
+          {/* Enhanced Composer - ALWAYS FIXED TO VIEWPORT */}
           <div 
-            className="sticky bottom-0 z-[60] border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/95"
+            className="fixed inset-x-0 z-[60] border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/95 fixed-input-container"
             style={{ 
-              transform: keyboardHeight > 0 ? `translateY(-${keyboardHeight}px)` : 'translateY(0)',
-              transition: 'transform 0.2s ease-out'
+              position: 'fixed', // Ensure always fixed to viewport
+              bottom: `calc(var(--keyboard-offset, 0px) + env(safe-area-inset-bottom))`,
             }}
           >
             {/* Typing indicator for AI */}
