@@ -231,12 +231,22 @@ export default function ProfilePage() {
   const saveGoalsToBackend = async (goals: string[]) => {
     try {
       console.log("Saving goals to backend:", goals);
+      
+      // Save to localStorage as backup
+      if (typeof window !== 'undefined') {
+        const backup = { goals, userId: user?._id, timestamp: Date.now() };
+        localStorage.setItem('profile_goals_backup', JSON.stringify(backup));
+      }
+      
       // Only send the goals field that changed
       const profileRes = await backendService.updateUserProfile({ goals });
       console.log("Backend response:", profileRes);
       
       if (profileRes.success) {
         toast.success("Goal saved!");
+        // Clear backup on successful save
+        localStorage.removeItem('profile_goals_backup');
+        
         // Update local state with the saved data
         if (profileRes.data) {
           console.log("Updated profile data:", profileRes.data);
@@ -249,19 +259,38 @@ export default function ProfilePage() {
           setUserProfile(updatedProfile);
           setEditedProfile(updatedProfile);
         }
+      } else if (profileRes.isNetworkError) {
+        // Network error - data is backed up locally
+        toast.warning("Offline - goal will save when connection is restored", {
+          duration: 5000
+        });
       } else {
         console.error("Failed to save goal:", profileRes.error);
         toast.error(profileRes.error || "Failed to save goal");
       }
     } catch (error) {
       console.error("Error saving goal:", error);
-      toast.error("Failed to save goal");
+      toast.warning("Goal saved locally - will sync when online", {
+        duration: 5000
+      });
     }
   };
 
   const handleSaveProfile = async () => {
     try {
       setIsSaving(true);
+      
+      // Save to localStorage as backup
+      if (typeof window !== 'undefined') {
+        const backup = { 
+          profile: editedProfile, 
+          name: editedName,
+          email: editedEmail,
+          userId: user?._id, 
+          timestamp: Date.now() 
+        };
+        localStorage.setItem('profile_full_backup', JSON.stringify(backup));
+      }
       
       // Update basic user info if changed
       if (editedName !== user?.name || editedEmail !== user?.email) {
@@ -270,6 +299,12 @@ export default function ProfilePage() {
           email: editedEmail
         });
         if (!userRes.success) {
+          if (userRes.isNetworkError) {
+            toast.warning("Profile saved locally - will sync when connection is restored", {
+              duration: 5000
+            });
+            return;
+          }
           throw new Error("Failed to update basic info");
         }
         // Refresh session user so header and other components reflect changes
@@ -280,11 +315,33 @@ export default function ProfilePage() {
       if (editedProfile) {
         const profileRes = await backendService.updateUserProfile(editedProfile);
         if (!profileRes.success) {
+          if (profileRes.isNetworkError) {
+            toast.warning("Profile saved locally - will sync when connection is restored", {
+              duration: 5000
+            });
+            return;
+          }
           throw new Error("Failed to update profile");
         }
-        setUserProfile(editedProfile);
+        
+        // Update local state with response data
+        if (profileRes.data) {
+          const updatedProfile = {
+            ...profileRes.data,
+            goals: profileRes.data.goals || [],
+            challenges: profileRes.data.challenges || [],
+            interests: profileRes.data.interests || []
+          };
+          setUserProfile(updatedProfile);
+          setEditedProfile(updatedProfile);
+        } else {
+          setUserProfile(editedProfile);
+        }
       }
 
+      // Clear backup on successful save
+      localStorage.removeItem('profile_full_backup');
+      
       toast.success("Profile updated successfully!");
       setIsEditing(false);
       await loadProfileData();

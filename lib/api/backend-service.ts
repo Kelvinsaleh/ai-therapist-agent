@@ -304,7 +304,8 @@ class BackendService {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(profileData)
+        body: JSON.stringify(profileData),
+        signal: AbortSignal.timeout(15000)
       });
 
       const data = await response.json();
@@ -316,7 +317,27 @@ class BackendService {
       }
     } catch (error) {
       console.error('Error updating user profile:', error);
-      return { success: false, error: 'Network error' };
+      
+      let isNetworkError = false;
+      let errorMessage = 'Network error';
+      
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          errorMessage = 'Request timeout - server is not responding';
+          isNetworkError = true;
+        } else if (error.message.includes('fetch') || error.message.includes('Failed to fetch')) {
+          errorMessage = 'Unable to connect to server';
+          isNetworkError = true;
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      return { 
+        success: false, 
+        error: errorMessage,
+        isNetworkError 
+      };
     }
   }
 
@@ -336,7 +357,8 @@ class BackendService {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(userData)
+        body: JSON.stringify(userData),
+        signal: AbortSignal.timeout(15000)
       });
 
       const data = await response.json();
@@ -348,7 +370,27 @@ class BackendService {
       }
     } catch (error) {
       console.error('Error updating user:', error);
-      return { success: false, error: 'Network error' };
+      
+      let isNetworkError = false;
+      let errorMessage = 'Network error';
+      
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          errorMessage = 'Request timeout - server is not responding';
+          isNetworkError = true;
+        } else if (error.message.includes('fetch') || error.message.includes('Failed to fetch')) {
+          errorMessage = 'Unable to connect to server';
+          isNetworkError = true;
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      return { 
+        success: false, 
+        error: errorMessage,
+        isNetworkError 
+      };
     }
   }
 
