@@ -167,8 +167,28 @@ export default function ProfilePage() {
 
       // Set profile data
       if (profileRes.success && profileRes.data) {
-        setUserProfile(profileRes.data);
-        setEditedProfile(profileRes.data);
+        // Ensure goals array exists
+        const profile = {
+          ...profileRes.data,
+          goals: profileRes.data.goals || [],
+          challenges: profileRes.data.challenges || [],
+          interests: profileRes.data.interests || []
+        };
+        setUserProfile(profile);
+        setEditedProfile(profile);
+      } else {
+        // Initialize with empty profile if none exists
+        const emptyProfile: UserProfile = {
+          bio: "",
+          age: 0,
+          challenges: [],
+          goals: [],
+          communicationStyle: "gentle",
+          experienceLevel: "beginner",
+          interests: []
+        };
+        setUserProfile(emptyProfile);
+        setEditedProfile(emptyProfile);
       }
       
       // Set user basic info for editing
@@ -210,12 +230,28 @@ export default function ProfilePage() {
 
   const saveGoalsToBackend = async (goals: string[]) => {
     try {
-      const profileRes = await backendService.updateUserProfile({
-        ...userProfile,
-        goals
-      });
+      console.log("Saving goals to backend:", goals);
+      // Only send the goals field that changed
+      const profileRes = await backendService.updateUserProfile({ goals });
+      console.log("Backend response:", profileRes);
+      
       if (profileRes.success) {
-        toast.success("Goal updated!");
+        toast.success("Goal saved!");
+        // Update local state with the saved data
+        if (profileRes.data) {
+          console.log("Updated profile data:", profileRes.data);
+          const updatedProfile = {
+            ...profileRes.data,
+            goals: profileRes.data.goals || [],
+            challenges: profileRes.data.challenges || [],
+            interests: profileRes.data.interests || []
+          };
+          setUserProfile(updatedProfile);
+          setEditedProfile(updatedProfile);
+        }
+      } else {
+        console.error("Failed to save goal:", profileRes.error);
+        toast.error(profileRes.error || "Failed to save goal");
       }
     } catch (error) {
       console.error("Error saving goal:", error);
