@@ -671,14 +671,6 @@ export default function MeditationsPage() {
                       </div>
 
                       <div className="flex flex-wrap gap-1">
-                        {/* Favorites tag */}
-                        {isAuthenticated && favoriteStatus[meditation.id] && (
-                          <Badge variant="default" className="text-xs bg-red-500 hover:bg-red-600">
-                            <Heart className="w-3 h-3 mr-1 fill-current" />
-                            Favorites
-                          </Badge>
-                        )}
-                        
                         {/* Regular tags */}
                         {meditation.tags.length > 0 && (
                           <>
