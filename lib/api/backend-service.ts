@@ -23,13 +23,19 @@ export interface User {
 }
 
 export interface LoginResponse {
-  user: User;
-  token: string;
+  user?: User;
+  token?: string;
+  requiresVerification?: boolean;
+  userId?: string;
+  message?: string;
 }
 
 export interface RegisterResponse {
-  user: User;
-  token: string;
+  user?: User;
+  token?: string;
+  requiresVerification?: boolean;
+  userId?: string;
+  message?: string;
 }
 
 class BackendService {
@@ -168,13 +174,16 @@ class BackendService {
 
     console.log("Backend service: Login response:", response);
 
-    if (response.success && response.data) {
+    // Only store token if login was successful and user is verified
+    if (response.success && response.data && response.data.token && !response.data.requiresVerification) {
       console.log("Backend service: Login successful, storing token");
       if (typeof window !== 'undefined') {
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('authToken', response.data.token);
         this.authToken = response.data.token;
       }
+    } else if (response.data?.requiresVerification) {
+      console.log("Backend service: Email verification required");
     } else {
       console.log("Backend service: Login failed:", response.error);
     }
@@ -188,7 +197,8 @@ class BackendService {
       body: JSON.stringify(userData),
     });
 
-    if (response.success && response.data) {
+    // Only store token if verification is not required (backwards compatibility)
+    if (response.success && response.data && response.data.token && !response.data.requiresVerification) {
       if (typeof window !== 'undefined') {
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('authToken', response.data.token);
