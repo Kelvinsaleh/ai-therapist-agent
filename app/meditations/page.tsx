@@ -28,6 +28,7 @@ import { useSession } from "@/lib/contexts/session-context";
 import { toast } from "sonner";
 import { PageLoading } from "@/components/ui/page-loading";
 import { MeditationsFloatingPlayer } from "@/components/audio/meditations-floating-player";
+import { getBackendErrorMessage, isBackendOnline } from "@/lib/utils/backend-wakeup";
 
 interface Meditation {
   id: string;
@@ -51,6 +52,7 @@ export default function MeditationsPage() {
   const [favoriteStatus, setFavoriteStatus] = useState<Record<string, boolean>>({});
   const [favoriteLoading, setFavoriteLoading] = useState<Record<string, boolean>>({});
   const [favoriteMeditations, setFavoriteMeditations] = useState<Meditation[]>([]);
+  const [showBackendWarning, setShowBackendWarning] = useState(false);
   
   // Use ONLY the global audio player - no local audio state
   const { 
@@ -149,6 +151,31 @@ export default function MeditationsPage() {
     loadMeditations();
   }, [loadMeditations]);
 
+  // Check backend status on mount
+  useEffect(() => {
+    const checkBackend = () => {
+      const backendOffline = !isBackendOnline();
+      setShowBackendWarning(backendOffline);
+      
+      if (backendOffline) {
+        toast.info("Server is starting up...", {
+          description: "This may take up to a minute. Please wait.",
+          duration: 5000,
+          id: 'backend-starting'
+        });
+      }
+    };
+    
+    checkBackend();
+    
+    // Check again after a delay to see if backend woke up
+    const timer = setTimeout(() => {
+      checkBackend();
+    }, 10000);
+    
+    return () => clearTimeout(timer);
+  }, []);
+
   // Check favorite status for all meditations when they load
   useEffect(() => {
     if (isAuthenticated && meditations.length > 0) {
@@ -192,9 +219,18 @@ export default function MeditationsPage() {
 
         setFavoriteMeditations(favoriteMeditations);
         logger.debug('Loaded favorite meditations:', favoriteMeditations);
+      } else if (response.status === 404 && !isBackendOnline()) {
+        // Backend is offline, silently fail - don't show error
+        logger.warn('Backend offline, skipping favorites load');
+        setFavoriteMeditations([]);
       }
     } catch (error) {
-      console.error('Error loading favorites:', error);
+      // Silently handle errors when backend is starting up
+      if (!isBackendOnline()) {
+        logger.warn('Backend offline, error loading favorites:', error);
+      } else {
+        console.error('Error loading favorites:', error);
+      }
       setFavoriteMeditations([]);
     }
   }, [isAuthenticated]);
@@ -340,7 +376,12 @@ export default function MeditationsPage() {
           ...prev,
           [meditationId]: isCurrentlyFavorited // Revert to original state
         }));
-        toast.error(data.error || "Failed to update favorite status");
+        
+        // Show appropriate error message based on backend status
+        const errorMessage = response.status === 404 && !isBackendOnline()
+          ? getBackendErrorMessage()
+          : (data.error || "Failed to update favorite status");
+        toast.error(errorMessage);
       }
     } catch (error) {
       // Roll back the optimistic update on error
@@ -349,7 +390,13 @@ export default function MeditationsPage() {
         ...prev,
         [meditationId]: isCurrentlyFavorited // Revert to original state
       }));
-      toast.error("Failed to update favorite status");
+      
+      // Show appropriate error message based on backend status
+      const errorMessage = getBackendErrorMessage();
+      toast.error(errorMessage, {
+        duration: 5000,
+        description: !isBackendOnline() ? "Favorites will work once the server is ready." : undefined
+      });
     } finally {
       console.log('Setting loading to false for:', meditationId);
       setFavoriteLoading(prev => ({ ...prev, [meditationId]: false }));
@@ -374,9 +421,17 @@ export default function MeditationsPage() {
           ...prev,
           [meditationId]: data.isFavorited
         }));
+      } else if (response.status === 404 && !isBackendOnline()) {
+        // Backend is offline, silently skip status check
+        logger.warn('Backend offline, skipping favorite status check for:', meditationId);
       }
     } catch (error) {
-      console.error('Error checking favorite status:', error);
+      // Silently handle errors when backend is starting up
+      if (!isBackendOnline()) {
+        logger.warn('Backend offline, error checking favorite status:', error);
+      } else {
+        console.error('Error checking favorite status:', error);
+      }
     }
   };
 
@@ -456,6 +511,27 @@ export default function MeditationsPage() {
             </div>
           )}
         </div>
+
+        {/* Backend Status Warning */}
+        {showBackendWarning && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-lg"
+          >
+            <div className="flex items-center gap-3">
+              <Loader2 className="w-5 h-5 text-yellow-600 animate-spin" />
+              <div>
+                <p className="text-sm font-medium text-yellow-800">
+                  Server is starting up...
+                </p>
+                <p className="text-xs text-yellow-700 mt-1">
+                  This may take up to a minute. Some features like favorites may be temporarily unavailable.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {/* Search and Filter */}
         <Card className="mb-8">

@@ -9,7 +9,7 @@
 import { logger } from "./logger";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.BACKEND_API_URL || "https://hope-backend-2.onrender.com";
-const WAKE_UP_TIMEOUT = 15000; // 15 seconds
+const WAKE_UP_TIMEOUT = 45000; // 45 seconds (increased for Render cold starts)
 const WAKE_UP_CACHE_KEY = 'backend_wakeup_time';
 const WAKE_UP_CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
 
@@ -50,43 +50,80 @@ export async function wakeUpBackend(): Promise<boolean> {
 }
 
 async function performWakeUp(): Promise<boolean> {
-  try {
-    logger.info("Waking up backend...");
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), WAKE_UP_TIMEOUT);
-    
-    const startTime = Date.now();
-    
-    // Use the health endpoint which is lightweight
-    const response = await fetch(`${BACKEND_URL}/health`, {
-      method: 'GET',
-      signal: controller.signal,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-    
-    clearTimeout(timeoutId);
-    
-    const duration = Date.now() - startTime;
-    
-    if (response.ok) {
-      logger.info(`Backend woke up successfully in ${duration}ms`);
-      localStorage.setItem(WAKE_UP_CACHE_KEY, Date.now().toString());
-      return true;
-    } else {
-      logger.warn(`Backend wake-up returned status ${response.status}`);
+  const maxRetries = 2;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      logger.info(`Waking up backend... (attempt ${attempt}/${maxRetries})`);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), WAKE_UP_TIMEOUT);
+      
+      const startTime = Date.now();
+      
+      // Use the health endpoint which is lightweight
+      const response = await fetch(`${BACKEND_URL}/health`, {
+        method: 'GET',
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      clearTimeout(timeoutId);
+      
+      const duration = Date.now() - startTime;
+      
+      if (response.ok) {
+        logger.info(`✓ Backend woke up successfully in ${duration}ms`);
+        localStorage.setItem(WAKE_UP_CACHE_KEY, Date.now().toString());
+        localStorage.setItem('backend_status', 'online');
+        return true;
+      } else {
+        logger.warn(`Backend wake-up returned status ${response.status}, attempt ${attempt}/${maxRetries}`);
+        if (attempt < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s before retry
+          continue;
+        }
+        return false;
+      }
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        logger.warn(`Backend wake-up timed out (attempt ${attempt}/${maxRetries}) - backend may be starting up`);
+      } else {
+        logger.error(`Error waking up backend (attempt ${attempt}/${maxRetries}):`, error);
+      }
+      
+      if (attempt < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s before retry
+        continue;
+      }
+      
+      localStorage.setItem('backend_status', 'offline');
       return false;
     }
-  } catch (error: any) {
-    if (error.name === 'AbortError') {
-      logger.warn("Backend wake-up timed out - backend may be starting up");
-    } else {
-      logger.error("Error waking up backend:", error);
-    }
-    return false;
   }
+  
+  return false;
+}
+
+/**
+ * Check if backend is currently online (based on last wake-up result)
+ */
+export function isBackendOnline(): boolean {
+  if (typeof window === 'undefined') return true; // Assume online on server
+  const status = localStorage.getItem('backend_status');
+  return status !== 'offline';
+}
+
+/**
+ * Get a user-friendly error message based on backend status
+ */
+export function getBackendErrorMessage(): string {
+  if (isBackendOnline()) {
+    return "An error occurred. Please try again.";
+  }
+  return "The server is starting up. This may take up to a minute on first load. Please wait...";
 }
 
 /**
