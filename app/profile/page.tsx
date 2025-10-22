@@ -108,8 +108,7 @@ export default function ProfilePage() {
   const [editedEmail, setEditedEmail] = useState("");
   const [passwordData, setPasswordData] = useState({ current: "", new: "", confirm: "" });
   
-  // Goals state
-  const [goals, setGoals] = useState<string[]>([]);
+  // New goal input (goals themselves are in userProfile.goals)
   const [newGoal, setNewGoal] = useState("");
   
   // Analytics data
@@ -206,6 +205,21 @@ export default function ProfilePage() {
       // toast.error("Failed to load profile data");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const saveGoalsToBackend = async (goals: string[]) => {
+    try {
+      const profileRes = await backendService.updateUserProfile({
+        ...userProfile,
+        goals
+      });
+      if (profileRes.success) {
+        toast.success("Goal updated!");
+      }
+    } catch (error) {
+      console.error("Error saving goal:", error);
+      toast.error("Failed to save goal");
     }
   };
 
@@ -379,16 +393,36 @@ export default function ProfilePage() {
                   onChange={(e) => setNewGoal(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && newGoal.trim()) {
-                      setGoals([...goals, newGoal.trim()]);
+                      const currentGoals = userProfile?.goals || [];
+                      setEditedProfile(prev => ({ 
+                        ...prev!, 
+                        goals: [...currentGoals, newGoal.trim()] 
+                      }));
+                      setUserProfile(prev => ({
+                        ...prev!,
+                        goals: [...currentGoals, newGoal.trim()]
+                      }));
                       setNewGoal("");
+                      // Auto-save the new goal
+                      saveGoalsToBackend([...currentGoals, newGoal.trim()]);
                     }
                   }}
                 />
                 <Button
                   onClick={() => {
                     if (newGoal.trim()) {
-                      setGoals([...goals, newGoal.trim()]);
+                      const currentGoals = userProfile?.goals || [];
+                      setEditedProfile(prev => ({ 
+                        ...prev!, 
+                        goals: [...currentGoals, newGoal.trim()] 
+                      }));
+                      setUserProfile(prev => ({
+                        ...prev!,
+                        goals: [...currentGoals, newGoal.trim()]
+                      }));
                       setNewGoal("");
+                      // Auto-save the new goal
+                      saveGoalsToBackend([...currentGoals, newGoal.trim()]);
                     }
                   }}
                   disabled={!newGoal.trim()}
@@ -399,14 +433,14 @@ export default function ProfilePage() {
               </div>
 
               {/* Goals list */}
-              {goals.length === 0 ? (
+              {(!userProfile?.goals || userProfile.goals.length === 0) ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <Target className="w-12 h-12 mx-auto mb-2 opacity-20" />
                   <p className="text-sm">No goals yet. Add your first goal above!</p>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {goals.map((goal, index) => (
+                  {(userProfile?.goals || []).map((goal, index) => (
                     <motion.div
                       key={index}
                       initial={{ opacity: 0, x: -20 }}
@@ -422,7 +456,11 @@ export default function ProfilePage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => {
-                          setGoals(goals.filter((_, i) => i !== index));
+                          const newGoals = userProfile.goals.filter((_, i) => i !== index);
+                          setEditedProfile(prev => ({ ...prev!, goals: newGoals }));
+                          setUserProfile(prev => ({ ...prev!, goals: newGoals }));
+                          // Auto-save the removal
+                          saveGoalsToBackend(newGoals);
                         }}
                         className="text-destructive hover:text-destructive"
                       >
@@ -434,16 +472,23 @@ export default function ProfilePage() {
               )}
 
               {/* Suggested goals */}
-              {goals.length < 5 && (
+              {(!userProfile?.goals || userProfile.goals.length < 5) && (
                 <div className="pt-4 border-t">
                   <p className="text-xs text-muted-foreground mb-2">Suggested goals:</p>
                   <div className="flex flex-wrap gap-2">
-                    {COMMON_GOALS.filter(g => !goals.includes(g)).slice(0, 6).map((goal) => (
+                    {COMMON_GOALS.filter(g => !(userProfile?.goals || []).includes(g)).slice(0, 6).map((goal) => (
                       <Button
                         key={goal}
                         variant="outline"
                         size="sm"
-                        onClick={() => setGoals([...goals, goal])}
+                        onClick={() => {
+                          const currentGoals = userProfile?.goals || [];
+                          const newGoals = [...currentGoals, goal];
+                          setEditedProfile(prev => ({ ...prev!, goals: newGoals }));
+                          setUserProfile(prev => ({ ...prev!, goals: newGoals }));
+                          // Auto-save the goal
+                          saveGoalsToBackend(newGoals);
+                        }}
                         className="text-xs"
                       >
                         <Plus className="w-3 h-3 mr-1" />
@@ -971,9 +1016,21 @@ export default function ProfilePage() {
                               <Button 
                                 variant="outline" 
                                 size="sm"
-                                onClick={() => {
-                                  // Add cancel subscription functionality
-                                  toast.info("Subscription cancellation will be available soon");
+                                onClick={async () => {
+                                  if (confirm("Are you sure you want to cancel your premium subscription? You'll lose access to premium features at the end of your billing period.")) {
+                                    try {
+                                      const res = await paystackService.cancelSubscription(user?._id || '');
+                                      if (res.success) {
+                                        toast.success("Subscription cancelled successfully");
+                                        await loadProfileData();
+                                      } else {
+                                        toast.error(res.error || "Failed to cancel subscription");
+                                      }
+                                    } catch (error) {
+                                      console.error("Error cancelling subscription:", error);
+                                      toast.error("Failed to cancel subscription");
+                                    }
+                                  }
                                 }}
                               >
                                 Cancel
