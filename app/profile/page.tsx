@@ -14,6 +14,7 @@ import { backendService } from "@/lib/api/backend-service";
 import { dashboardService } from "@/lib/api/dashboard-service";
 import { getMoodHistory, getMoodStats } from "@/lib/api/mood";
 import { paystackService } from "@/lib/payments/paystack-service";
+import { MentalHealthData } from "@/components/mental-health-data";
 import { 
   User, 
   Settings, 
@@ -698,186 +699,92 @@ export default function ProfilePage() {
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6 mt-6">
-            {/* Stats Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+            {/* Mental Health Overview - Powered by Local User Memory */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+              <div className="mb-4">
+                <h2 className="text-2xl font-bold mb-2">Your Mental Health Journey</h2>
+                <p className="text-muted-foreground">
+                  Track your progress, insights, and wellness activities all in one place
+                </p>
+              </div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Main Mental Health Data */}
+                <MentalHealthData showInsights={true} />
+                
+                {/* Quick Actions & Recent Activity */}
                 <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Therapy Sessions</CardTitle>
-                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{stats?.totalSessions || 0}</div>
-                    <p className="text-xs text-muted-foreground">
-                      {stats?.sessionsThisWeek || 0} this week
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Activity className="w-5 h-5 text-primary" />
+                      Quick Actions
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Continue your mental wellness journey
                     </p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Messages</CardTitle>
-                    <Activity className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{stats?.totalMessages || 0}</div>
-                    <p className="text-xs text-muted-foreground">Total conversations</p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Avg Mood</CardTitle>
-                    <Smile className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {moodStats?.average ? Math.round(moodStats.average) : "--"}
-                    </div>
-                    <p className="text-xs text-muted-foreground">Out of 100</p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Mood Trend</CardTitle>
-                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold capitalize">{stats?.moodTrend || "stable"}</div>
-                    <p className="text-xs text-muted-foreground">Recent changes</p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </div>
-
-            {/* Charts Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Mood Chart */}
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle>Mood Chart</CardTitle>
-                      <p className="text-sm text-muted-foreground">
-                        Your emotional journey over time
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant={moodPeriod === "7days" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setMoodPeriod("7days")}
-                      >
-                        7D
-                      </Button>
-                      <Button
-                        variant={moodPeriod === "30days" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setMoodPeriod("30days")}
-                      >
-                        30D
-                      </Button>
-                      <Button
-                        variant={moodPeriod === "90days" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setMoodPeriod("90days")}
-                      >
-                        90D
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {moodChartData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={300}>
-                      <AreaChart data={moodChartData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="date" />
-                        <YAxis domain={[0, 100]} />
-                        <Tooltip />
-                        <Area
-                          type="monotone"
-                          dataKey="mood"
-                          stroke="#8884d8"
-                          fill="#8884d8"
-                          fillOpacity={0.3}
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-                      <div className="text-center space-y-4">
-                        <Smile className="w-12 h-12 mx-auto opacity-50" />
-                        <div>
-                          <p className="font-medium">No mood data available</p>
-                          <p className="text-sm">Start tracking your mood to see insights</p>
+                  <CardContent className="space-y-3">
+                    <Link href="/therapy/new">
+                      <Button className="w-full justify-start" variant="outline">
+                        <MessageSquare className="w-4 h-4 mr-2" />
+                        <div className="text-left flex-1">
+                          <div className="font-medium">Start Therapy Session</div>
+                          <div className="text-xs text-muted-foreground">Talk to your AI therapist</div>
                         </div>
-                        <Link href="/dashboard">
-                          <Button size="sm" className="mt-2">
-                            <Plus className="w-4 h-4 mr-2" />
-                            Track Your Mood
-                          </Button>
-                        </Link>
+                      </Button>
+                    </Link>
+                    
+                    <Link href="/meditations">
+                      <Button className="w-full justify-start" variant="outline">
+                        <Headphones className="w-4 h-4 mr-2" />
+                        <div className="text-left flex-1">
+                          <div className="font-medium">Guided Meditation</div>
+                          <div className="text-xs text-muted-foreground">Relax and find peace</div>
+                        </div>
+                      </Button>
+                    </Link>
+                    
+                    <Link href="/journal">
+                      <Button className="w-full justify-start" variant="outline">
+                        <BookOpen className="w-4 h-4 mr-2" />
+                        <div className="text-left flex-1">
+                          <div className="font-medium">Journal Entry</div>
+                          <div className="text-xs text-muted-foreground">Express your thoughts</div>
+                        </div>
+                      </Button>
+                    </Link>
+                    
+                    <Link href="/dashboard">
+                      <Button className="w-full justify-start" variant="outline">
+                        <Smile className="w-4 h-4 mr-2" />
+                        <div className="text-left flex-1">
+                          <div className="font-medium">Track Mood</div>
+                          <div className="text-xs text-muted-foreground">How are you feeling today?</div>
+                        </div>
+                      </Button>
+                    </Link>
+
+                    {/* Stats Summary */}
+                    <div className="pt-4 border-t space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Total Sessions</span>
+                        <span className="font-medium">{stats?.totalSessions || 0}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">This Week</span>
+                        <span className="font-medium">{stats?.sessionsThisWeek || 0}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Mood Trend</span>
+                        <Badge variant="outline" className="capitalize">
+                          {stats?.moodTrend || "stable"}
+                        </Badge>
                       </div>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Activity Chart */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Activity Breakdown</CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    Your recent therapeutic activities
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  {activityChartData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={activityChartData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="type" />
-                        <YAxis />
-                        <Tooltip />
-                        <Bar dataKey="count" fill="#8884d8" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-                      <div className="text-center space-y-4">
-                        <Activity className="w-12 h-12 mx-auto opacity-50" />
-                        <div>
-                          <p className="font-medium">No activity data available</p>
-                          <p className="text-sm">Engage with the platform to see activity insights</p>
-                        </div>
-                        <div className="flex gap-2 justify-center mt-2">
-                          <Link href="/therapy/new">
-                            <Button size="sm" variant="outline">
-                              <MessageSquare className="w-4 h-4 mr-2" />
-                              Start Chat
-                            </Button>
-                          </Link>
-                          <Link href="/meditations">
-                            <Button size="sm" variant="outline">
-                              <Headphones className="w-4 h-4 mr-2" />
-                              Meditate
-                            </Button>
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </motion.div>
 
             {/* Recent Activity Timeline */}
             <Card>
