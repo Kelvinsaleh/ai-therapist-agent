@@ -120,6 +120,9 @@ export default function ProfilePage() {
   
   // Subscription data
   const [subscriptionStatus, setSubscriptionStatus] = useState<any>(null);
+  
+  // Error tracking
+  const [apiErrors, setApiErrors] = useState<string[]>([]);
 
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
@@ -131,37 +134,38 @@ export default function ProfilePage() {
     try {
       setLoading(true);
       
-      // Load all data in parallel with error handling for each
+      // Load all data in parallel with detailed error handling for each
       const [profileRes, statsData, activityData, moodHistoryData, moodStatsData, subscriptionData] = await Promise.all([
         backendService.getUserProfile().catch((e) => {
-          console.warn("Profile fetch failed:", e);
-          return { success: false, data: null };
+          console.error("❌ Profile fetch failed:", e.message || e);
+          return { success: false, data: null, error: e.message };
         }),
         dashboardService.getDashboardStats().catch((e) => {
-          console.warn("Stats fetch failed:", e);
+          console.error("❌ Stats fetch failed:", e.message || e);
           return {
             totalSessions: 0,
             sessionsThisWeek: 0,
             totalMessages: 0,
             averageSessionDuration: 0,
-            moodTrend: 'stable' as const
+            moodTrend: 'stable' as const,
+            error: e.message
           };
         }),
         dashboardService.getRecentActivity().catch((e) => {
-          console.warn("Activity fetch failed:", e);
+          console.error("❌ Activity fetch failed:", e.message || e);
           return [];
         }),
         getMoodHistory({ limit: 90 }).catch((e) => {
-          console.warn("Mood history fetch failed (endpoint may not exist):", e);
-          return { success: false, data: [] };
+          console.error("❌ Mood history fetch failed:", e.message || e);
+          return { success: false, data: [], error: e.message };
         }),
         getMoodStats("week").catch((e) => {
-          console.warn("Mood stats fetch failed (endpoint may not exist):", e);
-          return { success: false, data: null };
+          console.error("❌ Mood stats fetch failed:", e.message || e);
+          return { success: false, data: null, error: e.message };
         }),
         paystackService.getSubscriptionStatus(user?._id || '').catch((e) => {
-          console.warn("Subscription status fetch failed:", e);
-          return { isActive: false, plan: null };
+          console.error("❌ Subscription status fetch failed:", e.message || e);
+          return { isActive: false, plan: null, error: e.message };
         })
       ]);
 
@@ -228,10 +232,23 @@ export default function ProfilePage() {
       
       // Set subscription data
       setSubscriptionStatus(subscriptionData);
+      
+      // Collect errors for display
+      const errors: string[] = [];
+      if ((profileRes as any).error) errors.push(`Profile: ${(profileRes as any).error}`);
+      if ((statsData as any).error) errors.push(`Stats: ${(statsData as any).error}`);
+      if ((moodHistoryData as any).error) errors.push(`Mood History: ${(moodHistoryData as any).error}`);
+      if ((moodStatsData as any).error) errors.push(`Mood Stats: ${(moodStatsData as any).error}`);
+      if ((subscriptionData as any).error) errors.push(`Subscription: ${(subscriptionData as any).error}`);
+      
+      setApiErrors(errors);
+      
+      if (errors.length > 0) {
+        console.error("🔴 API Errors detected:", errors);
+      }
     } catch (error) {
       console.error("Error loading profile data:", error);
-      // Don't show error toast for partial failures
-      // toast.error("Failed to load profile data");
+      toast.error("Failed to load profile data. Please refresh the page.");
     } finally {
       setLoading(false);
     }
@@ -451,6 +468,47 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 p-6 pt-20">
       <div className="max-w-7xl mx-auto space-y-6">
+        {/* API Error Banner */}
+        {apiErrors.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-yellow-50 border border-yellow-200 rounded-lg p-4"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-5 h-5 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-yellow-600 text-xs font-bold">!</span>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold text-yellow-900 mb-1">
+                  Some data failed to load
+                </h3>
+                <p className="text-xs text-yellow-700 mb-2">
+                  The backend may be starting up or experiencing temporary issues. Your data is safe.
+                </p>
+                <details className="text-xs text-yellow-600">
+                  <summary className="cursor-pointer hover:underline font-medium">
+                    View error details
+                  </summary>
+                  <ul className="mt-2 space-y-1 ml-4 list-disc">
+                    {apiErrors.map((error, index) => (
+                      <li key={index}>{error}</li>
+                    ))}
+                  </ul>
+                </details>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={loadProfileData}
+                className="text-xs"
+              >
+                Retry
+              </Button>
+            </div>
+          </motion.div>
+        )}
+        
         {/* Simple Profile Header */}
         <Card>
           <CardHeader>
