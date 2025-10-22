@@ -97,7 +97,7 @@ export default function ProfilePage() {
   const router = useRouter();
   
   // State management
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState("profile");
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -682,11 +682,7 @@ export default function ProfilePage() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
-            <TabsTrigger value="overview">
-              <BarChart3 className="w-4 h-4 mr-2" />
-              Overview
-            </TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 lg:w-auto lg:inline-grid">
             <TabsTrigger value="profile">
               <User className="w-4 h-4 mr-2" />
               Profile
@@ -697,81 +693,23 @@ export default function ProfilePage() {
             </TabsTrigger>
           </TabsList>
 
-          {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-6 mt-6">
-            {/* Mental Health Overview - Powered by Local User Memory */}
+          {/* Profile Tab */}
+          <TabsContent value="profile" className="space-y-6 mt-6">
+            {/* Mental Health Journey Section */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
               <div className="mb-4">
                 <h2 className="text-2xl font-bold mb-2">Your Mental Health Journey</h2>
                 <p className="text-muted-foreground">
-                  Track your progress, insights, and wellness activities all in one place
+                  Track your progress, insights, and wellness activities
                 </p>
               </div>
               
-              {/* Main Mental Health Data - Full Width */}
-              <div className="max-w-2xl mx-auto">
+              <div className="max-w-2xl mx-auto mb-6">
                 <MentalHealthData showInsights={true} />
               </div>
             </motion.div>
 
-            {/* Recent Activity Timeline */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-primary" />
-                  Recent Activity
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {recentActivity.length > 0 ? (
-                  <div className="space-y-4">
-                    {recentActivity.slice(0, 10).map((activity, index) => (
-                      <div key={activity.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                          {activity.type === 'session' && <MessageSquare className="w-4 h-4 text-primary" />}
-                          {activity.type === 'journal' && <BookOpen className="w-4 h-4 text-primary" />}
-                          {activity.type === 'meditation' && <Headphones className="w-4 h-4 text-primary" />}
-                          {activity.type === 'mood' && <Heart className="w-4 h-4 text-primary" />}
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-medium text-sm">{activity.title}</p>
-                          <p className="text-xs text-muted-foreground">{activity.description}</p>
-                        </div>
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(activity.timestamp).toLocaleDateString()}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground space-y-4">
-                    <Activity className="w-8 h-8 mx-auto opacity-50" />
-                    <div>
-                      <p className="font-medium">No recent activity</p>
-                      <p className="text-sm">Start engaging with Hope Therapy to see your activity timeline</p>
-                    </div>
-                    <div className="flex gap-2 justify-center mt-4">
-                      <Link href="/therapy/new">
-                        <Button size="sm">
-                          <MessageSquare className="w-4 h-4 mr-2" />
-                          New Chat Session
-                        </Button>
-                      </Link>
-                      <Link href="/journal">
-                        <Button size="sm" variant="outline">
-                          <BookOpen className="w-4 h-4 mr-2" />
-                          Journal
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Profile Tab */}
-          <TabsContent value="profile" className="space-y-6 mt-6">
+            {/* Basic Information Card */}
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
