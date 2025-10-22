@@ -62,8 +62,16 @@ export default function SignupPage() {
     setFieldErrors({});
     setLoading(true);
     try {
-      await registerUser(name, email, password);
-      router.push("/login");
+      const response = await registerUser(name, email, password);
+      
+      // Check if email verification is required
+      if (response.requiresVerification && response.userId) {
+        // Redirect to verification page with userId and email
+        router.push(`/verify-email?userId=${response.userId}&email=${encodeURIComponent(email)}`);
+      } else {
+        // Old flow: direct login (backwards compatibility)
+        router.push("/login");
+      }
     } catch (err: any) {
       const errorMessage = err.message || "Signup failed. Please try again.";
       

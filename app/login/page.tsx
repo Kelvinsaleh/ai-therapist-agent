@@ -57,6 +57,20 @@ export default function LoginPage() {
     try {
       logger.debug("Attempting login...");
       
+      // First, check if the account requires email verification
+      const { backendService } = await import("@/lib/api/backend-service");
+      const response = await backendService.login(email, password);
+      
+      // Check if email verification is required
+      if (!response.success && (response as any).requiresVerification && (response as any).userId) {
+        toast.error("Please verify your email before logging in.");
+        // Redirect to verification page
+        setTimeout(() => {
+          router.push(`/verify-email?userId=${(response as any).userId}&email=${encodeURIComponent(email)}`);
+        }, 1000);
+        return;
+      }
+      
       // Use the session context login method
       const success = await login(email, password);
       
@@ -68,10 +82,6 @@ export default function LoginPage() {
           router.push("/therapy/memory-enhanced");
         }, 1000);
       } else {
-        // Get the backend service response to check error type
-        const { backendService } = await import("@/lib/api/backend-service");
-        const response = await backendService.login(email, password);
-        
         if (response.isNetworkError) {
           setError("Unable to connect to the server. This might be a temporary issue. Please try again in a moment.");
           toast.error("Server connection issue. Please try again.");
