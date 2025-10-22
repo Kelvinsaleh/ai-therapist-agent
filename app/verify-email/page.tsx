@@ -12,10 +12,12 @@ export default function VerifyEmailPage() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const [devOTP, setDevOTP] = useState<string | null>(null);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   
   const userId = searchParams.get("userId");
   const email = searchParams.get("email");
+  const urlDevOTP = searchParams.get("devOTP");
 
   // Countdown timer for resend button
   useEffect(() => {
@@ -29,6 +31,14 @@ export default function VerifyEmailPage() {
   useEffect(() => {
     inputRefs.current[0]?.focus();
   }, []);
+
+  // Set devOTP from URL if available
+  useEffect(() => {
+    if (urlDevOTP) {
+      setDevOTP(urlDevOTP);
+      toast.info("Development Mode: OTP displayed below", { duration: 5000 });
+    }
+  }, [urlDevOTP]);
 
   const handleChange = (index: number, value: string) => {
     // Only allow numbers
@@ -162,7 +172,13 @@ export default function VerifyEmailPage() {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        toast.success("Verification code sent! Check your email.");
+        // Check if devOTP is provided (development mode)
+        if (data.devOTP) {
+          setDevOTP(data.devOTP);
+          toast.success("Verification code generated! (Dev Mode: Check below)", { duration: 5000 });
+        } else {
+          toast.success("Verification code sent! Check your email.");
+        }
         setCountdown(60); // 60 second cooldown
         setCode(["", "", "", "", "", ""]);
         inputRefs.current[0]?.focus();
@@ -276,6 +292,41 @@ export default function VerifyEmailPage() {
               )}
             </button>
           </div>
+
+          {/* Development Mode OTP Display */}
+          {devOTP && (
+            <div className="mt-6 p-4 bg-amber-50 border-2 border-amber-300 rounded-lg">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 bg-amber-200 rounded-full flex items-center justify-center">
+                    <span className="text-amber-700 font-bold text-sm">⚠️</span>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-semibold text-amber-900 mb-1">
+                    Development Mode
+                  </h4>
+                  <p className="text-xs text-amber-700 mb-2">
+                    Email service is not configured. Use this OTP to verify:
+                  </p>
+                  <div className="bg-white rounded-md p-3 border border-amber-300">
+                    <p className="text-2xl font-mono font-bold text-center text-amber-900 tracking-wider">
+                      {devOTP}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(devOTP);
+                      toast.success("OTP copied to clipboard!");
+                    }}
+                    className="mt-2 text-xs text-amber-700 hover:text-amber-900 underline"
+                  >
+                    Copy to clipboard
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Footer */}

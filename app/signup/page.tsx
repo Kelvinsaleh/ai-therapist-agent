@@ -66,8 +66,16 @@ export default function SignupPage() {
       
       // Check if email verification is required
       if (response.requiresVerification && response.userId) {
+        // Build verification URL
+        let verifyUrl = `/verify-email?userId=${response.userId}&email=${encodeURIComponent(email)}`;
+        
+        // In development mode, include devOTP if provided
+        if (response.devOTP) {
+          verifyUrl += `&devOTP=${response.devOTP}`;
+        }
+        
         // Redirect to verification page with userId and email
-        router.push(`/verify-email?userId=${response.userId}&email=${encodeURIComponent(email)}`);
+        router.push(verifyUrl);
       } else {
         // Old flow: direct login (backwards compatibility)
         router.push("/login");
