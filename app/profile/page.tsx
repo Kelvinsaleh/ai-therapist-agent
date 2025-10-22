@@ -708,81 +708,9 @@ export default function ProfilePage() {
                 </p>
               </div>
               
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Main Mental Health Data */}
+              {/* Main Mental Health Data - Full Width */}
+              <div className="max-w-2xl mx-auto">
                 <MentalHealthData showInsights={true} />
-                
-                {/* Quick Actions & Recent Activity */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Activity className="w-5 h-5 text-primary" />
-                      Quick Actions
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      Continue your mental wellness journey
-                    </p>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <Link href="/therapy/new">
-                      <Button className="w-full justify-start" variant="outline">
-                        <MessageSquare className="w-4 h-4 mr-2" />
-                        <div className="text-left flex-1">
-                          <div className="font-medium">Start Therapy Session</div>
-                          <div className="text-xs text-muted-foreground">Talk to your AI therapist</div>
-                        </div>
-                      </Button>
-                    </Link>
-                    
-                    <Link href="/meditations">
-                      <Button className="w-full justify-start" variant="outline">
-                        <Headphones className="w-4 h-4 mr-2" />
-                        <div className="text-left flex-1">
-                          <div className="font-medium">Guided Meditation</div>
-                          <div className="text-xs text-muted-foreground">Relax and find peace</div>
-                        </div>
-                      </Button>
-                    </Link>
-                    
-                    <Link href="/journal">
-                      <Button className="w-full justify-start" variant="outline">
-                        <BookOpen className="w-4 h-4 mr-2" />
-                        <div className="text-left flex-1">
-                          <div className="font-medium">Journal Entry</div>
-                          <div className="text-xs text-muted-foreground">Express your thoughts</div>
-                        </div>
-                      </Button>
-                    </Link>
-                    
-                    <Link href="/dashboard">
-                      <Button className="w-full justify-start" variant="outline">
-                        <Smile className="w-4 h-4 mr-2" />
-                        <div className="text-left flex-1">
-                          <div className="font-medium">Track Mood</div>
-                          <div className="text-xs text-muted-foreground">How are you feeling today?</div>
-                        </div>
-                      </Button>
-                    </Link>
-
-                    {/* Stats Summary */}
-                    <div className="pt-4 border-t space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Total Sessions</span>
-                        <span className="font-medium">{stats?.totalSessions || 0}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">This Week</span>
-                        <span className="font-medium">{stats?.sessionsThisWeek || 0}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Mood Trend</span>
-                        <Badge variant="outline" className="capitalize">
-                          {stats?.moodTrend || "stable"}
-                        </Badge>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
               </div>
             </motion.div>
 
