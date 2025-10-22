@@ -197,7 +197,12 @@ export default function ProfilePage() {
         setEditedEmail(user.email);
       }
 
-      // Set analytics data
+      // Set analytics data with debug logging
+      console.log("📊 Dashboard Stats:", statsData);
+      console.log("📋 Recent Activity:", activityData);
+      console.log("😊 Mood History Data:", moodHistoryData);
+      console.log("📈 Mood Stats Data:", moodStatsData);
+      
       setStats(statsData);
       setRecentActivity(activityData || []);
       
@@ -206,14 +211,18 @@ export default function ProfilePage() {
         const historyArray = Array.isArray(moodHistoryData.data) 
           ? moodHistoryData.data 
           : [];
+        console.log("✅ Mood History Array:", historyArray);
         setMoodHistory(historyArray);
       } else {
+        console.log("⚠️ No mood history data available");
         setMoodHistory([]);
       }
       
       if (moodStatsData && moodStatsData.success && moodStatsData.data) {
+        console.log("✅ Mood Stats:", moodStatsData.data);
         setMoodStats(moodStatsData.data);
       } else {
+        console.log("⚠️ No mood stats available");
         setMoodStats(null);
       }
       
@@ -746,10 +755,18 @@ export default function ProfilePage() {
                     </ResponsiveContainer>
                   ) : (
                     <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-                      <div className="text-center">
-                        <Smile className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                        <p>No mood data available</p>
-                        <p className="text-sm">Start tracking your mood to see insights</p>
+                      <div className="text-center space-y-4">
+                        <Smile className="w-12 h-12 mx-auto opacity-50" />
+                        <div>
+                          <p className="font-medium">No mood data available</p>
+                          <p className="text-sm">Start tracking your mood to see insights</p>
+                        </div>
+                        <Link href="/dashboard">
+                          <Button size="sm" className="mt-2">
+                            <Plus className="w-4 h-4 mr-2" />
+                            Track Your Mood
+                          </Button>
+                        </Link>
                       </div>
                     </div>
                   )}
@@ -777,10 +794,26 @@ export default function ProfilePage() {
                     </ResponsiveContainer>
                   ) : (
                     <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-                      <div className="text-center">
-                        <Activity className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                        <p>No activity data available</p>
-                        <p className="text-sm">Engage with the platform to see activity insights</p>
+                      <div className="text-center space-y-4">
+                        <Activity className="w-12 h-12 mx-auto opacity-50" />
+                        <div>
+                          <p className="font-medium">No activity data available</p>
+                          <p className="text-sm">Engage with the platform to see activity insights</p>
+                        </div>
+                        <div className="flex gap-2 justify-center mt-2">
+                          <Link href="/therapy/new">
+                            <Button size="sm" variant="outline">
+                              <MessageSquare className="w-4 h-4 mr-2" />
+                              Start Chat
+                            </Button>
+                          </Link>
+                          <Link href="/meditations">
+                            <Button size="sm" variant="outline">
+                              <Headphones className="w-4 h-4 mr-2" />
+                              Meditate
+                            </Button>
+                          </Link>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -818,10 +851,26 @@ export default function ProfilePage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Activity className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p>No recent activity</p>
-                    <p className="text-sm">Start a session or journal entry</p>
+                  <div className="text-center py-8 text-muted-foreground space-y-4">
+                    <Activity className="w-8 h-8 mx-auto opacity-50" />
+                    <div>
+                      <p className="font-medium">No recent activity</p>
+                      <p className="text-sm">Start engaging with Hope Therapy to see your activity timeline</p>
+                    </div>
+                    <div className="flex gap-2 justify-center mt-4">
+                      <Link href="/therapy/new">
+                        <Button size="sm">
+                          <MessageSquare className="w-4 h-4 mr-2" />
+                          New Chat Session
+                        </Button>
+                      </Link>
+                      <Link href="/journal">
+                        <Button size="sm" variant="outline">
+                          <BookOpen className="w-4 h-4 mr-2" />
+                          Journal
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
                 )}
               </CardContent>
