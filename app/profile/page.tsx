@@ -92,6 +92,14 @@ export default function ProfilePage() {
     }
   }, [isAuthenticated, isLoading]);
 
+  // Keep edited fields in sync with user object when not editing
+  useEffect(() => {
+    if (!isEditing && user) {
+      setEditedName(user.name);
+      setEditedEmail(user.email);
+    }
+  }, [user, isEditing]);
+
   const loadProfileData = async () => {
     try {
       setLoading(true);
@@ -227,6 +235,8 @@ export default function ProfilePage() {
         localStorage.setItem('profile_full_backup', JSON.stringify(backup));
       }
       
+      let userInfoUpdated = false;
+      
       // Update basic user info if changed
       if (editedName !== user?.name || editedEmail !== user?.email) {
         const userRes = await backendService.updateUser({
@@ -238,12 +248,12 @@ export default function ProfilePage() {
             toast.warning("Profile saved locally - will sync when connection is restored", {
               duration: 5000
             });
+            setIsSaving(false);
             return;
           }
           throw new Error("Failed to update basic info");
         }
-        // Refresh session user so header and other components reflect changes
-        await refreshUser();
+        userInfoUpdated = true;
       }
       
       // Update user profile (therapeutic preferences)
@@ -254,6 +264,7 @@ export default function ProfilePage() {
             toast.warning("Profile saved locally - will sync when connection is restored", {
               duration: 5000
             });
+            setIsSaving(false);
             return;
           }
           throw new Error("Failed to update profile");
@@ -269,7 +280,9 @@ export default function ProfilePage() {
           setUserProfile(updatedProfile);
           setEditedProfile(updatedProfile);
         } else {
+          // If no data returned, use the edited profile
           setUserProfile(editedProfile);
+          setEditedProfile(editedProfile);
         }
       }
 
@@ -283,9 +296,15 @@ export default function ProfilePage() {
         console.log("✅ AI memory updated with latest profile data");
       }
       
+      // If user info was updated, refresh the session
+      if (userInfoUpdated) {
+        await refreshUser();
+        // Wait a moment for session to update
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
       toast.success("Profile updated successfully!");
       setIsEditing(false);
-      await loadProfileData();
     } catch (error) {
       console.error("Error saving profile:", error);
       toast.error("Failed to update profile");
