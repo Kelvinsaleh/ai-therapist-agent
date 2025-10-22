@@ -4,10 +4,10 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.BACKE
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { meditationId: string } }
+  { params }: { params: Promise<{ meditationId: string }> }
 ) {
   try {
-    const { meditationId } = params;
+    const { meditationId } = await params;
 
     // Get auth token
     const token = request.headers.get("authorization")?.replace("Bearer ", "");
@@ -57,10 +57,10 @@ export async function POST(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { meditationId: string } }
+  { params }: { params: Promise<{ meditationId: string }> }
 ) {
   try {
-    const { meditationId } = params;
+    const { meditationId } = await params;
 
     // Get auth token
     const token = request.headers.get("authorization")?.replace("Bearer ", "");
