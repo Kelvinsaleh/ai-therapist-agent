@@ -274,6 +274,13 @@ export default function ProfilePage() {
         // Clear backup on successful save
         localStorage.removeItem('profile_goals_backup');
         
+        // Refresh AI memory with updated goals
+        if (user?._id) {
+          const { userMemoryManager } = await import("@/lib/memory/user-memory");
+          await userMemoryManager.refreshUserProfile(user._id);
+          console.log("✅ AI memory updated with latest goals");
+        }
+        
         // Update local state with the saved data
         if (profileRes.data) {
           console.log("Updated profile data:", profileRes.data);
@@ -368,6 +375,13 @@ export default function ProfilePage() {
 
       // Clear backup on successful save
       localStorage.removeItem('profile_full_backup');
+      
+      // Refresh AI memory with updated profile
+      if (user?._id) {
+        const { userMemoryManager } = await import("@/lib/memory/user-memory");
+        await userMemoryManager.refreshUserProfile(user._id);
+        console.log("✅ AI memory updated with latest profile data");
+      }
       
       toast.success("Profile updated successfully!");
       setIsEditing(false);

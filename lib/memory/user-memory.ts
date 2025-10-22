@@ -12,6 +12,7 @@ export interface UserMemory {
     };
     goals: string[];
     challenges: string[];
+    interests: string[];  // Added interests from MongoDB profile
   };
   journalEntries: JournalMemory[];
   meditationHistory: MeditationMemory[];
@@ -89,21 +90,28 @@ class UserMemoryManager {
     try {
       if (typeof window !== 'undefined') {
         const { backendService } = await import("@/lib/api/backend-service");
+        
+        // Load user profile from MongoDB
+        const profileResponse = await backendService.getUserProfile();
         const journalResponse = await backendService.getJournalEntries();
         
+        // Extract profile data from MongoDB
+        const mongoProfile = profileResponse.success && profileResponse.data ? profileResponse.data : null;
+        
         if (journalResponse.success && journalResponse.data) {
-          // Create memory from backend data
+          // Create memory from backend data with REAL profile from MongoDB
           this.memory = {
             userId,
             profile: {
-              name: "User",
+              name: mongoProfile?.userId?.name || "User",
               preferences: {
-                communicationStyle: 'supportive',
+                communicationStyle: mongoProfile?.communicationStyle || 'supportive',
                 topicsToAvoid: [],
                 preferredTechniques: [],
               },
-              goals: [],
-              challenges: [],
+              goals: mongoProfile?.goals || [],
+              challenges: mongoProfile?.challenges || [],
+              interests: mongoProfile?.interests || [],
             },
             journalEntries: Array.isArray(journalResponse.data) ? journalResponse.data.map((entry: any) => ({
               id: entry._id,
@@ -123,6 +131,12 @@ class UserMemoryManager {
             insights: [],
             lastUpdated: new Date(),
           };
+          
+          console.log("✅ Loaded user profile from MongoDB:", {
+            communicationStyle: this.memory.profile.preferences.communicationStyle,
+            goals: this.memory.profile.goals,
+            challenges: this.memory.profile.challenges
+          });
           
           await this.saveUserMemory();
           return this.memory;
@@ -152,6 +166,7 @@ class UserMemoryManager {
         },
         goals: [],
         challenges: [],
+        interests: [],
       },
       journalEntries: [],
       meditationHistory: [],
@@ -171,6 +186,44 @@ class UserMemoryManager {
     
     this.memory.lastUpdated = new Date();
     localStorage.setItem(`userMemory_${this.memory.userId}`, JSON.stringify(this.memory));
+  }
+
+  // Refresh user profile from MongoDB (call this after profile updates)
+  async refreshUserProfile(userId: string): Promise<void> {
+    try {
+      if (typeof window !== 'undefined') {
+        const { backendService } = await import("@/lib/api/backend-service");
+        const profileResponse = await backendService.getUserProfile();
+        
+        if (profileResponse.success && profileResponse.data && this.memory) {
+          const mongoProfile = profileResponse.data;
+          
+          // Update profile in memory with latest MongoDB data
+          this.memory.profile = {
+            name: mongoProfile?.userId?.name || this.memory.profile.name,
+            preferences: {
+              communicationStyle: mongoProfile?.communicationStyle || this.memory.profile.preferences.communicationStyle,
+              topicsToAvoid: this.memory.profile.preferences.topicsToAvoid,
+              preferredTechniques: this.memory.profile.preferences.preferredTechniques,
+            },
+            goals: mongoProfile?.goals || [],
+            challenges: mongoProfile?.challenges || [],
+            interests: mongoProfile?.interests || [],
+          };
+          
+          console.log("✅ Refreshed user profile from MongoDB:", {
+            communicationStyle: this.memory.profile.preferences.communicationStyle,
+            goals: this.memory.profile.goals,
+            challenges: this.memory.profile.challenges,
+            interests: this.memory.profile.interests
+          });
+          
+          await this.saveUserMemory();
+        }
+      }
+    } catch (error) {
+      console.error("Failed to refresh user profile:", error);
+    }
   }
 
   // Add journal entry to memory
@@ -281,11 +334,19 @@ ${moodTrend}
 KEY INSIGHTS:
 ${keyInsights}
 
-USER PREFERENCES:
+USER PROFILE & PREFERENCES:
+- Name: ${this.memory.profile.name}
 - Communication style: ${this.memory.profile.preferences.communicationStyle}
-- Goals: ${this.memory.profile.goals.join(', ')}
-- Challenges: ${this.memory.profile.challenges.join(', ')}
-- Topics to avoid: ${this.memory.profile.preferences.topicsToAvoid.join(', ')}
+- Therapeutic Goals: ${this.memory.profile.goals.length > 0 ? this.memory.profile.goals.join(', ') : 'None specified'}
+- Current Challenges: ${this.memory.profile.challenges.length > 0 ? this.memory.profile.challenges.join(', ') : 'None specified'}
+- Interests: ${this.memory.profile.interests.length > 0 ? this.memory.profile.interests.join(', ') : 'None specified'}
+- Topics to avoid: ${this.memory.profile.preferences.topicsToAvoid.length > 0 ? this.memory.profile.preferences.topicsToAvoid.join(', ') : 'None'}
+
+IMPORTANT INSTRUCTIONS:
+- Use ${this.memory.profile.preferences.communicationStyle} communication style
+- Reference their goals: ${this.memory.profile.goals.join(', ') || 'general wellbeing'}
+- Be mindful of their challenges: ${this.memory.profile.challenges.join(', ') || 'None mentioned'}
+- Connect with their interests when appropriate: ${this.memory.profile.interests.join(', ') || 'None mentioned'}
     `.trim();
   }
 
