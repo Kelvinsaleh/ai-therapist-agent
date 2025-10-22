@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { useSession } from "@/lib/contexts/session-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,31 +10,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { backendService } from "@/lib/api/backend-service";
-import { dashboardService } from "@/lib/api/dashboard-service";
-import { getMoodHistory, getMoodStats } from "@/lib/api/mood";
 import { paystackService } from "@/lib/payments/paystack-service";
 import { MentalHealthData } from "@/components/mental-health-data";
 import { 
   User, 
   Settings, 
-  TrendingUp, 
-  Activity, 
-  MessageSquare,
-  Heart,
-  BookOpen,
-  Headphones,
   Calendar,
-  Clock,
   Edit,
   Save,
   X,
   Loader2,
   Crown,
-  Mail,
   Lock,
-  Smile,
-  ChevronDown,
-  BarChart3,
   CheckCircle,
   Target,
   Plus,
@@ -43,28 +29,13 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Area,
-  AreaChart
-} from "recharts";
 
 interface UserProfile {
   bio: string;
-  age: number;
   challenges: string[];
   goals: string[];
   communicationStyle: "gentle" | "direct" | "supportive";
   experienceLevel: "beginner" | "intermediate" | "experienced";
-  interests: string[];
 }
 
 const COMMUNICATION_STYLES = [
@@ -107,17 +78,7 @@ export default function ProfilePage() {
   const [editedProfile, setEditedProfile] = useState<UserProfile | null>(null);
   const [editedName, setEditedName] = useState("");
   const [editedEmail, setEditedEmail] = useState("");
-  const [passwordData, setPasswordData] = useState({ current: "", new: "", confirm: "" });
-  
-  // New goal input (goals themselves are in userProfile.goals)
   const [newGoal, setNewGoal] = useState("");
-  
-  // Analytics data
-  const [stats, setStats] = useState<any>(null);
-  const [moodHistory, setMoodHistory] = useState<any[]>([]);
-  const [moodStats, setMoodStats] = useState<any>(null);
-  const [recentActivity, setRecentActivity] = useState<any[]>([]);
-  const [moodPeriod, setMoodPeriod] = useState<"7days" | "30days" | "90days">("7days");
   
   // Subscription data
   const [subscriptionStatus, setSubscriptionStatus] = useState<any>(null);
@@ -135,33 +96,10 @@ export default function ProfilePage() {
     try {
       setLoading(true);
       
-      // Load all data in parallel with detailed error handling for each
-      const [profileRes, statsData, activityData, moodHistoryData, moodStatsData, subscriptionData] = await Promise.all([
+      // Load profile and subscription data in parallel
+      const [profileRes, subscriptionData] = await Promise.all([
         backendService.getUserProfile().catch((e) => {
           console.error("❌ Profile fetch failed:", e.message || e);
-          return { success: false, data: null, error: e.message };
-        }),
-        dashboardService.getDashboardStats().catch((e) => {
-          console.error("❌ Stats fetch failed:", e.message || e);
-          return {
-            totalSessions: 0,
-            sessionsThisWeek: 0,
-            totalMessages: 0,
-            averageSessionDuration: 0,
-            moodTrend: 'stable' as const,
-            error: e.message
-          };
-        }),
-        dashboardService.getRecentActivity().catch((e) => {
-          console.error("❌ Activity fetch failed:", e.message || e);
-          return [];
-        }),
-        getMoodHistory({ limit: 90 }).catch((e) => {
-          console.error("❌ Mood history fetch failed:", e.message || e);
-          return { success: false, data: [], error: e.message };
-        }),
-        getMoodStats("week").catch((e) => {
-          console.error("❌ Mood stats fetch failed:", e.message || e);
           return { success: false, data: null, error: e.message };
         }),
         paystackService.getSubscriptionStatus(user?._id || '').catch((e) => {
@@ -172,12 +110,10 @@ export default function ProfilePage() {
 
       // Set profile data
       if (profileRes.success && profileRes.data) {
-        // Ensure goals array exists
         const profile = {
           ...profileRes.data,
           goals: profileRes.data.goals || [],
-          challenges: profileRes.data.challenges || [],
-          interests: profileRes.data.interests || []
+          challenges: profileRes.data.challenges || []
         };
         setUserProfile(profile);
         setEditedProfile(profile);
@@ -185,12 +121,10 @@ export default function ProfilePage() {
         // Initialize with empty profile if none exists
         const emptyProfile: UserProfile = {
           bio: "",
-          age: 0,
           challenges: [],
           goals: [],
           communicationStyle: "gentle",
-          experienceLevel: "beginner",
-          interests: []
+          experienceLevel: "beginner"
         };
         setUserProfile(emptyProfile);
         setEditedProfile(emptyProfile);
@@ -201,35 +135,6 @@ export default function ProfilePage() {
         setEditedName(user.name);
         setEditedEmail(user.email);
       }
-
-      // Set analytics data with debug logging
-      console.log("📊 Dashboard Stats:", statsData);
-      console.log("📋 Recent Activity:", activityData);
-      console.log("😊 Mood History Data:", moodHistoryData);
-      console.log("📈 Mood Stats Data:", moodStatsData);
-      
-      setStats(statsData);
-      setRecentActivity(activityData || []);
-      
-      // Set mood data only if available
-      if (moodHistoryData && moodHistoryData.success && moodHistoryData.data) {
-        const historyArray = Array.isArray(moodHistoryData.data) 
-          ? moodHistoryData.data 
-          : [];
-        console.log("✅ Mood History Array:", historyArray);
-        setMoodHistory(historyArray);
-      } else {
-        console.log("⚠️ No mood history data available");
-        setMoodHistory([]);
-      }
-      
-      if (moodStatsData && moodStatsData.success && moodStatsData.data) {
-        console.log("✅ Mood Stats:", moodStatsData.data);
-        setMoodStats(moodStatsData.data);
-      } else {
-        console.log("⚠️ No mood stats available");
-        setMoodStats(null);
-      }
       
       // Set subscription data
       setSubscriptionStatus(subscriptionData);
@@ -237,9 +142,6 @@ export default function ProfilePage() {
       // Collect errors for display
       const errors: string[] = [];
       if ((profileRes as any).error) errors.push(`Profile: ${(profileRes as any).error}`);
-      if ((statsData as any).error) errors.push(`Stats: ${(statsData as any).error}`);
-      if ((moodHistoryData as any).error) errors.push(`Mood History: ${(moodHistoryData as any).error}`);
-      if ((moodStatsData as any).error) errors.push(`Mood Stats: ${(moodStatsData as any).error}`);
       if ((subscriptionData as any).error) errors.push(`Subscription: ${(subscriptionData as any).error}`);
       
       setApiErrors(errors);
@@ -287,8 +189,7 @@ export default function ProfilePage() {
           const updatedProfile = {
             ...profileRes.data,
             goals: profileRes.data.goals || [],
-            challenges: profileRes.data.challenges || [],
-            interests: profileRes.data.interests || []
+            challenges: profileRes.data.challenges || []
           };
           setUserProfile(updatedProfile);
           setEditedProfile(updatedProfile);
@@ -363,8 +264,7 @@ export default function ProfilePage() {
           const updatedProfile = {
             ...profileRes.data,
             goals: profileRes.data.goals || [],
-            challenges: profileRes.data.challenges || [],
-            interests: profileRes.data.interests || []
+            challenges: profileRes.data.challenges || []
           };
           setUserProfile(updatedProfile);
           setEditedProfile(updatedProfile);
@@ -410,53 +310,6 @@ export default function ProfilePage() {
     setEditedProfile({ ...editedProfile, challenges: updated });
   };
 
-  const toggleGoal = (goal: string) => {
-    if (!editedProfile) return;
-    const goals = editedProfile.goals || [];
-    const updated = goals.includes(goal)
-      ? goals.filter(g => g !== goal)
-      : [...goals, goal];
-    setEditedProfile({ ...editedProfile, goals: updated });
-  };
-
-  // Process mood data for charts
-  const getMoodChartData = () => {
-    if (!moodHistory || moodHistory.length === 0) return [];
-    
-    const days = moodPeriod === "7days" ? 7 : moodPeriod === "30days" ? 30 : 90;
-    const now = new Date();
-    const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-    
-    const filtered = moodHistory
-      .filter((entry: any) => new Date(entry.timestamp) >= startDate)
-      .sort((a: any, b: any) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-    
-    return filtered.map((entry: any) => ({
-      date: new Date(entry.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      mood: entry.score,
-      fullDate: entry.timestamp
-    }));
-  };
-
-  const getActivityChartData = () => {
-    if (!recentActivity || recentActivity.length === 0) return [];
-    
-    const activityCounts: { [key: string]: number } = {};
-    
-    recentActivity.forEach((activity: any) => {
-      const type = activity.type;
-      activityCounts[type] = (activityCounts[type] || 0) + 1;
-    });
-    
-    return Object.entries(activityCounts).map(([type, count]) => ({
-      type: type.charAt(0).toUpperCase() + type.slice(1),
-      count
-    }));
-  };
-
-  const moodChartData = getMoodChartData();
-  const activityChartData = getActivityChartData();
-
   if (isLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -478,7 +331,6 @@ export default function ProfilePage() {
       </div>
     );
   }
-
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 p-6 pt-20">
@@ -524,159 +376,6 @@ export default function ProfilePage() {
           </motion.div>
         )}
         
-        {/* Simple Profile Header */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="w-6 h-6" />
-              Profile
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <Label>Name</Label>
-                <p className="text-lg font-medium">{user?.name || 'Not set'}</p>
-              </div>
-              <div>
-                <Label>Email</Label>
-                <p className="text-lg font-medium">{user?.email || 'Not set'}</p>
-              </div>
-              <div>
-                <Label>Account Tier</Label>
-                <Badge className="mt-2">{userTier}</Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Goal Setting Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="w-5 h-5 text-primary" />
-              My Goals
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {/* Add new goal */}
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Enter a new goal..."
-                  value={newGoal}
-                  onChange={(e) => setNewGoal(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && newGoal.trim()) {
-                      const currentGoals = userProfile?.goals || [];
-                      setEditedProfile(prev => ({ 
-                        ...prev!, 
-                        goals: [...currentGoals, newGoal.trim()] 
-                      }));
-                      setUserProfile(prev => ({
-                        ...prev!,
-                        goals: [...currentGoals, newGoal.trim()]
-                      }));
-                      setNewGoal("");
-                      // Auto-save the new goal
-                      saveGoalsToBackend([...currentGoals, newGoal.trim()]);
-                    }
-                  }}
-                />
-                <Button
-                  onClick={() => {
-                    if (newGoal.trim()) {
-                      const currentGoals = userProfile?.goals || [];
-                      setEditedProfile(prev => ({ 
-                        ...prev!, 
-                        goals: [...currentGoals, newGoal.trim()] 
-                      }));
-                      setUserProfile(prev => ({
-                        ...prev!,
-                        goals: [...currentGoals, newGoal.trim()]
-                      }));
-                      setNewGoal("");
-                      // Auto-save the new goal
-                      saveGoalsToBackend([...currentGoals, newGoal.trim()]);
-                    }
-                  }}
-                  disabled={!newGoal.trim()}
-                >
-                  <Plus className="w-4 h-4 mr-1" />
-                  Add
-                </Button>
-              </div>
-
-              {/* Goals list */}
-              {(!userProfile?.goals || userProfile.goals.length === 0) ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Target className="w-12 h-12 mx-auto mb-2 opacity-20" />
-                  <p className="text-sm">No goals yet. Add your first goal above!</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {(userProfile?.goals || []).map((goal, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                      className="flex items-center justify-between p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <CheckCircle className="w-4 h-4 text-primary" />
-                        <span className="text-sm">{goal}</span>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          const newGoals = userProfile.goals.filter((_, i) => i !== index);
-                          setEditedProfile(prev => ({ ...prev!, goals: newGoals }));
-                          setUserProfile(prev => ({ ...prev!, goals: newGoals }));
-                          // Auto-save the removal
-                          saveGoalsToBackend(newGoals);
-                        }}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-
-              {/* Suggested goals */}
-              {(!userProfile?.goals || userProfile.goals.length < 5) && (
-                <div className="pt-4 border-t">
-                  <p className="text-xs text-muted-foreground mb-2">Suggested goals:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {COMMON_GOALS.filter(g => !(userProfile?.goals || []).includes(g)).slice(0, 6).map((goal) => (
-                      <Button
-                        key={goal}
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const currentGoals = userProfile?.goals || [];
-                          const newGoals = [...currentGoals, goal];
-                          setEditedProfile(prev => ({ ...prev!, goals: newGoals }));
-                          setUserProfile(prev => ({ ...prev!, goals: newGoals }));
-                          // Auto-save the goal
-                          saveGoalsToBackend(newGoals);
-                        }}
-                        className="text-xs"
-                      >
-                        <Plus className="w-3 h-3 mr-1" />
-                        {goal}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -685,7 +384,7 @@ export default function ProfilePage() {
               My Profile
             </h1>
             <p className="text-muted-foreground mt-1">
-              Manage your profile and track your CBT therapy progress
+              Manage your profile and track your mental health journey
             </p>
           </div>
           <Badge variant={userTier === "premium" ? "default" : "secondary"} className="text-sm">
@@ -722,6 +421,134 @@ export default function ProfilePage() {
                 <MentalHealthData showInsights={true} />
               </div>
             </motion.div>
+
+            {/* Goal Setting Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="w-5 h-5 text-primary" />
+                  My Goals
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Set and track your mental health goals
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Add new goal */}
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Enter a new goal..."
+                      value={newGoal}
+                      onChange={(e) => setNewGoal(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && newGoal.trim()) {
+                          const currentGoals = userProfile?.goals || [];
+                          const updatedGoals = [...currentGoals, newGoal.trim()];
+                          setEditedProfile(prev => ({ 
+                            ...prev!, 
+                            goals: updatedGoals
+                          }));
+                          setUserProfile(prev => ({
+                            ...prev!,
+                            goals: updatedGoals
+                          }));
+                          setNewGoal("");
+                          saveGoalsToBackend(updatedGoals);
+                        }
+                      }}
+                    />
+                    <Button
+                      onClick={() => {
+                        if (newGoal.trim()) {
+                          const currentGoals = userProfile?.goals || [];
+                          const updatedGoals = [...currentGoals, newGoal.trim()];
+                          setEditedProfile(prev => ({ 
+                            ...prev!, 
+                            goals: updatedGoals
+                          }));
+                          setUserProfile(prev => ({
+                            ...prev!,
+                            goals: updatedGoals
+                          }));
+                          setNewGoal("");
+                          saveGoalsToBackend(updatedGoals);
+                        }
+                      }}
+                      disabled={!newGoal.trim()}
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Add
+                    </Button>
+                  </div>
+
+                  {/* Goals list */}
+                  {(!userProfile?.goals || userProfile.goals.length === 0) ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Target className="w-12 h-12 mx-auto mb-2 opacity-20" />
+                      <p className="text-sm">No goals yet. Add your first goal above!</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {(userProfile?.goals || []).map((goal, index) => (
+                        <motion.div
+                          key={index}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: 20 }}
+                          className="flex items-center justify-between p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <CheckCircle className="w-4 h-4 text-primary" />
+                            <span className="text-sm">{goal}</span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              const newGoals = userProfile.goals.filter((_, i) => i !== index);
+                              setEditedProfile(prev => ({ ...prev!, goals: newGoals }));
+                              setUserProfile(prev => ({ ...prev!, goals: newGoals }));
+                              saveGoalsToBackend(newGoals);
+                            }}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Suggested goals */}
+                  {(!userProfile?.goals || userProfile.goals.length < 5) && (
+                    <div className="pt-4 border-t">
+                      <p className="text-xs text-muted-foreground mb-2">Suggested goals:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {COMMON_GOALS.filter(g => !(userProfile?.goals || []).includes(g)).slice(0, 6).map((goal) => (
+                          <Button
+                            key={goal}
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const currentGoals = userProfile?.goals || [];
+                              const newGoals = [...currentGoals, goal];
+                              setEditedProfile(prev => ({ ...prev!, goals: newGoals }));
+                              setUserProfile(prev => ({ ...prev!, goals: newGoals }));
+                              saveGoalsToBackend(newGoals);
+                            }}
+                            className="text-xs"
+                          >
+                            <Plus className="w-3 h-3 mr-1" />
+                            {goal}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Basic Information Card */}
             <Card>
@@ -862,27 +689,6 @@ export default function ProfilePage() {
                           onClick={() => isEditing && toggleChallenge(challenge)}
                         >
                           {challenge}
-                        </Badge>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Goals */}
-                <div>
-                  <Label className="text-base font-semibold mb-3 block">Mental Health Goals</Label>
-                  <p className="text-sm text-muted-foreground mb-3">Select all that apply</p>
-                  <div className="flex flex-wrap gap-2">
-                    {COMMON_GOALS.map((goal) => {
-                      const isSelected = (isEditing ? editedProfile?.goals : userProfile?.goals)?.includes(goal);
-                      return (
-                        <Badge
-                          key={goal}
-                          variant={isSelected ? "default" : "outline"}
-                          className={`cursor-pointer ${isEditing ? "hover:bg-primary/20" : "cursor-default"}`}
-                          onClick={() => isEditing && toggleGoal(goal)}
-                        >
-                          {goal}
                         </Badge>
                       );
                     })}
