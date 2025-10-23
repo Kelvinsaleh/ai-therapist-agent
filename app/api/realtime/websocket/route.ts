@@ -27,10 +27,13 @@ export async function GET(req: NextRequest) {
 
     // For now, return WebSocket connection info
     // In a real implementation, this would upgrade to WebSocket
+    const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.BACKEND_API_URL || 'http://localhost:3001';
+    const WS_URL = BACKEND_URL.replace('https://', 'wss://').replace('http://', 'ws://');
+    
     return NextResponse.json({
       success: true,
       data: {
-        websocketUrl: `ws://localhost:3001/ws?userId=${userId}&matchId=${matchId}`,
+        websocketUrl: `${WS_URL}/ws?userId=${userId}&matchId=${matchId}`,
         connectionId: `${userId}_${Date.now()}`,
         supportedEvents: [
           'message',
