@@ -187,14 +187,7 @@ export default function ProfilePage() {
         // Clear backup on successful save
         localStorage.removeItem('profile_goals_backup');
         
-        // Refresh AI memory with updated goals
-        if (user?._id) {
-          const { userMemoryManager } = await import("@/lib/memory/user-memory");
-          await userMemoryManager.refreshUserProfile(user._id);
-          console.log("✅ AI memory updated with latest goals");
-        }
-        
-        // Update local state with the saved data
+        // Update local state with the saved data FIRST
         if (profileRes.data) {
           console.log("Updated profile data:", profileRes.data);
           const updatedProfile = {
@@ -206,6 +199,18 @@ export default function ProfilePage() {
           };
           setUserProfile(updatedProfile);
           setEditedProfile(updatedProfile);
+          
+          // Update AI memory with the data we already have (no second API call)
+          if (user?._id) {
+            const { userMemoryManager } = await import("@/lib/memory/user-memory");
+            // Update memory directly with the saved data instead of fetching again
+            if (userMemoryManager.memory) {
+              userMemoryManager.memory.profile.goals = updatedProfile.goals;
+              userMemoryManager.memory.profile.challenges = updatedProfile.challenges;
+              await userMemoryManager.saveUserMemory();
+              console.log("✅ AI memory updated with latest goals");
+            }
+          }
         }
       } else if (profileRes.isNetworkError) {
         // Network error - data is backed up locally
@@ -296,11 +301,15 @@ export default function ProfilePage() {
       // Clear backup on successful save
       localStorage.removeItem('profile_full_backup');
       
-      // Refresh AI memory with updated profile
-      if (user?._id) {
+      // Update AI memory with the data we already have (no second API call)
+      if (user?._id && editedProfile) {
         const { userMemoryManager } = await import("@/lib/memory/user-memory");
-        await userMemoryManager.refreshUserProfile(user._id);
-        console.log("✅ AI memory updated with latest profile data");
+        if (userMemoryManager.memory) {
+          userMemoryManager.memory.profile.goals = editedProfile.goals;
+          userMemoryManager.memory.profile.challenges = editedProfile.challenges;
+          await userMemoryManager.saveUserMemory();
+          console.log("✅ AI memory updated with latest profile data");
+        }
       }
       
       // If user info was updated, refresh the session
