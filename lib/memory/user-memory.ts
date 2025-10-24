@@ -82,11 +82,8 @@ class UserMemoryManager {
 
   // Load user memory (with backend sync)
   async loadUserMemory(userId: string): Promise<UserMemory> {
-    if (this.memory && this.memory.userId === userId) {
-      return this.memory;
-    }
-
-    // Try to load from backend first
+    // ALWAYS fetch fresh data from MongoDB (don't use cache)
+    // This ensures goals and challenges are always up-to-date
     try {
       if (typeof window !== 'undefined') {
         const { backendService } = await import("@/lib/api/backend-service");
