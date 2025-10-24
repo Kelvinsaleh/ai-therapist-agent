@@ -118,10 +118,13 @@ export default function ProfilePage() {
 
       // Set profile data
       if (profileRes.success && profileRes.data) {
-        const profile = {
-          ...profileRes.data,
+        // Only extract the fields we need (don't spread MongoDB internals)
+        const profile: UserProfile = {
+          bio: profileRes.data.bio || "",
+          challenges: profileRes.data.challenges || [],
           goals: profileRes.data.goals || [],
-          challenges: profileRes.data.challenges || []
+          communicationStyle: profileRes.data.communicationStyle || "gentle",
+          experienceLevel: profileRes.data.experienceLevel || "beginner"
         };
         setUserProfile(profile);
         setEditedProfile(profile);
@@ -195,9 +198,11 @@ export default function ProfilePage() {
         if (profileRes.data) {
           console.log("Updated profile data:", profileRes.data);
           const updatedProfile = {
-            ...profileRes.data,
+            bio: profileRes.data.bio || "",
+            challenges: profileRes.data.challenges || [],
             goals: profileRes.data.goals || [],
-            challenges: profileRes.data.challenges || []
+            communicationStyle: profileRes.data.communicationStyle || "gentle",
+            experienceLevel: profileRes.data.experienceLevel || "beginner"
           };
           setUserProfile(updatedProfile);
           setEditedProfile(updatedProfile);
@@ -273,9 +278,11 @@ export default function ProfilePage() {
         // Update local state with response data
         if (profileRes.data) {
           const updatedProfile = {
-            ...profileRes.data,
+            bio: profileRes.data.bio || "",
+            challenges: profileRes.data.challenges || [],
             goals: profileRes.data.goals || [],
-            challenges: profileRes.data.challenges || []
+            communicationStyle: profileRes.data.communicationStyle || "gentle",
+            experienceLevel: profileRes.data.experienceLevel || "beginner"
           };
           setUserProfile(updatedProfile);
           setEditedProfile(updatedProfile);
