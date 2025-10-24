@@ -438,20 +438,16 @@ export default function ProfilePage() {
         </div>
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 lg:w-auto lg:inline-grid">
-            <TabsTrigger value="profile">
-              <User className="w-4 h-4 mr-2" />
-              Profile
-            </TabsTrigger>
+        <Tabs value="settings" className="w-full">
+          <TabsList className="grid w-full grid-cols-1 lg:w-auto lg:inline-grid">
             <TabsTrigger value="settings">
               <Settings className="w-4 h-4 mr-2" />
-              Settings
+              Account & Analytics
             </TabsTrigger>
           </TabsList>
 
-          {/* Profile Tab */}
-          <TabsContent value="profile" className="space-y-6 mt-6">
+          {/* Profile Tab - HIDDEN */}
+          <TabsContent value="profile" className="hidden">
             {/* Mental Health Journey Section */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
               <div className="mb-4">
