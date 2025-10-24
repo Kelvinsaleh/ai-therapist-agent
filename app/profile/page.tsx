@@ -653,21 +653,27 @@ export default function ProfilePage() {
                 <div>
                   <Label className="text-base font-semibold mb-3 block">Communication Style</Label>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    {COMMUNICATION_STYLES.map((style) => (
-                      <button
-                        key={style.value}
-                        onClick={() => isEditing && setEditedProfile({ ...editedProfile!, communicationStyle: style.value as any })}
-                        disabled={!isEditing}
-                        className={`p-4 rounded-lg border-2 transition-all text-left ${
-                          (isEditing ? editedProfile?.communicationStyle : userProfile?.communicationStyle) === style.value
-                            ? "border-primary bg-primary/5"
-                            : "border-border hover:border-primary/50"
-                        } ${!isEditing && "cursor-default"}`}
-                      >
-                        <div className="font-medium">{style.label}</div>
-                        <div className="text-xs text-muted-foreground mt-1">{style.description}</div>
-                      </button>
-                    ))}
+                    {COMMUNICATION_STYLES.map((style) => {
+                      const isSelected = (isEditing ? editedProfile?.communicationStyle : userProfile?.communicationStyle) === style.value;
+                      return (
+                        <button
+                          key={style.value}
+                          onClick={() => isEditing && setEditedProfile({ ...editedProfile!, communicationStyle: style.value as any })}
+                          disabled={!isEditing}
+                          className={`p-4 rounded-lg border-2 transition-all text-left relative ${
+                            isSelected
+                              ? "border-primary bg-primary/10 shadow-sm ring-2 ring-primary/20"
+                              : "border-muted-foreground/20 opacity-50"
+                          } ${isEditing && !isSelected && "hover:border-primary/50 hover:opacity-100"} ${!isEditing && "cursor-default"}`}
+                        >
+                          {isSelected && (
+                            <CheckCircle className="w-5 h-5 text-primary absolute top-2 right-2" />
+                          )}
+                          <div className={`font-medium ${isSelected && "text-primary"}`}>{style.label}</div>
+                          <div className="text-xs text-muted-foreground mt-1">{style.description}</div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -675,21 +681,27 @@ export default function ProfilePage() {
                 <div>
                   <Label className="text-base font-semibold mb-3 block">Experience Level</Label>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    {EXPERIENCE_LEVELS.map((level) => (
-                      <button
-                        key={level.value}
-                        onClick={() => isEditing && setEditedProfile({ ...editedProfile!, experienceLevel: level.value as any })}
-                        disabled={!isEditing}
-                        className={`p-4 rounded-lg border-2 transition-all text-left ${
-                          (isEditing ? editedProfile?.experienceLevel : userProfile?.experienceLevel) === level.value
-                            ? "border-primary bg-primary/5"
-                            : "border-border hover:border-primary/50"
-                        } ${!isEditing && "cursor-default"}`}
-                      >
-                        <div className="font-medium">{level.label}</div>
-                        <div className="text-xs text-muted-foreground mt-1">{level.description}</div>
-                      </button>
-                    ))}
+                    {EXPERIENCE_LEVELS.map((level) => {
+                      const isSelected = (isEditing ? editedProfile?.experienceLevel : userProfile?.experienceLevel) === level.value;
+                      return (
+                        <button
+                          key={level.value}
+                          onClick={() => isEditing && setEditedProfile({ ...editedProfile!, experienceLevel: level.value as any })}
+                          disabled={!isEditing}
+                          className={`p-4 rounded-lg border-2 transition-all text-left relative ${
+                            isSelected
+                              ? "border-primary bg-primary/10 shadow-sm ring-2 ring-primary/20"
+                              : "border-muted-foreground/20 opacity-50"
+                          } ${isEditing && !isSelected && "hover:border-primary/50 hover:opacity-100"} ${!isEditing && "cursor-default"}`}
+                        >
+                          {isSelected && (
+                            <CheckCircle className="w-5 h-5 text-primary absolute top-2 right-2" />
+                          )}
+                          <div className={`font-medium ${isSelected && "text-primary"}`}>{level.label}</div>
+                          <div className="text-xs text-muted-foreground mt-1">{level.description}</div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -704,14 +716,22 @@ export default function ProfilePage() {
                         <Badge
                           key={challenge}
                           variant={isSelected ? "default" : "outline"}
-                          className={`cursor-pointer ${isEditing ? "hover:bg-primary/20" : "cursor-default"}`}
+                          className={`cursor-pointer transition-all ${
+                            isSelected 
+                              ? "bg-primary text-primary-foreground shadow-sm ring-2 ring-primary/20" 
+                              : "opacity-50 hover:opacity-100"
+                          } ${isEditing ? "hover:scale-105" : "cursor-default"}`}
                           onClick={() => isEditing && toggleChallenge(challenge)}
                         >
+                          {isSelected && <CheckCircle className="w-3 h-3 mr-1" />}
                           {challenge}
                         </Badge>
                       );
                     })}
                   </div>
+                  {(!userProfile?.challenges || userProfile.challenges.length === 0) && !isEditing && (
+                    <p className="text-sm text-muted-foreground mt-3 italic">No challenges selected yet</p>
+                  )}
                 </div>
 
                 {/* Bio */}
