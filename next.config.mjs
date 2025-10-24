@@ -14,12 +14,6 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // Increase body size limit for file uploads (meditation audio files)
-  api: {
-    bodyParser: {
-      sizeLimit: '200mb',
-    },
-  },
   pageExtensions: ["tsx", "ts", "jsx", "js"].filter(
     (ext) => !ext.includes("spec")
   ),
