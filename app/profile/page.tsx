@@ -508,41 +508,52 @@ export default function ProfilePage() {
                       <p className="text-sm">No goals yet. Add your first goal above!</p>
                     </div>
                   ) : (
-                    <div className="space-y-2">
-                      {(userProfile?.goals || []).map((goal, index) => (
-                        <motion.div
-                          key={index}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: 20 }}
-                          className="flex items-center justify-between p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors"
-                        >
-                          <div className="flex items-center gap-3">
-                            <CheckCircle className="w-4 h-4 text-primary" />
-                            <span className="text-sm">{goal}</span>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              const newGoals = userProfile.goals.filter((_, i) => i !== index);
-                              setEditedProfile(prev => ({ ...prev!, goals: newGoals }));
-                              setUserProfile(prev => ({ ...prev!, goals: newGoals }));
-                              saveGoalsToBackend(newGoals);
-                            }}
-                            className="text-destructive hover:text-destructive"
+                    <div>
+                      <p className="text-xs font-semibold text-primary mb-2 flex items-center gap-1">
+                        <CheckCircle className="w-3 h-3" />
+                        Your Active Goals ({userProfile.goals.length})
+                      </p>
+                      <div className="space-y-2">
+                        {(userProfile?.goals || []).map((goal, index) => (
+                          <motion.div
+                            key={index}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 20 }}
+                            className="flex items-center justify-between p-3 rounded-lg border-2 border-primary/20 bg-primary/5 hover:bg-primary/10 transition-colors shadow-sm"
                           >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </motion.div>
-                      ))}
+                            <div className="flex items-center gap-3">
+                              <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+                                <CheckCircle className="w-4 h-4 text-primary fill-primary/20" />
+                              </div>
+                              <span className="text-sm font-medium">{goal}</span>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                const newGoals = userProfile.goals.filter((_, i) => i !== index);
+                                setEditedProfile(prev => ({ ...prev!, goals: newGoals }));
+                                setUserProfile(prev => ({ ...prev!, goals: newGoals }));
+                                saveGoalsToBackend(newGoals);
+                              }}
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </motion.div>
+                        ))}
+                      </div>
                     </div>
                   )}
 
                   {/* Suggested goals */}
                   {(!userProfile?.goals || userProfile.goals.length < 5) && (
-                    <div className="pt-4 border-t">
-                      <p className="text-xs text-muted-foreground mb-2">Suggested goals:</p>
+                    <div className="pt-4 mt-4 border-t">
+                      <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
+                        <Plus className="w-3 h-3" />
+                        Quick Add from Suggestions
+                      </p>
                       <div className="flex flex-wrap gap-2">
                         {COMMON_GOALS.filter(g => !(userProfile?.goals || []).includes(g)).slice(0, 6).map((goal) => (
                           <Button
@@ -556,7 +567,7 @@ export default function ProfilePage() {
                               setUserProfile(prev => ({ ...prev!, goals: newGoals }));
                               saveGoalsToBackend(newGoals);
                             }}
-                            className="text-xs"
+                            className="text-xs border-dashed hover:border-solid hover:border-primary hover:bg-primary/5 transition-all"
                           >
                             <Plus className="w-3 h-3 mr-1" />
                             {goal}
