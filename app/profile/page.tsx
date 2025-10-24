@@ -101,6 +101,12 @@ export default function ProfilePage() {
   }, [user, isEditing]);
 
   const loadProfileData = async () => {
+    // CRITICAL: Don't reload if we're currently saving (prevents race condition)
+    if (isSaving) {
+      console.log("⏸️ Skipping profile load - save in progress");
+      return;
+    }
+    
     try {
       setLoading(true);
       
@@ -169,6 +175,7 @@ export default function ProfilePage() {
   };
 
   const saveGoalsToBackend = async (goals: string[]) => {
+    setIsSaving(true); // 🔒 Lock to prevent race condition
     try {
       console.log("Saving goals to backend:", goals);
       
@@ -226,6 +233,8 @@ export default function ProfilePage() {
       toast.warning("Goal saved locally - will sync when online", {
         duration: 5000
       });
+    } finally {
+      setIsSaving(false); // 🔓 Unlock after save completes
     }
   };
 
