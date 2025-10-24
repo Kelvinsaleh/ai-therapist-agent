@@ -13,14 +13,18 @@ export async function GET(req: NextRequest) {
     const res = await fetch(`${API_URL}/user/profile`, {
       headers: { Authorization: authHeader },
       cache: "no-store",
+      signal: AbortSignal.timeout(45000), // 45 seconds for Render cold starts
     });
 
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
   } catch (error) {
     console.error("Error fetching user profile:", error);
+    const errorMessage = error instanceof Error && (error.name === 'AbortError' || error.name === 'TimeoutError')
+      ? "Server timeout - backend may be starting up"
+      : "Server error";
     return NextResponse.json(
-      { message: "Server error", error },
+      { message: errorMessage, error: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }
@@ -43,14 +47,18 @@ export async function PUT(req: NextRequest) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(45000), // 45 seconds for Render cold starts
     });
 
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
   } catch (error) {
     console.error("Error updating user profile:", error);
+    const errorMessage = error instanceof Error && (error.name === 'AbortError' || error.name === 'TimeoutError')
+      ? "Server timeout - backend may be starting up"
+      : "Server error";
     return NextResponse.json(
-      { message: "Server error", error },
+      { message: errorMessage, error: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }

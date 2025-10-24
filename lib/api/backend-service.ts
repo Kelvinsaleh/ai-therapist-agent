@@ -96,7 +96,7 @@ class BackendService {
           ...this.getHeaders(),
           ...options.headers,
         },
-        signal: AbortSignal.timeout(15000), // Increased timeout to 15 seconds
+        signal: AbortSignal.timeout(45000), // Increased to 45 seconds for Render cold starts
       });
 
       console.log(`Response status: ${response.status}`);
@@ -142,8 +142,8 @@ class BackendService {
       let isNetworkError = false;
       
       if (error instanceof Error) {
-        if (error.name === 'AbortError') {
-          errorMessage = 'Request timeout - server is not responding. Please try again.';
+        if (error.name === 'AbortError' || error.name === 'TimeoutError' || error.message.includes('timed out')) {
+          errorMessage = 'Server is taking too long (may be starting up). Please try again in 30 seconds.';
           isNetworkError = true;
         } else if (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('Failed to fetch')) {
           errorMessage = 'Unable to connect to the server. This might be a temporary issue. Please try again in a moment.';
@@ -315,7 +315,7 @@ class BackendService {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(profileData),
-        signal: AbortSignal.timeout(15000)
+        signal: AbortSignal.timeout(45000) // Increased to 45 seconds for Render cold starts
       });
 
       const data = await response.json();
@@ -332,8 +332,8 @@ class BackendService {
       let errorMessage = 'Network error';
       
       if (error instanceof Error) {
-        if (error.name === 'AbortError') {
-          errorMessage = 'Request timeout - server is not responding';
+        if (error.name === 'AbortError' || error.name === 'TimeoutError' || error.message.includes('timed out')) {
+          errorMessage = 'Server is taking too long (may be starting up). Please try again in 30 seconds.';
           isNetworkError = true;
         } else if (error.message.includes('fetch') || error.message.includes('Failed to fetch')) {
           errorMessage = 'Unable to connect to server';
@@ -368,7 +368,7 @@ class BackendService {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(userData),
-        signal: AbortSignal.timeout(15000)
+        signal: AbortSignal.timeout(45000) // Increased to 45 seconds for Render cold starts
       });
 
       const data = await response.json();
@@ -385,8 +385,8 @@ class BackendService {
       let errorMessage = 'Network error';
       
       if (error instanceof Error) {
-        if (error.name === 'AbortError') {
-          errorMessage = 'Request timeout - server is not responding';
+        if (error.name === 'AbortError' || error.name === 'TimeoutError' || error.message.includes('timed out')) {
+          errorMessage = 'Server is taking too long (may be starting up). Please try again in 30 seconds.';
           isNetworkError = true;
         } else if (error.message.includes('fetch') || error.message.includes('Failed to fetch')) {
           errorMessage = 'Unable to connect to server';
