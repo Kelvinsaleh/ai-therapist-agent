@@ -117,26 +117,36 @@ export default function JournalingPage() {
           
           if (response.success && response.data) {
             setBackendConnected(true);
-            const backendEntries = response.data.map((entry: any) => ({
-              id: entry._id,
-              title: entry.title,
-              content: entry.content,
-              mood: entry.mood,
-              tags: entry.tags || [],
-              createdAt: new Date(entry.createdAt),
-              insights: entry.insights || [],
-              emotionalState: entry.emotionalState || "",
-              keyThemes: entry.keyThemes || [],
-              concerns: entry.concerns || [],
-              achievements: entry.achievements || []
-            }));
             
-            // Merge with local entries (backend takes precedence)
-            const mergedEntries = [...backendEntries];
-            setEntries(mergedEntries);
+            // Backend returns { success, entries, pagination }
+            // Extract the entries array from the nested structure
+            const entriesArray = response.data.entries || response.data || [];
             
-            // Update localStorage with backend data
-            localStorage.setItem("journalEntries", JSON.stringify(mergedEntries));
+            if (Array.isArray(entriesArray)) {
+              const backendEntries = entriesArray.map((entry: any) => ({
+                id: entry._id,
+                title: entry.title,
+                content: entry.content,
+                mood: entry.mood,
+                tags: entry.tags || [],
+                createdAt: new Date(entry.createdAt),
+                insights: entry.insights || [],
+                emotionalState: entry.emotionalState || "",
+                keyThemes: entry.keyThemes || [],
+                concerns: entry.concerns || [],
+                achievements: entry.achievements || []
+              }));
+              
+              // Merge with local entries (backend takes precedence)
+              const mergedEntries = [...backendEntries];
+              setEntries(mergedEntries);
+              
+              // Update localStorage with backend data
+              localStorage.setItem("journalEntries", JSON.stringify(mergedEntries));
+            } else {
+              console.error("Backend entries is not an array:", entriesArray);
+              setBackendConnected(false);
+            }
           } else {
             setBackendConnected(false);
           }
@@ -316,11 +326,17 @@ export default function JournalingPage() {
         // Save to backend with AI analysis
         try {
           const { backendService } = await import("@/lib/api/backend-service");
-          const insights = await generateInsights(currentEntry, mood);
-          const emotionalState = analyzeEmotionalState(currentEntry, mood);
-          const keyThemes = extractKeyThemes(currentEntry);
-          const concerns = extractConcerns(currentEntry);
-          const achievements = extractAchievements(currentEntry);
+          
+          // Generate insights for the content
+          const contentToAnalyze = cbtTemplate === 'thought_record' 
+            ? cbtData.automaticThoughts 
+            : currentEntry;
+          
+          const insights = await generateInsights(contentToAnalyze, mood);
+          const emotionalState = analyzeEmotionalState(contentToAnalyze, mood);
+          const keyThemes = extractKeyThemes(contentToAnalyze);
+          const concerns = extractConcerns(contentToAnalyze);
+          const achievements = extractAchievements(contentToAnalyze);
           
           const response = await backendService.createJournalEntry({
             title: entryTitle || `Entry ${format(new Date(), "MMM dd, yyyy")}`,
@@ -427,6 +443,8 @@ export default function JournalingPage() {
         return getFallbackInsights(content, mood);
       }
 
+      console.log('🔍 Requesting AI insights for journal entry...');
+
       const response = await fetch('/api/cbt/insights', {
         method: 'POST',
         headers: {
@@ -434,24 +452,37 @@ export default function JournalingPage() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          content,
+          content: content,  // API route expects 'content'
           mood,
-          entryId,
-          type: 'journal_insights'
+          type: 'journal_insights'  // API route has specific handler for this
         })
       });
 
+      console.log('📊 AI insights response status:', response.status);
+
       if (response.ok) {
         const data = await response.json();
-        if (data.success && data.insights) {
-          return data.insights;
+        console.log('✅ AI insights response:', data);
+        
+        if (data.success) {
+          // API route returns { success, insights, source }
+          const insights = data.insights || [];
+          
+          if (Array.isArray(insights) && insights.length > 0) {
+            console.log('✨ Got AI insights:', insights);
+            console.log('📍 Source:', data.source);
+            return insights;
+          }
         }
+      } else {
+        const errorData = await response.json();
+        console.warn('⚠️ AI insights request failed:', errorData);
       }
 
-      console.warn('AI insights failed, using fallback');
+      console.warn('⚠️ Using fallback insights');
       return getFallbackInsights(content, mood);
     } catch (error) {
-      console.error('Error generating AI insights:', error);
+      console.error('❌ Error generating AI insights:', error);
       return getFallbackInsights(content, mood);
     }
   };
@@ -709,19 +740,53 @@ export default function JournalingPage() {
               <div>
                 <label className="block text-sm font-medium mb-2">How are you feeling today?</label>
                 <div className="flex items-center gap-4">
-                  <span className="text-sm text-muted-foreground">😔</span>
-                  <input
-                    type="range"
-                    min="1"
-                    max="6"
-                    value={mood}
-                    onChange={(e) => setMood(parseInt(e.target.value))}
-                    className="flex-1"
-                  />
-                  <span className="text-sm text-muted-foreground">🤩</span>
-                  <span className={`text-sm font-medium ${getMoodColor(mood)}`}>
+                  <motion.span 
+                    className="text-2xl"
+                    animate={{ scale: mood <= 2 ? [1, 1.2, 1] : 1 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    😔
+                  </motion.span>
+                  <div className="flex-1 relative">
+                    <input
+                      type="range"
+                      min="1"
+                      max="6"
+                      value={mood}
+                      onChange={(e) => setMood(parseInt(e.target.value))}
+                      className="w-full h-2 bg-gradient-to-r from-red-200 via-yellow-200 to-green-200 dark:from-red-900/30 dark:via-yellow-900/30 dark:to-green-900/30 rounded-lg appearance-none cursor-pointer transition-all duration-300
+                        [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:duration-200 [&::-webkit-slider-thumb]:hover:scale-110
+                        [&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:h-6 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-lg [&::-moz-range-thumb]:transition-transform [&::-moz-range-thumb]:duration-200 [&::-moz-range-thumb]:hover:scale-110"
+                    />
+                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 pointer-events-none">
+                      <motion.div
+                        key={mood}
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                        className="px-3 py-1 bg-primary text-primary-foreground rounded-full text-xs font-medium shadow-lg"
+                        style={{ left: `${((mood - 1) / 5) * 100}%` }}
+                      >
+                        {mood}/6
+                      </motion.div>
+                    </div>
+                  </div>
+                  <motion.span 
+                    className="text-2xl"
+                    animate={{ scale: mood >= 5 ? [1, 1.2, 1] : 1 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    🤩
+                  </motion.span>
+                  <motion.span 
+                    className={`text-sm font-medium min-w-[120px] ${getMoodColor(mood)}`}
+                    key={mood}
+                    initial={{ y: 5, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ duration: 0.2 }}
+                  >
                     {moodLabels[mood - 1]}
-                  </span>
+                  </motion.span>
                 </div>
               </div>
 
@@ -873,17 +938,29 @@ export default function JournalingPage() {
                           </button>
                         ))}
                       </div>
-                      <div className="flex items-center gap-4">
-                        <span className="text-sm text-muted-foreground">Intensity:</span>
-                        <input
-                          type="range"
-                          min="1"
-                          max="10"
-                          value={cbtData.emotionIntensity}
-                          onChange={(e) => setCbtData({...cbtData, emotionIntensity: parseInt(e.target.value)})}
-                          className="flex-1"
-                        />
-                        <span className="text-sm font-medium">{cbtData.emotionIntensity}/10</span>
+                      <div className="flex items-center gap-4 mt-2">
+                        <span className="text-sm text-muted-foreground min-w-[70px]">Intensity:</span>
+                        <div className="flex-1 relative">
+                          <input
+                            type="range"
+                            min="1"
+                            max="10"
+                            value={cbtData.emotionIntensity}
+                            onChange={(e) => setCbtData({...cbtData, emotionIntensity: parseInt(e.target.value)})}
+                            className="w-full h-2 bg-gradient-to-r from-blue-200 via-purple-200 to-red-200 dark:from-blue-900/30 dark:via-purple-900/30 dark:to-red-900/30 rounded-lg appearance-none cursor-pointer transition-all duration-300
+                              [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:duration-200 [&::-webkit-slider-thumb]:hover:scale-110
+                              [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:transition-transform [&::-moz-range-thumb]:duration-200 [&::-moz-range-thumb]:hover:scale-110"
+                          />
+                        </div>
+                        <motion.span 
+                          className="text-sm font-medium min-w-[45px] text-center"
+                          key={cbtData.emotionIntensity}
+                          initial={{ scale: 0.9, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          {cbtData.emotionIntensity}/10
+                        </motion.span>
                       </div>
                     </div>
                   </div>

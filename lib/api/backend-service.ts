@@ -236,8 +236,23 @@ class BackendService {
     });
   }
 
-  async getJournalEntries(): Promise<ApiResponse> {
-    return this.makeRequest('/journal');
+  async getJournalEntries(limit: number = 100): Promise<ApiResponse> {
+    const response = await this.makeRequest(`/journal?limit=${limit}`);
+    
+    // Normalize response format
+    // Backend returns { success, entries, pagination }
+    if (response.success && response.data) {
+      const data = response.data as any;
+      // If backend returns nested structure, extract entries
+      if (data.entries) {
+        return {
+          success: true,
+          data: data.entries
+        };
+      }
+    }
+    
+    return response;
   }
 
   async updateJournalEntry(entryId: string, entryData: any): Promise<ApiResponse> {
