@@ -209,28 +209,38 @@ export const getAllChatSessions = async (): Promise<ChatSession[]> => {
     }
 
     const data = await parseJsonSafely(response);
-    logger.debug("Received chat sessions", data);
+    logger.debug("Received chat sessions data:", data);
 
-    // Ensure data is an array
+    // Ensure data is an array - backend returns { success, sessions }
     const sessions = Array.isArray(data) ? data : (data.sessions || []);
     
-    // Filter out sessions with no messages on the frontend as well
-    const sessionsWithMessages = sessions.filter((session: any) => 
-      session.messages && session.messages.length > 0
-    );
+    logger.debug(`Found ${sessions.length} total sessions`);
+    
+    // Filter out sessions with no messages
+    // Backend returns messageCount, not the full messages array in the list
+    const sessionsWithMessages = sessions.filter((session: any) => {
+      const hasMessages = (session.messageCount && session.messageCount > 0) || 
+                         (session.messages && session.messages.length > 0);
+      return hasMessages;
+    });
+    
+    logger.debug(`Filtered to ${sessionsWithMessages.length} sessions with messages`);
     
     return sessionsWithMessages.map((session: any) => {
-      // Ensure dates are valid
-      const createdAt = new Date(session.createdAt || session.startTime || Date.now());
+      // Ensure dates are valid - backend sends startTime, not createdAt
+      const createdAt = new Date(session.startTime || session.createdAt || Date.now());
       const updatedAt = new Date(session.updatedAt || session.startTime || Date.now());
+
+      // Backend only sends messageCount and lastMessage in list view, not full messages
+      const messages = session.messages || (session.lastMessage ? [session.lastMessage] : []);
 
       return {
         sessionId: session.sessionId || session.id,
         createdAt: isNaN(createdAt.getTime()) ? new Date() : createdAt,
         updatedAt: isNaN(updatedAt.getTime()) ? new Date() : updatedAt,
-        messages: (session.messages || []).map((msg: any) => ({
-          role: msg.role,
-          content: msg.content,
+        messages: messages.map((msg: any) => ({
+          role: msg.role || 'user',
+          content: msg.content || '',
           timestamp: new Date(msg.timestamp || Date.now()),
           metadata: msg.metadata || {},
         })),

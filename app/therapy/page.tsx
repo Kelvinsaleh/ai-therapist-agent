@@ -33,7 +33,9 @@ export default function TherapySessionsPage() {
     const loadSessions = async () => {
       try {
         setIsLoading(true);
+        logger.debug("Loading chat sessions...");
         const allSessions = await getAllChatSessions();
+        logger.debug(`Loaded ${allSessions.length} sessions`, allSessions);
         setSessions(allSessions);
       } catch (error) {
         logger.error("Failed to load sessions", error);
@@ -142,17 +144,18 @@ export default function TherapySessionsPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <h3 className="font-semibold mb-1 truncate">
-                            {session.messages[0]?.content.slice(0, 60) || "New Chat"}
+                            {session.messages[0]?.content?.slice(0, 60) || 
+                             `Session ${new Date(session.createdAt).toLocaleDateString()}`}
                             {(session.messages[0]?.content?.length || 0) > 60 && "..."}
                           </h3>
                           <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
                             {session.messages[session.messages.length - 1]?.content ||
-                              "No messages yet"}
+                              "Continue conversation"}
                           </p>
                           <div className="flex items-center gap-4 text-xs text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <MessageSquare className="w-3 h-3" />
-                              {session.messages.length} messages
+                              {session.messages?.length || 0} messages
                             </span>
                             <span className="flex items-center gap-1">
                               <Clock className="w-3 h-3" />
