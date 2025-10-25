@@ -214,18 +214,25 @@ export const getAllChatSessions = async (): Promise<ChatSession[]> => {
     // Ensure data is an array
     const sessions = Array.isArray(data) ? data : (data.sessions || []);
     
-    return sessions.map((session: any) => {
+    // Filter out sessions with no messages on the frontend as well
+    const sessionsWithMessages = sessions.filter((session: any) => 
+      session.messages && session.messages.length > 0
+    );
+    
+    return sessionsWithMessages.map((session: any) => {
       // Ensure dates are valid
-      const createdAt = new Date(session.createdAt || Date.now());
-      const updatedAt = new Date(session.updatedAt || Date.now());
+      const createdAt = new Date(session.createdAt || session.startTime || Date.now());
+      const updatedAt = new Date(session.updatedAt || session.startTime || Date.now());
 
       return {
-        ...session,
+        sessionId: session.sessionId || session.id,
         createdAt: isNaN(createdAt.getTime()) ? new Date() : createdAt,
         updatedAt: isNaN(updatedAt.getTime()) ? new Date() : updatedAt,
         messages: (session.messages || []).map((msg: any) => ({
-          ...msg,
+          role: msg.role,
+          content: msg.content,
           timestamp: new Date(msg.timestamp || Date.now()),
+          metadata: msg.metadata || {},
         })),
       };
     });
