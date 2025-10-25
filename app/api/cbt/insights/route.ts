@@ -27,10 +27,13 @@ export async function POST(req: NextRequest) {
     console.log('CBT insights API received:', body);
 
     const { content, mood, type, automaticThoughts, situation } = body;
+    
+    // Backend expects 'text' field, not 'content'
+    const text = content || automaticThoughts || '';
 
     // Log environment check
     console.log('GEMINI_API_KEY available:', !!GEMINI_API_KEY);
-    console.log('Content length:', content?.length || 0);
+    console.log('Content length:', text?.length || 0);
     console.log('Type:', type);
     console.log('Mood:', mood);
 
@@ -47,7 +50,7 @@ export async function POST(req: NextRequest) {
           // Journal entry insights
           prompt = `Analyze this journal entry and provide 3-5 brief, supportive insights as a mental health companion.
 
-Journal: "${content}"
+Journal: "${text}"
 Mood: ${mood}/6
 
 Respond with a JSON array of 3-5 short insights (1-2 sentences each). Focus on:
@@ -78,7 +81,7 @@ Only return the JSON array, nothing else.`;
         } else {
           prompt = `Analyze this content and provide 3-5 brief, supportive mental health insights.
 
-Content: "${content}"
+Content: "${text}"
 
 Focus on encouragement, patterns, and helpful observations.
 
@@ -158,13 +161,24 @@ Only return the JSON array, nothing else.`;
 
     // Try backend as fallback
     try {
+      // Backend expects 'text' field, not 'content'
+      const backendPayload = {
+        text: text,
+        type: type,
+        mood: mood,
+        emotions: body.emotions,
+        situation: situation
+      };
+      
+      console.log('Sending to backend:', backendPayload);
+      
       const response = await fetch(`${BACKEND_API_URL}/cbt/insights/generate`, {
         method: 'POST',
         headers: {
           'Authorization': authHeader,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(body)
+        body: JSON.stringify(backendPayload)
       });
 
       console.log('Backend response status:', response.status);
@@ -179,7 +193,7 @@ Only return the JSON array, nothing else.`;
     }
 
     // Final fallback: Use rule-based insights
-    const fallbackInsights = generateFallbackInsights(content, mood, type);
+    const fallbackInsights = generateFallbackInsights(text, mood, type);
     return NextResponse.json({
       success: true,
       insights: fallbackInsights,
