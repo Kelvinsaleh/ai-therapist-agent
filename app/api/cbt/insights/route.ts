@@ -31,80 +31,109 @@ export async function POST(req: NextRequest) {
     // Generate insights directly using Gemini
     if (GEMINI_API_KEY) {
       try {
+        console.log('Using Gemini API for insights generation...');
         const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
         let prompt = "";
         
         if (type === 'journal_insights') {
           // Journal entry insights
-          prompt = `As a mental health AI assistant, analyze this journal entry and provide 3-5 brief, supportive insights.
+          prompt = `Analyze this journal entry and provide 3-5 brief, supportive insights as a mental health companion.
 
-Journal Content: ${content}
-Mood (1-6 scale): ${mood}
+Journal: "${content}"
+Mood: ${mood}/6
 
-Provide insights that:
-- Recognize patterns and themes
-- Offer gentle encouragement
-- Suggest coping strategies if needed
-- Acknowledge emotions expressed
-- Are brief (1-2 sentences each)
+Respond with a JSON array of 3-5 short insights (1-2 sentences each). Focus on:
+- Recognizing emotional patterns
+- Offering gentle encouragement
+- Suggesting helpful coping strategies
+- Acknowledging their feelings
 
-Format as a JSON array of strings: ["insight 1", "insight 2", ...]`;
+Format: ["insight 1", "insight 2", "insight 3"]
+
+Only return the JSON array, nothing else.`;
         } else if (type === 'thought_record') {
           // CBT thought record insights
-          prompt = `As a CBT therapist AI, analyze this thought record and provide cognitive restructuring insights.
+          prompt = `Analyze this thought record using CBT principles.
 
-Situation: ${situation}
-Automatic Thoughts: ${automaticThoughts}
+Situation: "${situation}"
+Automatic Thoughts: "${automaticThoughts}"
 
-Provide 3-4 brief CBT-based insights that:
-- Identify cognitive distortions
+Provide 3-4 brief CBT insights that:
+- Identify any cognitive distortions
 - Suggest alternative perspectives
-- Offer balanced thinking approaches
+- Offer balanced thinking
 - Encourage evidence-based reasoning
 
-Format as a JSON array of strings: ["insight 1", "insight 2", ...]`;
+Format: ["insight 1", "insight 2", "insight 3"]
+
+Only return the JSON array, nothing else.`;
         } else {
-          prompt = `As a mental health AI assistant, provide 3-5 brief, supportive insights about this content.
+          prompt = `Analyze this content and provide 3-5 brief, supportive mental health insights.
 
-Content: ${content}
+Content: "${content}"
 
-Provide insights that are encouraging, supportive, and helpful for mental well-being.
-Format as a JSON array of strings: ["insight 1", "insight 2", ...]`;
+Focus on encouragement, patterns, and helpful observations.
+
+Format: ["insight 1", "insight 2", "insight 3"]
+
+Only return the JSON array, nothing else.`;
         }
 
-        const result = await model.generateContent(prompt);
+        const result = await model.generateContent({
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.7,
+            topP: 0.9,
+          },
+        });
         const response = await result.response;
-        const text = response.text();
+        const text = response.text()?.trim() || '';
         
-        console.log('Gemini raw response:', text);
+        console.log('✅ Gemini raw response:', text);
+        console.log('Response length:', text.length);
+        
+        if (!text || text.length === 0) {
+          throw new Error('Empty response from Gemini');
+        }
         
         // Parse the JSON response
         let insights: string[] = [];
         try {
-          // Extract JSON from markdown code blocks if present
-          const jsonMatch = text.match(/\[[\s\S]*\]/);
+          // Clean up the response - remove markdown code blocks
+          let cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+          
+          // Extract JSON array
+          const jsonMatch = cleanText.match(/\[[\s\S]*\]/);
           if (jsonMatch) {
             insights = JSON.parse(jsonMatch[0]);
+            console.log('✅ Successfully parsed JSON insights:', insights);
           } else {
-            // Fallback: split by lines
-            insights = text.split('\n')
-              .map(line => line.trim())
-              .filter(line => line && !line.startsWith('```') && !line.startsWith('[') && !line.startsWith(']'))
-              .map(line => line.replace(/^["'\-\*\d\.\s]+/, '').replace(/["']$/, ''))
-              .filter(line => line.length > 10);
+            throw new Error('No JSON array found in response');
           }
         } catch (parseError) {
-          console.error('Failed to parse insights JSON:', parseError);
-          // Fallback to splitting by lines
-          insights = text.split('\n')
+          console.error('❌ Failed to parse insights JSON:', parseError);
+          console.log('Attempting fallback parsing...');
+          
+          // Fallback: split by lines and clean
+          insights = text
+            .replace(/```json|```/g, '')
+            .split('\n')
             .map(line => line.trim())
-            .filter(line => line && line.length > 10)
+            .filter(line => line && line.length > 10 && !line.startsWith('[') && !line.startsWith(']'))
+            .map(line => line.replace(/^["'\-\*\d\.\s]+/, '').replace(/["',]$/g, ''))
+            .filter(line => line.length > 15)
             .slice(0, 5);
+          
+          console.log('Fallback parsed insights:', insights);
         }
 
-        console.log('Parsed insights:', insights);
+        if (insights.length === 0) {
+          throw new Error('No valid insights generated');
+        }
+
+        console.log('🎯 Final insights count:', insights.length);
 
         return NextResponse.json({
           success: true,

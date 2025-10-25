@@ -612,7 +612,22 @@ class BackendService {
   }
 
   async getChatSessions(): Promise<ApiResponse> {
-    return this.makeRequest('/chat/sessions');
+    const response = await this.makeRequest('/chat/sessions');
+    
+    // Normalize response format
+    // Backend returns { success, sessions }
+    if (response.success && response.data) {
+      const data = response.data as any;
+      // If backend returns nested structure, extract sessions
+      if (data.sessions) {
+        return {
+          success: true,
+          data: data.sessions
+        };
+      }
+    }
+    
+    return response;
   }
 
   async getMatchedChatHistory(matchId: string): Promise<ApiResponse> {

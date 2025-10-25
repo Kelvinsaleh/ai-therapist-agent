@@ -71,24 +71,30 @@ export function SessionHistory({ params, onNewSession, onSessionSelect }: Sessio
       
       const response = await backendService.getChatSessions();
       
+      console.log('Chat sessions response:', response);
+      
       if (response.success && response.data) {
+        console.log('Sessions data:', response.data, 'Count:', response.data.length);
+        
         const transformedSessions = response.data
           .map((session: any) => ({
             id: session.id,
-            title: session.title || `Session ${new Date(session.createdAt).toLocaleDateString()}`,
+            title: session.title || `Session ${new Date(session.startTime || session.createdAt || Date.now()).toLocaleDateString()}`,
             status: session.status || "completed",
-            summary: session.summary || session.messages?.[0]?.content?.substring(0, 100) + "..." || "No summary available",
-            createdAt: session.createdAt,
-            updatedAt: session.updatedAt,
-            scheduledTime: new Date(session.createdAt),
+            summary: session.summary || session.lastMessage?.content?.substring(0, 100) + "..." || "Chat session",
+            createdAt: session.startTime || session.createdAt || new Date().toISOString(),
+            updatedAt: session.updatedAt || session.startTime || session.createdAt || new Date().toISOString(),
+            scheduledTime: new Date(session.startTime || session.createdAt || Date.now()),
             isActive: session.id === params?.sessionId,
-            messageCount: session.messages?.length || 0,
-            duration: session.duration || Math.floor(Math.random() * 30) + 5, // Mock duration for now
+            messageCount: session.messageCount || session.messages?.length || 0,
+            duration: session.duration || Math.floor(Math.random() * 30) + 5,
           }))
           .sort((a: Session, b: Session) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
+        console.log('Transformed sessions:', transformedSessions.length);
         setSessions(transformedSessions);
       } else {
+        console.error('Failed response:', response);
         throw new Error(response.error || "Failed to load sessions");
       }
     } catch (error) {
