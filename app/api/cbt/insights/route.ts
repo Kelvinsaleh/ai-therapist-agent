@@ -28,6 +28,12 @@ export async function POST(req: NextRequest) {
 
     const { content, mood, type, automaticThoughts, situation } = body;
 
+    // Log environment check
+    console.log('GEMINI_API_KEY available:', !!GEMINI_API_KEY);
+    console.log('Content length:', content?.length || 0);
+    console.log('Type:', type);
+    console.log('Mood:', mood);
+
     // Generate insights directly using Gemini
     if (GEMINI_API_KEY) {
       try {
@@ -143,8 +149,11 @@ Only return the JSON array, nothing else.`;
 
       } catch (aiError) {
         console.error('Gemini AI error:', aiError);
+        console.error('Full error:', JSON.stringify(aiError, null, 2));
         // Fall through to backend API or fallback
       }
+    } else {
+      console.warn('GEMINI_API_KEY not configured, skipping Gemini generation');
     }
 
     // Try backend as fallback
