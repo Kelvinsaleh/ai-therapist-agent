@@ -279,3 +279,31 @@ export const completeChatSession = async (sessionId: string): Promise<ApiRespons
     throw error;
   }
 };
+
+export const deleteChatSession = async (sessionId: string): Promise<ApiResponse> => {
+  try {
+    logger.debug(`Deleting chat session ${sessionId}`);
+    const response = await fetchWithRetry(
+      `${API_BASE}/sessions/${sessionId}`,
+      {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      },
+      1,
+      10000
+    );
+
+    if (!response.ok) {
+      const error = await parseJsonSafely(response);
+      logger.error("Failed to delete chat session", error);
+      throw new Error(error.error || "Failed to delete chat session");
+    }
+
+    const data = await parseJsonSafely(response);
+    logger.debug("Chat session deleted successfully", data);
+    return data;
+  } catch (error) {
+    logger.error("Error deleting chat session", error);
+    throw error;
+  }
+};

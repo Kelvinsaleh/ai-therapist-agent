@@ -2,31 +2,50 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Bot,
   MessageSquare,
   PlusCircle,
   Clock,
   Loader2,
+  Trash2,
+  AlertCircle,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   createChatSession,
   getAllChatSessions,
+  deleteChatSession,
   ChatSession,
 } from "@/lib/api/chat";
 import { formatDistanceToNow } from "date-fns";
 import { logger } from "@/lib/utils/logger";
 import { useSession } from "@/lib/contexts/session-context";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
 
 export default function TherapySessionsPage() {
   const router = useRouter();
   const { user } = useSession();
+  const { toast } = useToast();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
+  const [deleteDialog, setDeleteDialog] = useState<{
+    isOpen: boolean;
+    sessionId: string | null;
+  }>({ isOpen: false, sessionId: null });
 
   // Load all sessions
   useEffect(() => {
@@ -64,6 +83,40 @@ export default function TherapySessionsPage() {
 
   const handleSessionClick = (sessionId: string) => {
     router.push(`/therapy/${sessionId}`);
+  };
+
+  const handleDeleteClick = (sessionId: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent session navigation
+    setDeleteDialog({ isOpen: true, sessionId });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteDialog.sessionId) return;
+
+    try {
+      const result = await deleteChatSession(deleteDialog.sessionId);
+      
+      if (result.success) {
+        // Remove from local state
+        setSessions(sessions.filter(s => s.sessionId !== deleteDialog.sessionId));
+        toast({
+          title: "Session deleted",
+          description: "Your chat session has been successfully deleted.",
+        });
+        logger.debug(`Session ${deleteDialog.sessionId} deleted successfully`);
+      } else {
+        throw new Error(result.error || "Failed to delete session");
+      }
+    } catch (error) {
+      logger.error("Failed to delete session", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete session",
+      });
+    } finally {
+      setDeleteDialog({ isOpen: false, sessionId: null });
+    }
   };
 
   if (isLoading) {
@@ -134,7 +187,7 @@ export default function TherapySessionsPage() {
                   transition={{ duration: 0.3, delay: index * 0.05 }}
                 >
                   <Card
-                    className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:border-primary/40"
+                    className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:border-primary/40 group"
                     onClick={() => handleSessionClick(session.sessionId)}
                   >
                     <CardContent className="p-5">
@@ -143,11 +196,21 @@ export default function TherapySessionsPage() {
                           <MessageSquare className="w-5 h-5 text-muted-foreground" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold mb-1 truncate">
-                            {session.messages[0]?.content?.slice(0, 60) || 
-                             `Session ${new Date(session.createdAt).toLocaleDateString()}`}
-                            {(session.messages[0]?.content?.length || 0) > 60 && "..."}
-                          </h3>
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <h3 className="font-semibold truncate flex-1">
+                              {session.messages[0]?.content?.slice(0, 60) || 
+                               `Session ${new Date(session.createdAt).toLocaleDateString()}`}
+                              {(session.messages[0]?.content?.length || 0) > 60 && "..."}
+                            </h3>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={(e) => handleDeleteClick(session.sessionId, e)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
                           <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
                             {session.messages[session.messages.length - 1]?.content ||
                               "Continue conversation"}
@@ -190,6 +253,30 @@ export default function TherapySessionsPage() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialog.isOpen} onOpenChange={(open) => !open && setDeleteDialog({ isOpen: false, sessionId: null })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-destructive" />
+              Delete Chat Session?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete this chat session and all its messages.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
