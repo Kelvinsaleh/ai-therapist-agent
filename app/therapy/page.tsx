@@ -42,6 +42,7 @@ export default function TherapySessionsPage() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
+  const [isGeneratingTitles, setIsGeneratingTitles] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState<{
     isOpen: boolean;
     sessionId: string | null;
@@ -119,6 +120,46 @@ export default function TherapySessionsPage() {
     }
   };
 
+  const handleGenerateTitles = async () => {
+    setIsGeneratingTitles(true);
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await fetch('/api/chat/sessions/bulk/generate-titles', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        toast({
+          title: "Titles generated!",
+          description: `Generated titles for ${data.successful} sessions.`,
+        });
+        // Reload sessions to show new titles
+        await loadSessions();
+      } else {
+        throw new Error(data.message || 'Failed to generate titles');
+      }
+    } catch (error) {
+      logger.error("Failed to generate titles", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to generate titles",
+      });
+    } finally {
+      setIsGeneratingTitles(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -178,6 +219,28 @@ export default function TherapySessionsPage() {
         {/* Previous Sessions */}
         {sessions.length > 0 ? (
           <div className="space-y-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold">Previous Sessions</h2>
+              <Button
+                onClick={handleGenerateTitles}
+                disabled={isGeneratingTitles}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+              >
+                {isGeneratingTitles ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Bot className="w-4 h-4" />
+                    Generate Titles
+                  </>
+                )}
+              </Button>
+            </div>
             <div className="grid gap-4">
               {sessions.map((session, index) => (
                 <motion.div
