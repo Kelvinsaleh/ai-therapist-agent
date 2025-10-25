@@ -239,19 +239,37 @@ class BackendService {
   async getJournalEntries(limit: number = 100): Promise<ApiResponse> {
     const response = await this.makeRequest(`/journal?limit=${limit}`);
     
+    console.log('getJournalEntries raw response:', response);
+    console.log('response.data type:', typeof response.data);
+    console.log('response.data:', response.data);
+    
     // Normalize response format
     // Backend returns { success, entries, pagination }
     if (response.success && response.data) {
       const data = response.data as any;
+      console.log('Extracted data:', data);
+      console.log('data.entries:', data.entries);
+      
       // If backend returns nested structure, extract entries
-      if (data.entries) {
+      if (data.entries && Array.isArray(data.entries)) {
+        console.log('Returning entries array:', data.entries.length);
         return {
           success: true,
           data: data.entries
         };
       }
+      
+      // If data itself is an array of entries
+      if (Array.isArray(data)) {
+        console.log('Data is array, returning directly');
+        return {
+          success: true,
+          data: data
+        };
+      }
     }
     
+    console.error('Could not extract entries from response');
     return response;
   }
 

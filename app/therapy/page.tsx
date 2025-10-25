@@ -48,22 +48,23 @@ export default function TherapySessionsPage() {
     sessionId: string | null;
   }>({ isOpen: false, sessionId: null });
 
-  // Load all sessions
-  useEffect(() => {
-    const loadSessions = async () => {
-      try {
-        setIsLoading(true);
-        logger.debug("Loading chat sessions...");
-        const allSessions = await getAllChatSessions();
-        logger.debug(`Loaded ${allSessions.length} sessions`, allSessions);
-        setSessions(allSessions);
-      } catch (error) {
-        logger.error("Failed to load sessions", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // Load all sessions function (moved outside useEffect so handleGenerateTitles can use it)
+  const loadSessions = async () => {
+    try {
+      setIsLoading(true);
+      logger.debug("Loading chat sessions...");
+      const allSessions = await getAllChatSessions();
+      logger.debug(`Loaded ${allSessions.length} sessions`, allSessions);
+      setSessions(allSessions);
+    } catch (error) {
+      logger.error("Failed to load sessions", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  // Load sessions on mount
+  useEffect(() => {
     loadSessions();
   }, []);
 
