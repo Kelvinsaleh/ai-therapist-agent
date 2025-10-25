@@ -198,9 +198,8 @@ export default function TherapySessionsPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2 mb-1">
                             <h3 className="font-semibold truncate flex-1">
-                              {session.messages[0]?.content?.slice(0, 60) || 
+                              {(session as any).title || 
                                `Session ${new Date(session.createdAt).toLocaleDateString()}`}
-                              {(session.messages[0]?.content?.length || 0) > 60 && "..."}
                             </h3>
                             <Button
                               variant="ghost"

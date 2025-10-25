@@ -18,6 +18,7 @@ export interface ChatMessage {
 
 export interface ChatSession {
   sessionId: string;
+  title?: string;
   messages: ChatMessage[];
   createdAt: Date;
   updatedAt: Date;
@@ -236,6 +237,7 @@ export const getAllChatSessions = async (): Promise<ChatSession[]> => {
 
       return {
         sessionId: session.sessionId || session.id,
+        title: session.title || undefined,
         createdAt: isNaN(createdAt.getTime()) ? new Date() : createdAt,
         updatedAt: isNaN(updatedAt.getTime()) ? new Date() : updatedAt,
         messages: messages.map((msg: any) => ({
