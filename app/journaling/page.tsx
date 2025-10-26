@@ -302,8 +302,9 @@ export default function JournalingPage() {
       cbtInsights
     };
 
-    const updatedEntries = [newEntry, ...entries];
-    saveEntries(updatedEntries);
+    // Save to local state immediately
+    let currentEntries = [newEntry, ...entries];
+    saveEntries(currentEntries);
     
     // Add to memory system for therapy context
     try {
@@ -366,10 +367,10 @@ export default function JournalingPage() {
           
           if (response.success) {
             toast.success("Journal entry saved and analyzed successfully!");
-            // Update the entry with AI analysis
+            // Update the entry with AI analysis - replace the first entry (newEntry) with the enriched version
             const updatedEntry = { ...newEntry, insights, emotionalState, keyThemes, concerns, achievements };
-            const updatedEntries = [updatedEntry, ...entries.slice(1)];
-            saveEntries(updatedEntries);
+            currentEntries = [updatedEntry, ...currentEntries.slice(1)];
+            saveEntries(currentEntries);
 
             // If it's a CBT thought record, also save it to the CBT system
             if (cbtTemplate === 'thought_record' && cbtData.automaticThoughts) {
