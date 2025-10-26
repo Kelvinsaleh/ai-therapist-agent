@@ -771,7 +771,15 @@ export default function JournalingPage() {
                   >
                     😔
                   </motion.span>
-                  <div className="flex-1 relative">
+                  <div className="flex-1 relative"
+                    onClick={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const x = e.clientX - rect.left;
+                      const percentage = x / rect.width;
+                      const newMood = Math.round(percentage * 5) + 1; // 1-6 range
+                      setMood(Math.max(1, Math.min(6, newMood)));
+                    }}
+                  >
                     <input
                       type="range"
                       min="1"
@@ -964,7 +972,15 @@ export default function JournalingPage() {
                       </div>
                       <div className="flex items-center gap-4 mt-2">
                         <span className="text-sm text-muted-foreground min-w-[70px]">Intensity:</span>
-                        <div className="flex-1 relative">
+                        <div className="flex-1 relative"
+                          onClick={(e) => {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const x = e.clientX - rect.left;
+                            const percentage = x / rect.width;
+                            const newIntensity = Math.round(percentage * 9) + 1; // 1-10 range
+                            setCbtData({...cbtData, emotionIntensity: Math.max(1, Math.min(10, newIntensity))});
+                          }}
+                        >
                           <input
                             type="range"
                             min="1"
