@@ -118,11 +118,23 @@ export default function JournalingPage() {
           if (response.success && response.data) {
             setBackendConnected(true);
             
-            // Backend returns { success, entries, pagination }
+            // Backend returns { success, entries, pagination } OR just an array
             // Extract the entries array from the nested structure
-            const entriesArray = response.data.entries || response.data || [];
+            let entriesArray: any[] = [];
             
-            if (Array.isArray(entriesArray)) {
+            if (Array.isArray(response.data)) {
+              // Data is directly an array
+              entriesArray = response.data;
+            } else if (response.data.entries && Array.isArray(response.data.entries)) {
+              // Data has an entries property that is an array
+              entriesArray = response.data.entries;
+            } else {
+              console.error("Unexpected response format:", response.data);
+              setBackendConnected(false);
+              return;
+            }
+            
+            if (entriesArray.length >= 0) {
               const backendEntries = entriesArray.map((entry: any) => ({
                 id: entry._id,
                 title: entry.title,
@@ -157,9 +169,6 @@ export default function JournalingPage() {
               
               // Update localStorage with merged data
               localStorage.setItem("journalEntries", JSON.stringify(mergedEntries));
-            } else {
-              console.error("Backend entries is not an array:", entriesArray);
-              setBackendConnected(false);
             }
           } else {
             setBackendConnected(false);
