@@ -137,11 +137,25 @@ export default function JournalingPage() {
                 achievements: entry.achievements || []
               }));
               
-              // Merge with local entries (backend takes precedence)
-              const mergedEntries = [...backendEntries];
+              // Create a map of backend entries by ID for quick lookup
+              const backendEntriesMap = new Map(backendEntries.map(entry => [entry.id, entry]));
+              
+              // Get current local entries
+              const currentLocal = localStorage.getItem("journalEntries");
+              const localEntries = currentLocal ? JSON.parse(currentLocal).map((entry: any) => ({
+                ...entry,
+                createdAt: new Date(entry.createdAt)
+              })) : [];
+              
+              // Merge: keep backend entries + local entries not yet in backend
+              const localOnlyEntries = localEntries.filter((local: any) => !backendEntriesMap.has(local.id));
+              const mergedEntries = [...backendEntries, ...localOnlyEntries].sort((a, b) => 
+                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+              );
+              
               setEntries(mergedEntries);
               
-              // Update localStorage with backend data
+              // Update localStorage with merged data
               localStorage.setItem("journalEntries", JSON.stringify(mergedEntries));
             } else {
               console.error("Backend entries is not an array:", entriesArray);
@@ -367,8 +381,17 @@ export default function JournalingPage() {
           
           if (response.success) {
             toast.success("Journal entry saved and analyzed successfully!");
-            // Update the entry with AI analysis - replace the first entry (newEntry) with the enriched version
-            const updatedEntry = { ...newEntry, insights, emotionalState, keyThemes, concerns, achievements };
+            // Update the entry with AI analysis AND backend ID
+            const backendId = response.data?.entry?._id || response.data?._id;
+            const updatedEntry = { 
+              ...newEntry, 
+              id: backendId || newEntry.id, // Use backend MongoDB ID
+              insights, 
+              emotionalState, 
+              keyThemes, 
+              concerns, 
+              achievements 
+            };
             currentEntries = [updatedEntry, ...currentEntries.slice(1)];
             saveEntries(currentEntries);
 
