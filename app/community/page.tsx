@@ -359,30 +359,32 @@ export default function CommunityPageEnhanced() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2 max-h-[600px] overflow-y-auto">
-                    {spaces.map((space) => (
+                    {spaces && spaces.length > 0 ? spaces.map((space) => (
                       <motion.div
-                        key={space._id}
+                        key={space?._id}
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                       >
                         <Button
-                          variant={selectedSpace === space._id ? "default" : "ghost"}
+                          variant={selectedSpace === space?._id ? "default" : "ghost"}
                           className="w-full justify-start text-left h-auto p-3 rounded-lg"
-                          onClick={() => setSelectedSpace(space._id)}
+                          onClick={() => space?._id && setSelectedSpace(space._id)}
                         >
                           <div className="flex items-center gap-3 w-full">
-                            <span className="text-2xl">{space.icon}</span>
+                            <span className="text-2xl">{space?.icon || '💭'}</span>
                             <div className="flex-1 min-w-0">
-                              <div className="font-medium truncate">{space.name}</div>
+                              <div className="font-medium truncate">{space?.name || 'Untitled'}</div>
                               <div className="text-xs text-muted-foreground flex items-center gap-2">
                                 <Users className="w-3 h-3" />
-                                {space.memberCount || 0} members
+                                {space?.memberCount || 0} members
                               </div>
                             </div>
                           </div>
                         </Button>
                       </motion.div>
-                    ))}
+                    )) : (
+                      <p className="text-sm text-muted-foreground text-center py-4">No spaces available</p>
+                    )}
                   </CardContent>
                 </Card>
               </div>
@@ -576,7 +578,7 @@ export default function CommunityPageEnhanced() {
 
           <TabsContent value="spaces" className="mt-8">
             <div className="grid md:grid-cols-2 gap-6">
-              {spaces.map((space) => (
+              {spaces && spaces.length > 0 ? spaces.map((space) => (
                 <motion.div
                   key={space._id}
                   initial={{ opacity: 0, y: 20 }}
@@ -587,10 +589,10 @@ export default function CommunityPageEnhanced() {
                     <CardHeader>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <span className="text-4xl">{space.icon}</span>
+                          <span className="text-4xl">{space?.icon || '💭'}</span>
                           <div>
-                            <CardTitle>{space.name}</CardTitle>
-                            <p className="text-sm text-muted-foreground">{space.description}</p>
+                            <CardTitle>{space?.name || 'Untitled Space'}</CardTitle>
+                            <p className="text-sm text-muted-foreground">{space?.description || 'No description'}</p>
                           </div>
                         </div>
                       </div>
@@ -599,14 +601,14 @@ export default function CommunityPageEnhanced() {
                       <div className="flex items-center gap-4 text-sm mb-4">
                         <Badge variant="secondary" className="flex items-center gap-1">
                           <Users className="w-3 h-3" />
-                          {space.memberCount || 0} members
+                          {space?.memberCount || 0} members
                         </Badge>
                         <Badge variant="secondary" className="flex items-center gap-1">
                           <MessageSquare className="w-3 h-3" />
-                          {space.postCount || 0} posts
+                          {space?.postCount || 0} posts
                         </Badge>
                       </div>
-                      {space.latestPost && (
+                      {space?.latestPost && (
                         <div className="bg-muted/50 p-3 rounded-lg">
                           <p className="text-sm text-muted-foreground mb-1">{space.latestPost.content}</p>
                           <p className="text-xs text-muted-foreground">— {space.latestPost.username}</p>
@@ -618,7 +620,15 @@ export default function CommunityPageEnhanced() {
                     </CardContent>
                   </Card>
                 </motion.div>
-              ))}
+              )) : (
+                <div className="col-span-2">
+                  <Card>
+                    <CardContent className="pt-6 text-center py-12">
+                      <p className="text-muted-foreground">No community spaces available yet.</p>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
             </div>
           </TabsContent>
 
