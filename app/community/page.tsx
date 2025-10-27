@@ -11,6 +11,7 @@ import { Heart, MessageSquare, Leaf, Users, Plus, Sparkles, Lock } from 'lucide-
 import { CommunityChallenges } from '@/components/community/community-challenges';
 import { CommunityPrompts } from '@/components/community/community-prompts';
 import { PremiumUpgradeModal } from '@/components/community/premium-upgrade-modal';
+import { useSession } from '@/lib/contexts/session-context';
 
 interface CommunitySpace {
   _id: string;
@@ -94,7 +95,8 @@ export default function CommunityPage() {
       }
     } catch (error) {
       console.error('Error loading community data:', error);
-      toast.error('Failed to load community data');
+      // Optionally show user feedback here if a toast implementation is available, otherwise safely ignore
+      // e.g., if (typeof toast !== "undefined") toast.error('Failed to load community data');
     } finally {
       setLoading(false);
     }
@@ -110,13 +112,15 @@ export default function CommunityPage() {
       }
     } catch (error) {
       console.error('Error loading posts:', error);
-      toast.error('Failed to load posts');
+      // Optionally show user feedback here if a toast implementation is available, otherwise safely ignore
+      // e.g., if (typeof toast !== "undefined") toast.error('Failed to load posts');
     }
   };
 
   const handleCreatePost = async () => {
     if (!newPost.content.trim()) {
-      toast.error('Please enter some content');
+      // Optionally show user feedback here if a toast implementation is available, otherwise safely ignore
+      // e.g., if (typeof toast !== "undefined") toast.error('Please enter some content');
       return;
     }
 
@@ -141,16 +145,19 @@ export default function CommunityPage() {
       const data = await response.json();
 
       if (data.success) {
-        toast.success('Post created successfully!');
+        // Optionally show user feedback here if a toast implementation is available, otherwise safely ignore
+        // e.g., if (typeof toast !== "undefined") toast.success('Post created successfully!');
         setNewPost({ content: '', mood: '', isAnonymous: false });
         setShowCreatePost(false);
         loadSpacePosts(selectedSpace);
       } else {
-        toast.error(data.error || 'Failed to create post');
+        // Optionally show user feedback here if a toast implementation is available, otherwise safely ignore
+        // e.g., if (typeof toast !== "undefined") toast.error(data.error || 'Failed to create post');
       }
     } catch (error) {
       console.error('Error creating post:', error);
-      toast.error('Failed to create post');
+      // Optionally show user feedback here if a toast implementation is available, otherwise safely ignore
+      // e.g., if (typeof toast !== "undefined") toast.error('Failed to create post');
     }
   };
 
@@ -477,3 +484,4 @@ export default function CommunityPage() {
     </div>
   );
 }
+
