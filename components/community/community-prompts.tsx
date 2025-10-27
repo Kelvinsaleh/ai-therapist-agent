@@ -40,15 +40,31 @@ export function CommunityPrompts({ userTier }: CommunityPromptsProps) {
 
   const loadPrompts = async () => {
     try {
-      const response = await fetch('/api/community/prompts');
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      const headers: HeadersInit = { 'Content-Type': 'application/json' };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch('/api/community/prompts', {
+        headers
+      });
+      
+      if (!response.ok) {
+        console.error('Failed to load prompts:', response.status);
+        setPrompts([]);
+        return;
+      }
+
       const data = await response.json();
 
       if (data.success) {
-        setPrompts(data.prompts);
+        setPrompts(data.prompts || []);
       }
     } catch (error) {
       console.error('Error loading prompts:', error);
-      toast.error('Failed to load prompts');
+      setPrompts([]);
     } finally {
       setLoading(false);
     }

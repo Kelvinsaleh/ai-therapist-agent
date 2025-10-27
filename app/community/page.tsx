@@ -75,17 +75,24 @@ export default function CommunityPage() {
 
   const loadCommunityData = async () => {
     try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      const headers: HeadersInit = { 'Content-Type': 'application/json' };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const [spacesRes, statsRes] = await Promise.all([
-        fetch('/api/community/spaces'),
-        fetch('/api/community/stats')
+        fetch('/api/community/spaces', { headers }),
+        fetch('/api/community/stats', { headers })
       ]);
 
       const spacesData = await spacesRes.json();
       const statsData = await statsRes.json();
 
       if (spacesData.success) {
-        setSpaces(spacesData.spaces);
-        if (spacesData.spaces.length > 0) {
+        setSpaces(spacesData.spaces || []);
+        if (spacesData.spaces && spacesData.spaces.length > 0) {
           setSelectedSpace(spacesData.spaces[0]._id);
         }
       }
@@ -104,11 +111,18 @@ export default function CommunityPage() {
 
   const loadSpacePosts = async (spaceId: string) => {
     try {
-      const response = await fetch(`/api/community/spaces/${spaceId}/posts`);
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      const headers: HeadersInit = { 'Content-Type': 'application/json' };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`/api/community/spaces/${spaceId}/posts`, { headers });
       const data = await response.json();
 
       if (data.success) {
-        setPosts(data.posts);
+        setPosts(data.posts || []);
       }
     } catch (error) {
       console.error('Error loading posts:', error);

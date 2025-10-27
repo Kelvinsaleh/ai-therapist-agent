@@ -42,15 +42,31 @@ export function CommunityChallenges({ userTier }: CommunityChallengesProps) {
 
   const loadChallenges = async () => {
     try {
-      const response = await fetch('/api/community/challenges');
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      const headers: HeadersInit = { 'Content-Type': 'application/json' };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch('/api/community/challenges', {
+        headers
+      });
+      
+      if (!response.ok) {
+        console.error('Failed to load challenges:', response.status);
+        setChallenges([]);
+        return;
+      }
+
       const data = await response.json();
 
       if (data.success) {
-        setChallenges(data.challenges);
+        setChallenges(data.challenges || []);
       }
     } catch (error) {
       console.error('Error loading challenges:', error);
-      toast.error('Failed to load challenges');
+      setChallenges([]);
     } finally {
       setLoading(false);
     }
