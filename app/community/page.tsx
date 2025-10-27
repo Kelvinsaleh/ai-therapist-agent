@@ -8,8 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Heart, MessageSquare, Leaf, Users, Plus, Sparkles, Lock } from 'lucide-react';
-import { toast } from 'sonner';
-import { useSession } from '@/contexts/SessionContext';
+import { CommunityChallenges } from '@/components/community/community-challenges';
+import { CommunityPrompts } from '@/components/community/community-prompts';
+import { PremiumUpgradeModal } from '@/components/community/premium-upgrade-modal';
 
 interface CommunitySpace {
   _id: string;
@@ -59,6 +60,7 @@ export default function CommunityPage() {
     mood: '',
     isAnonymous: false
   });
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   useEffect(() => {
     loadCommunityData();
@@ -119,7 +121,7 @@ export default function CommunityPage() {
     }
 
     if (userTier === 'free') {
-      toast.error('Premium subscription required to create posts');
+      setShowUpgradeModal(true);
       return;
     }
 
@@ -458,7 +460,20 @@ export default function CommunityPage() {
             </div>
           </div>
         </div>
+
+        {/* Additional Community Features */}
+        <div className="grid lg:grid-cols-2 gap-6 mt-8">
+          <CommunityChallenges userTier={userTier} />
+          <CommunityPrompts userTier={userTier} />
+        </div>
       </div>
+
+      <PremiumUpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        feature="Create Posts"
+        description="Premium users can create posts, comment on others' posts, and participate in community challenges."
+      />
     </div>
   );
 }
