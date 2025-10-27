@@ -161,6 +161,11 @@ export default function CommunityPageEnhanced() {
       return;
     }
 
+    if (!selectedSpace) {
+      toast.error('Please select a community space first');
+      return;
+    }
+
     if (userTier === 'free') {
       setShowUpgradeModal(true);
       return;
@@ -175,7 +180,9 @@ export default function CommunityPageEnhanced() {
         },
         body: JSON.stringify({
           spaceId: selectedSpace,
-          ...newPost
+          content: newPost.content,
+          mood: newPost.mood || undefined,
+          isAnonymous: newPost.isAnonymous
         })
       });
 
