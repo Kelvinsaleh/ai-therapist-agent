@@ -11,6 +11,7 @@ import { Heart, MessageSquare, Leaf, Users, Plus, Sparkles, Lock, TrendingUp, Cl
 import { CommunityChallenges } from '@/components/community/community-challenges';
 import { CommunityPrompts } from '@/components/community/community-prompts';
 import { PremiumUpgradeModal } from '@/components/community/premium-upgrade-modal';
+import { PostComments } from '@/components/community/post-comments';
 import { useSession } from '@/lib/contexts/session-context';
 import { toast } from 'sonner';
 
@@ -85,6 +86,7 @@ export default function CommunityPageEnhanced() {
   });
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [dailyQuote, setDailyQuote] = useState<DailyQuote>(quotes[0]);
+  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadCommunityData();
@@ -533,7 +535,36 @@ export default function CommunityPageEnhanced() {
                               <Leaf className="w-4 h-4 mr-1" />
                               {getReactionCount(post.reactions, 'growth')}
                             </Button>
+
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                const newExpanded = new Set(expandedComments);
+                                if (newExpanded.has(post._id)) {
+                                  newExpanded.delete(post._id);
+                                } else {
+                                  newExpanded.add(post._id);
+                                }
+                                setExpandedComments(newExpanded);
+                              }}
+                              className="ml-auto"
+                            >
+                              <MessageSquare className="w-4 h-4 mr-1" />
+                              {post.comments?.length || 0} comments
+                            </Button>
                           </div>
+
+                          {/* Comments Section */}
+                          {expandedComments.has(post._id) && (
+                            <div className="mt-4 border-t pt-4">
+                              <PostComments 
+                                postId={post._id}
+                                userTier={userTier}
+                                onCommentAdded={() => loadSpacePosts(selectedSpace)}
+                              />
+                            </div>
+                          )}
                         </CardContent>
                       </Card>
                     </motion.div>
