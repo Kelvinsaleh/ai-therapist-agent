@@ -24,10 +24,11 @@ interface Comment {
 interface PostCommentsProps {
   postId: string;
   userTier: 'free' | 'premium';
+  isAuthenticated: boolean;
   onCommentAdded?: () => void;
 }
 
-export function PostComments({ postId, userTier, onCommentAdded }: PostCommentsProps) {
+export function PostComments({ postId, userTier, isAuthenticated, onCommentAdded }: PostCommentsProps) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [showInput, setShowInput] = useState(false);
@@ -40,11 +41,16 @@ export function PostComments({ postId, userTier, onCommentAdded }: PostCommentsP
 
   const loadComments = async () => {
     try {
+      console.log('Loading comments for post:', postId);
       const response = await fetch(`/api/community/posts/${postId}/comments`);
+      console.log('Comments response status:', response.status);
       const data = await response.json();
+      console.log('Comments data:', data);
       
       if (data.success) {
         setComments(data.comments || []);
+      } else {
+        console.error('Failed to load comments:', data.error);
       }
     } catch (error) {
       console.error('Error loading comments:', error);
@@ -59,11 +65,15 @@ export function PostComments({ postId, userTier, onCommentAdded }: PostCommentsP
       return;
     }
 
-    // Community is free: no tier gating for comments
+    if (!isAuthenticated) {
+      toast.error('Please log in to comment');
+      return;
+    }
 
     setIsSubmitting(true);
     
     try {
+      console.log('Submitting comment:', { postId, content: comment });
       const response = await fetch('/api/community/comments', {
         method: 'POST',
         headers: {
@@ -77,7 +87,9 @@ export function PostComments({ postId, userTier, onCommentAdded }: PostCommentsP
         })
       });
 
+      console.log('Comment submission response status:', response.status);
       const data = await response.json();
+      console.log('Comment submission data:', data);
 
       if (data.success) {
         toast.success('Comment posted!');
@@ -86,6 +98,7 @@ export function PostComments({ postId, userTier, onCommentAdded }: PostCommentsP
         loadComments(); // Reload comments
         if (onCommentAdded) onCommentAdded();
       } else {
+        console.error('Comment submission failed:', data.error);
         toast.error(data.error || 'Failed to post comment');
       }
     } catch (error) {
@@ -123,7 +136,13 @@ export function PostComments({ postId, userTier, onCommentAdded }: PostCommentsP
           variant="outline"
           size="sm"
           className="w-full"
-          onClick={() => setShowInput(true)}
+          onClick={() => {
+            if (!isAuthenticated) {
+              toast.error('Please log in to comment');
+              return;
+            }
+            setShowInput(true);
+          }}
         >
           Add a comment...
         </Button>

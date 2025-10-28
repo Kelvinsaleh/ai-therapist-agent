@@ -73,20 +73,14 @@ const quotes: DailyQuote[] = [
 export default function CommunityPageEnhanced() {
   const { isAuthenticated, userTier } = useSession();
   const [spaces, setSpaces] = useState<CommunitySpace[]>([]);
-  const [selectedSpace, setSelectedSpace] = useState<string>('');
   const [activeTab, setActiveTab] = useState('feed');
-  const [posts, setPosts] = useState<CommunityPost[]>([]);
+  const [allPosts, setAllPosts] = useState<CommunityPost[]>([]);
   const [stats, setStats] = useState<CommunityStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showCreatePost, setShowCreatePost] = useState(false);
-  const [newPost, setNewPost] = useState({
-    content: '',
-    mood: '',
-    isAnonymous: false
-  });
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [dailyQuote, setDailyQuote] = useState<DailyQuote>(quotes[0]);
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
+  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     loadCommunityData();
@@ -96,10 +90,10 @@ export default function CommunityPageEnhanced() {
   }, []);
 
   useEffect(() => {
-    if (selectedSpace) {
-      loadSpacePosts(selectedSpace);
+    if (spaces.length > 0) {
+      loadAllPosts();
     }
-  }, [selectedSpace]);
+  }, [spaces]);
 
   const loadCommunityData = async () => {
     try {
@@ -142,15 +136,13 @@ export default function CommunityPageEnhanced() {
           const list = spacesData?.spaces || [];
           setSpaces(list.length > 0 ? list : fallbackSpaces);
           if ((list.length > 0 ? list : fallbackSpaces).length > 0) {
-            setSelectedSpace((list.length > 0 ? list : fallbackSpaces)[0]._id);
+            // No need to set selected space anymore
           }
         } catch {
           setSpaces(fallbackSpaces);
-          setSelectedSpace(fallbackSpaces[0]._id);
         }
       } else {
         setSpaces(fallbackSpaces);
-        setSelectedSpace(fallbackSpaces[0]._id);
       }
 
       // Handle stats response (optional)
@@ -167,7 +159,7 @@ export default function CommunityPageEnhanced() {
     }
   };
 
-  const loadSpacePosts = async (spaceId: string) => {
+  const loadAllPosts = async () => {
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
       const headers: HeadersInit = { 'Content-Type': 'application/json' };
@@ -176,59 +168,42 @@ export default function CommunityPageEnhanced() {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch(`/api/community/spaces/${spaceId}/posts`, { headers });
-      const data = await response.json();
+      // Load posts from all spaces
+      const allPostsPromises = spaces.map(async (space) => {
+        try {
+          const response = await fetch(`/api/community/spaces/${space._id}/posts`, { headers });
+          const data = await response.json();
+          if (data.success) {
+            return data.posts || [];
+          }
+          return [];
+        } catch (error) {
+          console.error(`Error loading posts for space ${space._id}:`, error);
+          return [];
+        }
+      });
 
-      if (data.success) {
-        setPosts(data.posts || []);
-      }
+      const postsArrays = await Promise.all(allPostsPromises);
+      const allPosts = postsArrays.flat();
+      
+      // Sort by creation date (newest first)
+      allPosts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      
+      setAllPosts(allPosts);
+      
+      // Extract comment counts from the populated posts data
+      const counts: Record<string, number> = {};
+      allPosts.forEach((post: any) => {
+        counts[post._id] = post.comments?.length || 0;
+      });
+      setCommentCounts(counts);
     } catch (error) {
-      console.error('Error loading posts:', error);
+      console.error('Error loading all posts:', error);
     }
   };
 
-  const handleCreatePost = async () => {
-    if (!newPost.content.trim()) {
-      toast.error('Please enter some content');
-      return;
-    }
-
-    if (!selectedSpace) {
-      toast.error('Please select a community space first');
-      return;
-    }
-
-  // Community is free: no tier gating
-
-    try {
-      const response = await fetch('/api/community/posts', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          spaceId: selectedSpace,
-          content: newPost.content,
-          mood: newPost.mood || undefined,
-          isAnonymous: newPost.isAnonymous
-        })
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        toast.success('Post created successfully!');
-        setNewPost({ content: '', mood: '', isAnonymous: false });
-        setShowCreatePost(false);
-        loadSpacePosts(selectedSpace);
-      } else {
-        toast.error(data.error || 'Failed to create post');
-      }
-    } catch (error) {
-      console.error('Error creating post:', error);
-      toast.error('Failed to create post');
-    }
+  const getSpaceInfo = (spaceId: string) => {
+    return spaces.find(space => space._id === spaceId);
   };
 
   const handleReaction = async (postId: string, reactionType: string) => {
@@ -245,8 +220,8 @@ export default function CommunityPageEnhanced() {
       const data = await response.json();
 
       if (data.success) {
-        setPosts(prevPosts => 
-          prevPosts.map(post => 
+        setAllPosts((prevPosts: any[]) => 
+          prevPosts.map((post: any) => 
             post._id === postId 
               ? { ...post, reactions: data.reactions }
               : post
@@ -296,7 +271,7 @@ export default function CommunityPageEnhanced() {
     );
   }
 
-  const selectedSpaceData = spaces.find(s => s._id === selectedSpace);
+  // Remove this line as we no longer have selectedSpace
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-4">
@@ -414,28 +389,28 @@ export default function CommunityPageEnhanced() {
                               {category}
                             </div>
                             {categorySpaces.map((space) => (
-                      <motion.div
-                        key={space?._id}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        <Button
-                          variant={selectedSpace === space?._id ? "default" : "ghost"}
-                          className="w-full justify-start text-left h-auto p-3 rounded-lg"
-                          onClick={() => space?._id && setSelectedSpace(space._id)}
-                        >
-                          <div className="flex items-center gap-3 w-full">
-                            <span className="text-2xl">{space?.icon || '💭'}</span>
-                            <div className="flex-1 min-w-0">
-                              <div className="font-medium truncate">{space?.name || 'Untitled'}</div>
-                              <div className="text-xs text-muted-foreground flex items-center gap-2">
-                                <Users className="w-3 h-3" />
-                                {space?.memberCount || 0} members
-                              </div>
-                            </div>
-                          </div>
-                        </Button>
-                      </motion.div>
+                              <motion.div
+                                key={space?._id}
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                              >
+                                <Button
+                                  variant="ghost"
+                                  className="w-full justify-start text-left h-auto p-3 rounded-lg"
+                                  onClick={() => window.location.href = `/community/space/${space?._id}`}
+                                >
+                                  <div className="flex items-center gap-3 w-full">
+                                    <span className="text-2xl">{space?.icon || '💭'}</span>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="font-medium truncate">{space?.name || 'Untitled'}</div>
+                                      <div className="text-xs text-muted-foreground flex items-center gap-2">
+                                        <Users className="w-3 h-3" />
+                                        {space?.memberCount || 0} members
+                                      </div>
+                                    </div>
+                                  </div>
+                                </Button>
+                              </motion.div>
                             ))}
                           </div>
                         );
@@ -449,178 +424,166 @@ export default function CommunityPageEnhanced() {
 
               {/* Feed */}
               <div className="lg:col-span-3 space-y-4">
-                {/* Create Post */}
-                {isAuthenticated && (
-                  <Card>
-                    <CardContent className="pt-6">
-                      {!showCreatePost ? (
-                        <Button 
-                          onClick={() => setShowCreatePost(true)}
-                          className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-                        >
-                          <Plus className="w-4 h-4 mr-2" />
-                          Share Something with the Community
-                        </Button>
-                      ) : (
-                        <div className="space-y-3">
-                          <Textarea
-                            placeholder="Share your thoughts, experiences, or reflections..."
-                            value={newPost.content}
-                            onChange={(e) => setNewPost({ ...newPost, content: e.target.value })}
-                            className="min-h-[100px]"
-                            maxLength={500}
-                          />
-                          <p className="text-sm text-muted-foreground text-right">
-                            {newPost.content.length}/500
-                          </p>
-                          <div className="flex gap-2">
-                            <Button
-                              onClick={handleCreatePost}
-                              className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600"
-                            >
-                              <Sparkles className="w-4 h-4 mr-2" />
-                              Post
-                            </Button>
-                            <Button variant="outline" onClick={() => setShowCreatePost(false)}>
-                              Cancel
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                )}
-
                 {/* Posts Feed */}
-                {posts.length === 0 ? (
+                {allPosts.length === 0 ? (
                   <Card>
                     <CardContent className="pt-6 text-center py-8">
                       <Users className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-50" />
-                      <p className="text-lg font-medium mb-2">No posts yet in {selectedSpaceData?.name}</p>
+                      <p className="text-lg font-medium mb-2">No posts yet in the community</p>
                       <p className="text-sm text-muted-foreground mb-3">
-                        Your words might be what someone needs today 💫
+                        Be the first to share something meaningful 💫
                       </p>
-                      {isAuthenticated && userTier === 'premium' && (
-                        <Button onClick={() => setShowCreatePost(true)}>
-                          Be the First to Share
-                        </Button>
-                      )}
+                      <div className="flex gap-2 justify-center">
+                        {spaces.slice(0, 3).map((space) => (
+                          <Button
+                            key={space._id}
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.location.href = `/community/space/${space._id}`}
+                          >
+                            {space.icon} {space.name}
+                          </Button>
+                        ))}
+                      </div>
                     </CardContent>
                   </Card>
                 ) : (
-                  posts.map((post) => (
-                    <motion.div
-                      key={post._id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      <Card className="hover:shadow-lg transition-shadow">
-                        <CardContent className="pt-4">
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center">
-                                <span className="text-lg font-medium">
-                                  {post.isAnonymous ? '?' : post.userId?.username?.charAt(0).toUpperCase() || '?'}
-                                </span>
-                              </div>
-                              <div>
-                                <div className="font-medium">
-                                  {post.isAnonymous ? 'Anonymous' : post.userId?.username || 'User'}
+                  allPosts.map((post) => {
+                    const spaceInfo = getSpaceInfo(post.spaceId);
+                    return (
+                      <motion.div
+                        key={post._id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <Card className="hover:shadow-lg transition-shadow">
+                          <CardContent className="pt-4">
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center">
+                                  <span className="text-lg font-medium">
+                                    {post.isAnonymous ? '?' : post.userId?.username?.charAt(0).toUpperCase() || '?'}
+                                  </span>
                                 </div>
-                                <div className="text-sm text-muted-foreground flex items-center gap-1">
-                                  <Clock className="w-3 h-3" />
-                                  {formatTimeAgo(post.createdAt)}
-                                </div>
-                              </div>
-                            </div>
-                            {post.mood && (
-                              <Badge variant="secondary" className="text-sm">
-                                {getMoodEmoji(post.mood)} {post.mood.charAt(0).toUpperCase() + post.mood.slice(1)}
-                              </Badge>
-                            )}
-                          </div>
-                          
-                          <p className="text-gray-700 dark:text-gray-300 mb-3 leading-relaxed">
-                            {post.content}
-                          </p>
-                          
-                          {post.aiReflection && (
-                            <div className="bg-blue-50 dark:bg-blue-950 border-l-4 border-blue-400 dark:border-blue-600 p-3 mb-3 rounded-r">
-                              <div className="flex items-start gap-2">
-                                <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
                                 <div>
-                                  <div className="text-sm font-medium text-blue-800 dark:text-blue-200">AI Reflection</div>
-                                  <div className="text-sm text-blue-700 dark:text-blue-300">{post.aiReflection}</div>
+                                  <div className="font-medium">
+                                    {post.isAnonymous ? 'Anonymous' : post.userId?.username || 'User'}
+                                  </div>
+                                  <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />
+                                    {formatTimeAgo(post.createdAt)}
+                                  </div>
                                 </div>
                               </div>
+                              <div className="flex items-center gap-2">
+                                {spaceInfo && (
+                                  <Badge 
+                                    variant="outline" 
+                                    className="text-xs cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-950"
+                                    onClick={() => window.location.href = `/community/space/${spaceInfo._id}`}
+                                  >
+                                    {spaceInfo.icon} {spaceInfo.name}
+                                  </Badge>
+                                )}
+                                {post.mood && (
+                                  <Badge variant="secondary" className="text-sm">
+                                    {getMoodEmoji(post.mood)} {post.mood.charAt(0).toUpperCase() + post.mood.slice(1)}
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
-                          )}
-                          
-                          <div className="flex items-center gap-4 pt-4 border-t">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleReaction(post._id, 'heart')}
-                              className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
-                            >
-                              <Heart className="w-4 h-4 mr-1" />
-                              {getReactionCount(post.reactions, 'heart')}
-                            </Button>
                             
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleReaction(post._id, 'support')}
-                              className="text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950"
-                            >
-                              <MessageSquare className="w-4 h-4 mr-1" />
-                              {getReactionCount(post.reactions, 'support')}
-                            </Button>
+                            <p className="text-gray-700 dark:text-gray-300 mb-3 leading-relaxed">
+                              {post.content}
+                            </p>
                             
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleReaction(post._id, 'growth')}
-                              className="text-green-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-950"
-                            >
-                              <Leaf className="w-4 h-4 mr-1" />
-                              {getReactionCount(post.reactions, 'growth')}
-                            </Button>
+                            {post.aiReflection && (
+                              <div className="bg-blue-50 dark:bg-blue-950 border-l-4 border-blue-400 dark:border-blue-600 p-3 mb-3 rounded-r">
+                                <div className="flex items-start gap-2">
+                                  <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                                  <div>
+                                    <div className="text-sm font-medium text-blue-800 dark:text-blue-200">AI Reflection</div>
+                                    <div className="text-sm text-blue-700 dark:text-blue-300">{post.aiReflection}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                            
+                            <div className="flex items-center gap-4 pt-4 border-t">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleReaction(post._id, 'heart')}
+                                className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+                              >
+                                <Heart className="w-4 h-4 mr-1" />
+                                {getReactionCount(post.reactions, 'heart')}
+                              </Button>
+                              
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleReaction(post._id, 'support')}
+                                className="text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950"
+                              >
+                                <MessageSquare className="w-4 h-4 mr-1" />
+                                {getReactionCount(post.reactions, 'support')}
+                              </Button>
+                              
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleReaction(post._id, 'growth')}
+                                className="text-green-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-950"
+                              >
+                                <Leaf className="w-4 h-4 mr-1" />
+                                {getReactionCount(post.reactions, 'growth')}
+                              </Button>
 
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                const newExpanded = new Set(expandedComments);
-                                if (newExpanded.has(post._id)) {
-                                  newExpanded.delete(post._id);
-                                } else {
-                                  newExpanded.add(post._id);
-                                }
-                                setExpandedComments(newExpanded);
-                              }}
-                              className="ml-auto"
-                            >
-                              <MessageSquare className="w-4 h-4 mr-1" />
-                              {post.comments?.length || 0} comments
-                            </Button>
-                          </div>
-
-                          {/* Comments Section */}
-                          {expandedComments.has(post._id) && (
-                            <div className="mt-4 border-t pt-4">
-                              <PostComments 
-                                postId={post._id}
-                                userTier={userTier}
-                                onCommentAdded={() => loadSpacePosts(selectedSpace)}
-                              />
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  const newExpanded = new Set(expandedComments);
+                                  if (newExpanded.has(post._id)) {
+                                    newExpanded.delete(post._id);
+                                  } else {
+                                    newExpanded.add(post._id);
+                                  }
+                                  setExpandedComments(newExpanded);
+                                }}
+                                className="ml-auto"
+                              >
+                                <MessageSquare className="w-4 h-4 mr-1" />
+                                {commentCounts[post._id] || post.comments?.length || 0} comments
+                              </Button>
                             </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  ))
+
+                            {/* Comments Section */}
+                            {expandedComments.has(post._id) && (
+                              <div className="mt-4 border-t pt-4">
+                                <PostComments 
+                                  postId={post._id}
+                                  userTier={userTier}
+                                  isAuthenticated={isAuthenticated}
+                                  onCommentAdded={() => {
+                                    // Update comment count for this post immediately
+                                    setCommentCounts(prev => ({
+                                      ...prev,
+                                      [post._id]: (prev[post._id] || 0) + 1
+                                    }));
+                                    // Reload all posts to get updated data
+                                    loadAllPosts();
+                                  }}
+                                />
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    );
+                  })
                 )}
               </div>
             </div>
@@ -664,8 +627,11 @@ export default function CommunityPageEnhanced() {
                           <p className="text-xs text-muted-foreground">— {space.latestPost.username}</p>
                         </div>
                       )}
-                      <Button className="w-full mt-4" onClick={() => setSelectedSpace(space._id)}>
-                        Join Space
+                      <Button 
+                        className="w-full mt-4" 
+                        onClick={() => window.location.href = `/community/space/${space._id}`}
+                      >
+                        Visit Space
                       </Button>
                     </CardContent>
                   </Card>
