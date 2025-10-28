@@ -7,13 +7,15 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Heart, MessageSquare, Leaf, Users, Plus, Sparkles, Lock, TrendingUp, Clock, Award } from 'lucide-react';
+import { Heart, MessageSquare, Leaf, Users, Plus, Sparkles, Lock, TrendingUp, Clock, Award, Trash2 } from 'lucide-react';
 import { CommunityChallenges } from '@/components/community/community-challenges';
 import { CommunityPrompts } from '@/components/community/community-prompts';
 import { PremiumUpgradeModal } from '@/components/community/premium-upgrade-modal';
 import { PostComments } from '@/components/community/post-comments';
+import { CreatePostModal } from '@/components/community/create-post-modal';
 import { useSession } from '@/lib/contexts/session-context';
 import { toast } from 'sonner';
+import Image from 'next/image';
 
 interface CommunitySpace {
   _id: string;
@@ -40,6 +42,7 @@ interface CommunityPost {
   content: string;
   mood?: string;
   isAnonymous: boolean;
+  images?: string[];
   reactions: {
     heart: string[];
     support: string[];
@@ -57,18 +60,6 @@ interface CommunityStats {
   totalSpaces: number;
 }
 
-interface DailyQuote {
-  quote: string;
-  author: string;
-}
-
-const quotes: DailyQuote[] = [
-  { quote: "Peace begins with acceptance.", author: "Anonymous" },
-  { quote: "You don't have to be perfect to be loved.", author: "Brené Brown" },
-  { quote: "The only way out is through.", author: "Robert Frost" },
-  { quote: "Small steps forward are still progress.", author: "Anonymous" },
-  { quote: "Your feelings are valid.", author: "Anonymous" }
-];
 
 export default function CommunityPageEnhanced() {
   const { isAuthenticated, userTier } = useSession();
@@ -78,15 +69,11 @@ export default function CommunityPageEnhanced() {
   const [stats, setStats] = useState<CommunityStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [dailyQuote, setDailyQuote] = useState<DailyQuote>(quotes[0]);
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     loadCommunityData();
-    // Set daily quote
-    const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
-    setDailyQuote(quotes[dayOfYear % quotes.length]);
   }, []);
 
   useEffect(() => {
@@ -247,6 +234,33 @@ export default function CommunityPageEnhanced() {
     return `${Math.floor(diffInHours / 24)}d ago`;
   };
 
+  const handleDeletePost = async (postId: string) => {
+    if (!confirm('Are you sure you want to delete this post?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/community/posts/${postId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success('Post deleted');
+        loadAllPosts(); // Reload posts
+      } else {
+        toast.error(data.error || 'Failed to delete post');
+      }
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      toast.error('Failed to delete post');
+    }
+  };
+
   const getMoodEmoji = (mood?: string) => {
     const moodMap: Record<string, string> = {
       grateful: '🙏',
@@ -289,15 +303,6 @@ export default function CommunityPageEnhanced() {
             Connect, share, and grow together in a safe, supportive space
           </p>
           
-          {/* Daily Quote */}
-          <Card className="bg-gradient-to-r from-purple-100 to-blue-100 dark:from-purple-900 dark:to-blue-900 border-2 border-purple-200 dark:border-purple-800 max-w-2xl mx-auto">
-            <CardContent className="pt-4">
-              <p className="text-lg italic text-purple-900 dark:text-purple-100 mb-1">
-                "{dailyQuote.quote}"
-              </p>
-              <p className="text-sm text-purple-700 dark:text-purple-300">— {dailyQuote.author}</p>
-            </CardContent>
-          </Card>
           
           {/* Stats */}
           {stats && (
@@ -359,71 +364,22 @@ export default function CommunityPageEnhanced() {
           </TabsList>
 
           <TabsContent value="feed" className="mt-4">
-            <div className="grid lg:grid-cols-4 gap-4">
-              {/* Spaces Sidebar */}
-              <div className="lg:col-span-1">
-                <Card className="sticky top-4">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Users className="w-5 h-5" />
-                      Community Spaces
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4 max-h-[600px] overflow-y-auto">
-                    {spaces && spaces.length > 0 ? (() => {
-                      // Group spaces by category
-                      const categories = {
-                        'Emotional Support': ['Anxiety & Overthinking', 'Depression & Low Mood', 'Healing from Breakups', 'Stress & Burnout', 'Loneliness & Connection'],
-                        'Growth & Mindfulness': ['Mindful Living', 'Gratitude & Positivity', 'Morning Reflections', 'Night Reflections'],
-                        'Social & Connection': ['Open Chat Café', 'Men\'s Circle', 'Women\'s Circle', 'Student Life & Young Minds'],
-                        'Inspiration & Healing': ['Stories of Healing', 'Affirmations & Quotes', 'Forgiveness & Letting Go']
-                      };
-
-                      return Object.entries(categories).map(([category, spaceNames]) => {
-                        const categorySpaces = spaces.filter(space => spaceNames.includes(space?.name || ''));
-                        if (categorySpaces.length === 0) return null;
-
-                        return (
-                          <div key={category} className="space-y-2">
-                            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">
-                              {category}
-                            </div>
-                            {categorySpaces.map((space) => (
-                              <motion.div
-                                key={space?._id}
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                              >
-                                <Button
-                                  variant="ghost"
-                                  className="w-full justify-start text-left h-auto p-3 rounded-lg"
-                                  onClick={() => window.location.href = `/community/space/${space?._id}`}
-                                >
-                                  <div className="flex items-center gap-3 w-full">
-                                    <span className="text-2xl">{space?.icon || '💭'}</span>
-                                    <div className="flex-1 min-w-0">
-                                      <div className="font-medium truncate">{space?.name || 'Untitled'}</div>
-                                      <div className="text-xs text-muted-foreground flex items-center gap-2">
-                                        <Users className="w-3 h-3" />
-                                        {space?.memberCount || 0} members
-                                      </div>
-                                    </div>
-                                  </div>
-                                </Button>
-                              </motion.div>
-                            ))}
-                          </div>
-                        );
-                      });
-                    })() : (
-                      <p className="text-sm text-muted-foreground text-center py-4">No spaces available</p>
-                    )}
+            <div className="max-w-4xl mx-auto space-y-4">
+                {/* Create Post Button */}
+                <Card>
+                  <CardContent className="pt-4">
+                    <CreatePostModal 
+                      spaces={spaces}
+                      userTier={userTier}
+                      isAuthenticated={isAuthenticated}
+                      onPostCreated={() => {
+                        loadAllPosts();
+                        toast.success('Post created successfully!');
+                      }}
+                    />
                   </CardContent>
                 </Card>
-              </div>
 
-              {/* Feed */}
-              <div className="lg:col-span-3 space-y-4">
                 {/* Posts Feed */}
                 {allPosts.length === 0 ? (
                   <Card>
@@ -467,8 +423,11 @@ export default function CommunityPageEnhanced() {
                                   </span>
                                 </div>
                                 <div>
-                                  <div className="font-medium">
+                                  <div className="font-medium flex items-center gap-2">
                                     {post.isAnonymous ? 'Anonymous' : post.userId?.username || 'User'}
+                                    {post.isAnonymous && (
+                                      <span className="text-xs text-muted-foreground">👤</span>
+                                    )}
                                   </div>
                                   <div className="text-sm text-muted-foreground flex items-center gap-1">
                                     <Clock className="w-3 h-3" />
@@ -491,12 +450,42 @@ export default function CommunityPageEnhanced() {
                                     {getMoodEmoji(post.mood)} {post.mood.charAt(0).toUpperCase() + post.mood.slice(1)}
                                   </Badge>
                                 )}
+                                {/* Delete button for post owner */}
+                                {post.userId?._id === localStorage.getItem('userId') && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDeletePost(post._id)}
+                                    className="h-6 w-6 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+                                )}
                               </div>
                             </div>
                             
                             <p className="text-gray-700 dark:text-gray-300 mb-3 leading-relaxed">
                               {post.content}
                             </p>
+                            
+                            {/* Images */}
+                            {post.images && post.images.length > 0 && (
+                              <div className="mb-3">
+                                <div className={`grid gap-2 ${post.images.length === 1 ? 'grid-cols-1' : post.images.length === 2 ? 'grid-cols-2' : 'grid-cols-2'}`}>
+                                  {post.images.map((imageUrl, index) => (
+                                    <div key={index} className="relative">
+                                      <Image
+                                        src={imageUrl}
+                                        alt={`Post image ${index + 1}`}
+                                        width={300}
+                                        height={200}
+                                        className="rounded-lg object-cover w-full h-48"
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                             
                             {post.aiReflection && (
                               <div className="bg-blue-50 dark:bg-blue-950 border-l-4 border-blue-400 dark:border-blue-600 p-3 mb-3 rounded-r">
@@ -585,7 +574,6 @@ export default function CommunityPageEnhanced() {
                     );
                   })
                 )}
-              </div>
             </div>
           </TabsContent>
 

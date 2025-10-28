@@ -45,8 +45,8 @@ class PaystackService {
       {
         id: 'monthly',
         name: 'Monthly Plan',
-        price: 7.99,
-        currency: 'USD',
+        price: 1300,
+        currency: 'KES',
         interval: 'monthly',
         paystackPlanCode: process.env.PAYSTACK_MONTHLY_PLAN_CODE || 'PLN_monthly_plan',
         features: [
@@ -65,12 +65,12 @@ class PaystackService {
       {
         id: 'annually',
         name: 'Annual Plan',
-        price: 89.99,
-        currency: 'USD',
+        price: 13000,
+        currency: 'KES',
         interval: 'annually',
         paystackPlanCode: process.env.PAYSTACK_ANNUAL_PLAN_CODE || 'PLN_annual_plan',
         popular: true,
-        savings: 6.89, // $96.88 - $89.99 = $6.89 savings
+        savings: 2600, // KES 15,600 - KES 13,000 = KES 2,600 savings
         features: [
           'Everything in Monthly Plan',
           'Priority support',
@@ -79,7 +79,7 @@ class PaystackService {
           'Family sharing (up to 3 members)',
           'Export data',
           'Premium meditation content',
-          '2 months free (save $6.89)'
+          '2 months free (save KES 2,600)'
         ]
       }
     ];

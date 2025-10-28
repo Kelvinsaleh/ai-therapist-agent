@@ -17,6 +17,11 @@ export default function PricingPage() {
   const [showSuccess, setShowSuccess] = useState(false);
   const { user, isAuthenticated } = useSession();
   const router = useRouter();
+  
+  // Get plans from paystack service
+  const plans = paystackService.getPlans();
+  const monthlyPlan = plans.find(plan => plan.id === 'monthly');
+  const annualPlan = plans.find(plan => plan.id === 'annually');
 
   const handleSubscribe = async (planId: string) => {
     if (!isAuthenticated) {
@@ -151,7 +156,7 @@ export default function PricingPage() {
         </motion.div>
 
         {/* Pricing Cards */}
-        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-16">
+        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto mb-16">
           {/* Free Plan */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -169,7 +174,7 @@ export default function PricingPage() {
                 <CardTitle className="text-2xl font-bold">Free Plan</CardTitle>
                 <Badge variant="secondary" className="mx-auto mt-2">Current</Badge>
                 <div className="mt-4">
-                  <span className="text-4xl font-bold">$0</span>
+                  <span className="text-4xl font-bold">KES 0</span>
                   <span className="text-muted-foreground">/month</span>
                 </div>
               </CardHeader>
@@ -229,16 +234,16 @@ export default function PricingPage() {
                     <Crown className="w-6 h-6 text-primary" />
                   </div>
                 </div>
-                <CardTitle className="text-2xl font-bold">Premium Plan</CardTitle>
+                <CardTitle className="text-2xl font-bold">Monthly Plan</CardTitle>
                 <div className="mt-4">
-                  <span className="text-4xl font-bold">$7.99</span>
+                  <span className="text-4xl font-bold">KES {monthlyPlan?.price}</span>
                   <span className="text-muted-foreground">/month</span>
                 </div>
               </CardHeader>
               
               <CardContent className="space-y-6">
                 <ul className="space-y-3">
-                  {premiumPlanFeatures.map((feature, index) => (
+                  {monthlyPlan?.features.slice(0, 5).map((feature, index) => (
                     <li key={index} className="flex items-start gap-3">
                       <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
                       <span className="text-sm">{feature}</span>
@@ -260,7 +265,78 @@ export default function PricingPage() {
                   ) : (
                     <>
                       <Crown className="w-4 h-4 mr-2" />
-                      Upgrade to Premium
+                      Subscribe Monthly
+                    </>
+                  )}
+                </Button>
+
+                <p className="text-xs text-center text-muted-foreground">
+                  Cancel anytime. No hidden fees.
+                </p>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Annual Plan */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="relative"
+          >
+            <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
+              <Badge className="bg-primary text-primary-foreground px-4 py-1">
+                <Star className="w-3 h-3 mr-1" />
+                Best Value
+              </Badge>
+            </div>
+            
+            <Card className="h-full border-primary shadow-lg scale-105">
+              <CardHeader className="text-center pb-4">
+                <div className="flex items-center justify-center mb-4">
+                  <div className="p-3 rounded-full bg-primary/10 w-12 h-12 flex items-center justify-center">
+                    <Crown className="w-6 h-6 text-primary" />
+                  </div>
+                </div>
+                <CardTitle className="text-2xl font-bold">Annual Plan</CardTitle>
+                <div className="mt-4">
+                  <span className="text-4xl font-bold">KES {annualPlan?.price}</span>
+                  <span className="text-muted-foreground">/year</span>
+                </div>
+                {annualPlan?.savings && (
+                  <div className="mt-2">
+                    <Badge variant="secondary" className="text-green-600 bg-green-100">
+                      Save KES {annualPlan.savings}
+                    </Badge>
+                  </div>
+                )}
+              </CardHeader>
+              
+              <CardContent className="space-y-6">
+                <ul className="space-y-3">
+                  {annualPlan?.features.slice(0, 5).map((feature, index) => (
+                    <li key={index} className="flex items-start gap-3">
+                      <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                      <span className="text-sm">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <Button
+                  onClick={() => handleSubscribe('annually')}
+                  disabled={isLoading === 'annually'}
+                  className="w-full bg-primary hover:bg-primary/90"
+                  size="lg"
+                >
+                  {isLoading === 'annually' ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Crown className="w-4 h-4 mr-2" />
+                      Subscribe Annually
                     </>
                   )}
                 </Button>

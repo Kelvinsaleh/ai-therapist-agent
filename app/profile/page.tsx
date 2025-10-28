@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { backendService } from "@/lib/api/backend-service";
 import { paystackService } from "@/lib/payments/paystack-service";
 import { MentalHealthData } from "@/components/mental-health-data";
+import { WeeklyReport } from "@/components/analytics/weekly-report";
 import { 
   User, 
   Settings, 
@@ -25,7 +26,8 @@ import {
   CheckCircle,
   Target,
   Plus,
-  Trash2
+  Trash2,
+  BarChart3
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -438,13 +440,39 @@ export default function ProfilePage() {
         </div>
 
         {/* Tabs */}
-        <Tabs value="settings" className="w-full">
-          <TabsList className="grid w-full grid-cols-1 lg:w-auto lg:inline-grid">
+        <Tabs value="analytics" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 lg:w-auto lg:inline-grid">
+            <TabsTrigger value="analytics">
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Analytics & Reports
+            </TabsTrigger>
             <TabsTrigger value="settings">
               <Settings className="w-4 h-4 mr-2" />
-              Account & Analytics
+              Account Settings
             </TabsTrigger>
           </TabsList>
+
+          {/* Analytics Tab */}
+          <TabsContent value="analytics" className="space-y-6 mt-6">
+            {/* Mental Health Journey Section */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+              <div className="mb-4">
+                <h2 className="text-2xl font-bold mb-2">Your Mental Health Journey</h2>
+                <p className="text-muted-foreground">
+                  Track your progress, insights, and wellness activities
+                </p>
+              </div>
+              
+              <div className="max-w-2xl mx-auto mb-6">
+                <MentalHealthData showInsights={true} />
+              </div>
+            </motion.div>
+
+            {/* Weekly Report Section */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+              <WeeklyReport />
+            </motion.div>
+          </TabsContent>
 
           {/* Profile Tab - HIDDEN */}
           <TabsContent value="profile" className="hidden">

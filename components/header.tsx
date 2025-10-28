@@ -4,21 +4,19 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Heart,
   MessageCircle,
   AudioWaveform,
-  LogOut,
-  LogIn,
   Menu,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "./theme-toggle";
 import { SignInButton } from "@/components/auth/sign-in-button";
+import { ProfileDropdown } from "@/components/profile-dropdown";
 import { useSession } from "@/lib/contexts/session-context";
 
 export function Header() {
-  const { isAuthenticated, logout, user } = useSession();
+  const { isAuthenticated, user } = useSession();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
   
@@ -111,14 +109,7 @@ export function Header() {
                       Start Chat
                     </Link>
                   </Button>
-                  <Button
-                    variant="outline"
-                    onClick={logout}
-                    className="text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Sign out
-                  </Button>
+                  <ProfileDropdown />
                 </>
               ) : (
                 <SignInButton />
@@ -175,17 +166,9 @@ export function Header() {
                         Admin
                       </Link>
                     )}
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        logout();
-                        setIsMenuOpen(false);
-                      }}
-                      className="mt-2 mx-4 text-muted-foreground hover:text-foreground"
-                    >
-                      <LogOut className="w-4 h-4 mr-2" />
-                      Sign out
-                    </Button>
+                    <div className="px-4 py-2">
+                      <ProfileDropdown />
+                    </div>
                   </>
                 )}
                 {!isAuthenticated && (
