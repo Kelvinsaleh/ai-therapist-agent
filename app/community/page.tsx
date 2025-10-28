@@ -365,31 +365,53 @@ export default function CommunityPageEnhanced() {
                       Community Spaces
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-2 max-h-[500px] overflow-y-auto">
-                    {spaces && spaces.length > 0 ? spaces.map((space) => (
-                      <motion.div
-                        key={space?._id}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        <Button
-                          variant={selectedSpace === space?._id ? "default" : "ghost"}
-                          className="w-full justify-start text-left h-auto p-3 rounded-lg"
-                          onClick={() => space?._id && setSelectedSpace(space._id)}
-                        >
-                          <div className="flex items-center gap-3 w-full">
-                            <span className="text-2xl">{space?.icon || '💭'}</span>
-                            <div className="flex-1 min-w-0">
-                              <div className="font-medium truncate">{space?.name || 'Untitled'}</div>
-                              <div className="text-xs text-muted-foreground flex items-center gap-2">
-                                <Users className="w-3 h-3" />
-                                {space?.memberCount || 0} members
-                              </div>
+                  <CardContent className="space-y-4 max-h-[600px] overflow-y-auto">
+                    {spaces && spaces.length > 0 ? (() => {
+                      // Group spaces by category
+                      const categories = {
+                        'Emotional Support': ['Anxiety & Overthinking', 'Depression & Low Mood', 'Healing from Breakups', 'Stress & Burnout', 'Loneliness & Connection'],
+                        'Growth & Mindfulness': ['Mindful Living', 'Gratitude & Positivity', 'Morning Reflections', 'Night Reflections'],
+                        'Social & Connection': ['Open Chat Café', 'Men\'s Circle', 'Women\'s Circle', 'Student Life & Young Minds'],
+                        'Inspiration & Healing': ['Stories of Healing', 'Affirmations & Quotes', 'Forgiveness & Letting Go']
+                      };
+
+                      return Object.entries(categories).map(([category, spaceNames]) => {
+                        const categorySpaces = spaces.filter(space => spaceNames.includes(space?.name || ''));
+                        if (categorySpaces.length === 0) return null;
+
+                        return (
+                          <div key={category} className="space-y-2">
+                            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">
+                              {category}
                             </div>
+                            {categorySpaces.map((space) => (
+                              <motion.div
+                                key={space?._id}
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                              >
+                                <Button
+                                  variant={selectedSpace === space?._id ? "default" : "ghost"}
+                                  className="w-full justify-start text-left h-auto p-3 rounded-lg"
+                                  onClick={() => space?._id && setSelectedSpace(space._id)}
+                                >
+                                  <div className="flex items-center gap-3 w-full">
+                                    <span className="text-2xl">{space?.icon || '💭'}</span>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="font-medium truncate">{space?.name || 'Untitled'}</div>
+                                      <div className="text-xs text-muted-foreground flex items-center gap-2">
+                                        <Users className="w-3 h-3" />
+                                        {space?.memberCount || 0} members
+                                      </div>
+                                    </div>
+                                  </div>
+                                </Button>
+                              </motion.div>
+                            ))}
                           </div>
-                        </Button>
-                      </motion.div>
-                    )) : (
+                        );
+                      });
+                    })() : (
                       <p className="text-sm text-muted-foreground text-center py-4">No spaces available</p>
                     )}
                   </CardContent>
