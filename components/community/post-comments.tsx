@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Clock, Send, Lock } from 'lucide-react';
+import { Clock, Send } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Comment {
@@ -59,10 +59,7 @@ export function PostComments({ postId, userTier, onCommentAdded }: PostCommentsP
       return;
     }
 
-    if (userTier === 'free') {
-      toast.error('Premium subscription required to comment');
-      return;
-    }
+    // Community is free: no tier gating for comments
 
     setIsSubmitting(true);
     
@@ -128,14 +125,7 @@ export function PostComments({ postId, userTier, onCommentAdded }: PostCommentsP
           className="w-full"
           onClick={() => setShowInput(true)}
         >
-          {userTier === 'free' ? (
-            <>
-              <Lock className="w-4 h-4 mr-2" />
-              Premium Required to Comment
-            </>
-          ) : (
-            'Add a comment...'
-          )}
+          Add a comment...
         </Button>
       ) : (
         <div className="space-y-2">

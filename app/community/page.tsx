@@ -110,23 +110,55 @@ export default function CommunityPageEnhanced() {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const [spacesRes, statsRes] = await Promise.all([
+      const [spacesRes, statsRes] = await Promise.allSettled([
         fetch('/api/community/spaces', { headers }),
         fetch('/api/community/stats', { headers })
       ]);
 
-      const spacesData = await spacesRes.json();
-      const statsData = await statsRes.json();
+      // Local fallback spaces if backend is unavailable or returns empty
+      const fallbackSpaces: CommunitySpace[] = [
+        { _id: 's1', name: 'Anxiety & Overthinking', description: 'A calm space to share your worries and learn coping tools from others.', icon: '🌙', color: '#93C5FD' },
+        { _id: 's2', name: 'Depression & Low Mood', description: 'A supportive corner for anyone feeling heavy — you’re not alone here.', icon: '☀️', color: '#FEF3C7' },
+        { _id: 's3', name: 'Healing from Breakups', description: 'For anyone recovering from heartbreak or loss — share, reflect, and rebuild.', icon: '💔', color: '#FBCFE8' },
+        { _id: 's4', name: 'Stress & Burnout', description: 'Talk about overwhelm, work pressure, and finding balance again.', icon: '🌊', color: '#DBEAFE' },
+        { _id: 's5', name: 'Loneliness & Connection', description: 'For those who feel unseen or disconnected — come as you are.', icon: '💭', color: '#E0E7FF' },
+        { _id: 's6', name: 'Mindful Living', description: 'Share mindfulness habits, grounding practices, and meditation reflections.', icon: '🌸', color: '#FCE7F3' },
+        { _id: 's7', name: 'Gratitude & Positivity', description: 'A place to share small wins, appreciation, or moments of joy.', icon: '🌿', color: '#D1FAE5' },
+        { _id: 's8', name: 'Morning Reflections', description: 'A daily check-in for intentions, moods, and affirmations.', icon: '🌅', color: '#FFE4B5' },
+        { _id: 's9', name: 'Night Reflections', description: 'A safe unwind zone — share your thoughts before bed.', icon: '🌙', color: '#E0D6FF' },
+        { _id: 's10', name: 'Open Chat Café', description: 'A general, friendly space for any topic — music, life, or random thoughts.', icon: '💬', color: '#FFF4CC' },
+        { _id: 's11', name: "Men's Circle", description: 'Support and brotherhood for men navigating life’s pressures.', icon: '🤝', color: '#BFDBFE' },
+        { _id: 's12', name: "Women's Circle", description: 'A nurturing space to share and grow through women’s experiences.', icon: '🌼', color: '#FBCFE8' },
+        { _id: 's13', name: 'Student Life & Young Minds', description: 'For students dealing with stress, exams, or identity growth.', icon: '🌍', color: '#A7F3D0' },
+        { _id: 's14', name: 'Stories of Healing', description: 'Share personal journeys and lessons learned on your path to peace.', icon: '📖', color: '#FEE2E2' },
+        { _id: 's15', name: 'Affirmations & Quotes', description: 'Post your favorite quotes or affirmations that keep you going.', icon: '✨', color: '#FEF3C7' },
+        { _id: 's16', name: 'Forgiveness & Letting Go', description: 'A reflective zone about releasing pain and moving forward.', icon: '🕊️', color: '#E0E7FF' },
+      ];
 
-      if (spacesData.success) {
-        setSpaces(spacesData.spaces || []);
-        if (spacesData.spaces && spacesData.spaces.length > 0) {
-          setSelectedSpace(spacesData.spaces[0]._id);
+      // Handle spaces response
+      if (spacesRes.status === 'fulfilled') {
+        try {
+          const spacesData = await spacesRes.value.json();
+          const list = spacesData?.spaces || [];
+          setSpaces(list.length > 0 ? list : fallbackSpaces);
+          if ((list.length > 0 ? list : fallbackSpaces).length > 0) {
+            setSelectedSpace((list.length > 0 ? list : fallbackSpaces)[0]._id);
+          }
+        } catch {
+          setSpaces(fallbackSpaces);
+          setSelectedSpace(fallbackSpaces[0]._id);
         }
+      } else {
+        setSpaces(fallbackSpaces);
+        setSelectedSpace(fallbackSpaces[0]._id);
       }
 
-      if (statsData.success) {
-        setStats(statsData.stats);
+      // Handle stats response (optional)
+      if (statsRes.status === 'fulfilled') {
+        try {
+          const statsData = await statsRes.value.json();
+          if (statsData?.success) setStats(statsData.stats);
+        } catch {}
       }
     } catch (error) {
       console.error('Error loading community data:', error);
@@ -166,10 +198,7 @@ export default function CommunityPageEnhanced() {
       return;
     }
 
-    if (userTier === 'free') {
-      setShowUpgradeModal(true);
-      return;
-    }
+  // Community is free: no tier gating
 
     try {
       const response = await fetch('/api/community/posts', {
@@ -346,7 +375,7 @@ export default function CommunityPageEnhanced() {
           )}
         </motion.div>
 
-          {/* Tabs */}
+        {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4">
           <TabsList className="grid w-full max-w-2xl mx-auto grid-cols-3">
             <TabsTrigger value="feed">📝 Feed</TabsTrigger>
@@ -358,7 +387,7 @@ export default function CommunityPageEnhanced() {
             <div className="grid lg:grid-cols-4 gap-4">
               {/* Spaces Sidebar */}
               <div className="lg:col-span-1">
-                      <Card className="sticky top-4">
+                <Card className="sticky top-4">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Users className="w-5 h-5" />
@@ -385,28 +414,28 @@ export default function CommunityPageEnhanced() {
                               {category}
                             </div>
                             {categorySpaces.map((space) => (
-                              <motion.div
-                                key={space?._id}
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                              >
-                                <Button
-                                  variant={selectedSpace === space?._id ? "default" : "ghost"}
-                                  className="w-full justify-start text-left h-auto p-3 rounded-lg"
-                                  onClick={() => space?._id && setSelectedSpace(space._id)}
-                                >
-                                  <div className="flex items-center gap-3 w-full">
-                                    <span className="text-2xl">{space?.icon || '💭'}</span>
-                                    <div className="flex-1 min-w-0">
-                                      <div className="font-medium truncate">{space?.name || 'Untitled'}</div>
-                                      <div className="text-xs text-muted-foreground flex items-center gap-2">
-                                        <Users className="w-3 h-3" />
-                                        {space?.memberCount || 0} members
-                                      </div>
-                                    </div>
-                                  </div>
-                                </Button>
-                              </motion.div>
+                      <motion.div
+                        key={space?._id}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        <Button
+                          variant={selectedSpace === space?._id ? "default" : "ghost"}
+                          className="w-full justify-start text-left h-auto p-3 rounded-lg"
+                          onClick={() => space?._id && setSelectedSpace(space._id)}
+                        >
+                          <div className="flex items-center gap-3 w-full">
+                            <span className="text-2xl">{space?.icon || '💭'}</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium truncate">{space?.name || 'Untitled'}</div>
+                              <div className="text-xs text-muted-foreground flex items-center gap-2">
+                                <Users className="w-3 h-3" />
+                                {space?.memberCount || 0} members
+                              </div>
+                            </div>
+                          </div>
+                        </Button>
+                      </motion.div>
                             ))}
                           </div>
                         );
@@ -428,17 +457,9 @@ export default function CommunityPageEnhanced() {
                         <Button 
                           onClick={() => setShowCreatePost(true)}
                           className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-                          disabled={userTier === 'free'}
                         >
                           <Plus className="w-4 h-4 mr-2" />
-                          {userTier === 'free' ? (
-                            <>
-                              <Lock className="w-4 h-4 mr-2" />
-                              Premium Required to Post
-                            </>
-                          ) : (
-                            'Share Something with the Community'
-                          )}
+                          Share Something with the Community
                         </Button>
                       ) : (
                         <div className="space-y-3">
@@ -519,7 +540,7 @@ export default function CommunityPageEnhanced() {
                               </Badge>
                             )}
                           </div>
-                              
+                          
                           <p className="text-gray-700 dark:text-gray-300 mb-3 leading-relaxed">
                             {post.content}
                           </p>

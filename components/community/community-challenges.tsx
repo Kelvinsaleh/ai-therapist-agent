@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Calendar, Users, Trophy, Clock, Lock } from 'lucide-react';
+import { Calendar, Users, Trophy, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { PremiumUpgradeModal } from './premium-upgrade-modal';
 
@@ -73,14 +73,6 @@ export function CommunityChallenges({ userTier }: CommunityChallengesProps) {
   };
 
   const handleJoinChallenge = async (challengeId: string) => {
-    if (userTier === 'free') {
-      setSelectedFeature({
-        feature: 'Join Challenges',
-        description: 'Premium users can join community wellness challenges and track their progress.'
-      });
-      setShowUpgradeModal(true);
-      return;
-    }
 
     try {
       const response = await fetch(`/api/community/challenges/${challengeId}/join`, {
@@ -220,16 +212,8 @@ export function CommunityChallenges({ userTier }: CommunityChallengesProps) {
                       <Button
                         size="sm"
                         onClick={() => handleJoinChallenge(challenge._id)}
-                        disabled={userTier === 'free'}
                       >
-                        {userTier === 'free' ? (
-                          <>
-                            <Lock className="w-4 h-4 mr-1" />
-                            Premium Required
-                          </>
-                        ) : (
-                          'Join Challenge'
-                        )}
+                        Join Challenge
                       </Button>
                     )}
                   </div>

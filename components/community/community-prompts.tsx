@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Lightbulb, MessageSquare, Sparkles, Lock } from 'lucide-react';
+import { Lightbulb, MessageSquare, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { PremiumUpgradeModal } from './premium-upgrade-modal';
 
@@ -71,10 +71,6 @@ export function CommunityPrompts({ userTier }: CommunityPromptsProps) {
   };
 
   const handleRespondToPrompt = () => {
-    if (userTier === 'free') {
-      setShowUpgradeModal(true);
-      return;
-    }
 
     if (!response.trim()) {
       toast.error('Please write a response');
@@ -199,20 +195,12 @@ export function CommunityPrompts({ userTier }: CommunityPromptsProps) {
             <div className="flex gap-2">
               <Button
                 onClick={handleRespondToPrompt}
-                disabled={userTier === 'free'}
                 className="flex-1"
               >
-                {userTier === 'free' ? (
-                  <>
-                    <Lock className="w-4 h-4 mr-1" />
-                    Premium Required
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4 mr-1" />
-                    Share Response
-                  </>
-                )}
+                <>
+                  <Sparkles className="w-4 h-4 mr-1" />
+                  Share Response
+                </>
               </Button>
               <Button
                 variant="outline"
@@ -225,12 +213,7 @@ export function CommunityPrompts({ userTier }: CommunityPromptsProps) {
         </motion.div>
       )}
 
-      <PremiumUpgradeModal
-        isOpen={showUpgradeModal}
-        onClose={() => setShowUpgradeModal(false)}
-        feature="Respond to Prompts"
-        description="Premium users can respond to daily reflection prompts and share their thoughts with the community."
-      />
+      {/* Premium modal removed - community is free */}
     </>
   );
 }
