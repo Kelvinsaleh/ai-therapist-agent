@@ -14,12 +14,12 @@ interface CommunityChallenge {
   _id: string;
   title: string;
   description: string;
-  spaceId: {
+  spaceId?: {
     _id: string;
     name: string;
   };
   duration: number;
-  participants: string[];
+  participants?: string[];
   isActive: boolean;
   startDate: string;
   endDate: string;
@@ -166,7 +166,8 @@ export function CommunityChallenges({ userTier }: CommunityChallengesProps) {
             challenges.map((challenge) => {
               const daysRemaining = getDaysRemaining(challenge.endDate);
               const progress = getProgressPercentage(challenge);
-              const isParticipant = challenge.participants.includes(localStorage.getItem('userId') || '');
+              const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+              const isParticipant = challenge.participants && userId ? challenge.participants.includes(userId) : false;
 
               return (
                 <motion.div
@@ -183,7 +184,7 @@ export function CommunityChallenges({ userTier }: CommunityChallengesProps) {
                       </p>
                     </div>
                     <Badge variant="secondary">
-                      {challenge.spaceId.name}
+                      {challenge.spaceId?.name || 'General'}
                     </Badge>
                   </div>
 
@@ -194,7 +195,7 @@ export function CommunityChallenges({ userTier }: CommunityChallengesProps) {
                     </div>
                     <div className="flex items-center gap-1">
                       <Users className="w-4 h-4" />
-                      {challenge.participants.length} participants
+                      {challenge.participants?.length || 0} participants
                     </div>
                     <div className="flex items-center gap-1">
                       <Clock className="w-4 h-4" />

@@ -14,12 +14,12 @@ interface CommunityPrompt {
   _id: string;
   title: string;
   content: string;
-  spaceId: {
+  spaceId?: {
     _id: string;
     name: string;
   };
   isActive: boolean;
-  responses: string[];
+  responses?: string[];
   createdAt: string;
 }
 
@@ -136,14 +136,14 @@ export function CommunityPrompts({ userTier }: CommunityPromptsProps) {
                     </p>
                   </div>
                   <Badge variant="secondary">
-                    {prompt.spaceId.name}
+                    {prompt.spaceId?.name || 'General'}
                   </Badge>
                 </div>
 
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <MessageSquare className="w-4 h-4" />
-                    {prompt.responses.length} responses
+                    {prompt.responses?.length || 0} responses
                   </div>
                 </div>
 

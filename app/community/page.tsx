@@ -270,25 +270,25 @@ export default function CommunityPageEnhanced() {
   const selectedSpaceData = spaces.find(s => s._id === selectedSpace);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-4">
       <div className="container mx-auto px-4 max-w-7xl">
         {/* Header with Quote */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8"
+          className="text-center mb-4"
         >
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-purple-600 via-blue-600 to-green-600 bg-clip-text text-transparent">
+          <h1 className="text-4xl md:text-5xl font-bold mb-2 bg-gradient-to-r from-purple-600 via-blue-600 to-green-600 bg-clip-text text-transparent">
             Community Support 🌿
           </h1>
-          <p className="text-xl text-muted-foreground mb-6">
+          <p className="text-xl text-muted-foreground mb-4">
             Connect, share, and grow together in a safe, supportive space
           </p>
           
           {/* Daily Quote */}
           <Card className="bg-gradient-to-r from-purple-100 to-blue-100 dark:from-purple-900 dark:to-blue-900 border-2 border-purple-200 dark:border-purple-800 max-w-2xl mx-auto">
-            <CardContent className="pt-6">
-              <p className="text-lg italic text-purple-900 dark:text-purple-100 mb-2">
+            <CardContent className="pt-4">
+              <p className="text-lg italic text-purple-900 dark:text-purple-100 mb-1">
                 "{dailyQuote.quote}"
               </p>
               <p className="text-sm text-purple-700 dark:text-purple-300">— {dailyQuote.author}</p>
@@ -297,7 +297,7 @@ export default function CommunityPageEnhanced() {
           
           {/* Stats */}
           {stats && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto mt-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto mt-4">
               <Card className="bg-white/70 backdrop-blur-sm border-2 border-blue-200 hover:border-blue-400 transition-colors">
                 <CardContent className="pt-4">
                   <div className="flex items-center gap-2">
@@ -346,26 +346,26 @@ export default function CommunityPageEnhanced() {
           )}
         </motion.div>
 
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
+          {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4">
           <TabsList className="grid w-full max-w-2xl mx-auto grid-cols-3">
             <TabsTrigger value="feed">📝 Feed</TabsTrigger>
             <TabsTrigger value="spaces">🌍 Spaces</TabsTrigger>
             <TabsTrigger value="community">💬 Community</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="feed" className="mt-8">
-            <div className="grid lg:grid-cols-4 gap-6">
+          <TabsContent value="feed" className="mt-4">
+            <div className="grid lg:grid-cols-4 gap-4">
               {/* Spaces Sidebar */}
               <div className="lg:col-span-1">
-                <Card className="sticky top-4">
+                      <Card className="sticky top-4">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Users className="w-5 h-5" />
                       Community Spaces
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-2 max-h-[600px] overflow-y-auto">
+                  <CardContent className="space-y-2 max-h-[500px] overflow-y-auto">
                     {spaces && spaces.length > 0 ? spaces.map((space) => (
                       <motion.div
                         key={space?._id}
@@ -397,7 +397,7 @@ export default function CommunityPageEnhanced() {
               </div>
 
               {/* Feed */}
-              <div className="lg:col-span-3 space-y-6">
+              <div className="lg:col-span-3 space-y-4">
                 {/* Create Post */}
                 {isAuthenticated && (
                   <Card>
@@ -419,12 +419,12 @@ export default function CommunityPageEnhanced() {
                           )}
                         </Button>
                       ) : (
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                           <Textarea
                             placeholder="Share your thoughts, experiences, or reflections..."
                             value={newPost.content}
                             onChange={(e) => setNewPost({ ...newPost, content: e.target.value })}
-                            className="min-h-[120px]"
+                            className="min-h-[100px]"
                             maxLength={500}
                           />
                           <p className="text-sm text-muted-foreground text-right">
@@ -451,10 +451,10 @@ export default function CommunityPageEnhanced() {
                 {/* Posts Feed */}
                 {posts.length === 0 ? (
                   <Card>
-                    <CardContent className="pt-6 text-center py-12">
-                      <Users className="w-16 h-16 text-muted-foreground mx-auto mb-4 opacity-50" />
+                    <CardContent className="pt-6 text-center py-8">
+                      <Users className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-50" />
                       <p className="text-lg font-medium mb-2">No posts yet in {selectedSpaceData?.name}</p>
-                      <p className="text-sm text-muted-foreground mb-4">
+                      <p className="text-sm text-muted-foreground mb-3">
                         Your words might be what someone needs today 💫
                       </p>
                       {isAuthenticated && userTier === 'premium' && (
@@ -473,8 +473,8 @@ export default function CommunityPageEnhanced() {
                       transition={{ duration: 0.3 }}
                     >
                       <Card className="hover:shadow-lg transition-shadow">
-                        <CardContent className="pt-6">
-                          <div className="flex items-start justify-between mb-4">
+                        <CardContent className="pt-4">
+                          <div className="flex items-start justify-between mb-3">
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center">
                                 <span className="text-lg font-medium">
@@ -497,13 +497,13 @@ export default function CommunityPageEnhanced() {
                               </Badge>
                             )}
                           </div>
-                          
-                          <p className="text-gray-700 dark:text-gray-300 mb-4 leading-relaxed">
+                              
+                          <p className="text-gray-700 dark:text-gray-300 mb-3 leading-relaxed">
                             {post.content}
                           </p>
                           
                           {post.aiReflection && (
-                            <div className="bg-blue-50 dark:bg-blue-950 border-l-4 border-blue-400 dark:border-blue-600 p-4 mb-4 rounded-r">
+                            <div className="bg-blue-50 dark:bg-blue-950 border-l-4 border-blue-400 dark:border-blue-600 p-3 mb-3 rounded-r">
                               <div className="flex items-start gap-2">
                                 <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
                                 <div>
@@ -583,8 +583,8 @@ export default function CommunityPageEnhanced() {
             </div>
           </TabsContent>
 
-          <TabsContent value="spaces" className="mt-8">
-            <div className="grid md:grid-cols-2 gap-6">
+          <TabsContent value="spaces" className="mt-4">
+            <div className="grid md:grid-cols-2 gap-4">
               {spaces && spaces.length > 0 ? spaces.map((space) => (
                 <motion.div
                   key={space._id}
@@ -639,8 +639,8 @@ export default function CommunityPageEnhanced() {
             </div>
           </TabsContent>
 
-          <TabsContent value="community" className="mt-8">
-            <div className="grid lg:grid-cols-2 gap-6">
+          <TabsContent value="community" className="mt-4">
+            <div className="grid lg:grid-cols-2 gap-4">
               <CommunityChallenges userTier={userTier} />
               <CommunityPrompts userTier={userTier} />
             </div>
