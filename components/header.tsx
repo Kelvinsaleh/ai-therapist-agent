@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  MessageCircle,
   AudioWaveform,
   Menu,
   X,
@@ -100,15 +99,6 @@ export function Header() {
                       <Link href="/admin/meditations">Admin</Link>
                     </Button>
                   )}
-                  <Button
-                    asChild
-                    className="hidden md:flex gap-2 bg-primary/90 hover:bg-primary"
-                  >
-                    <Link href="/therapy/memory-enhanced">
-                      <MessageCircle className="w-4 h-4 mr-1" />
-                      Start Chat
-                    </Link>
-                  </Button>
                   <ProfileDropdown />
                 </>
               ) : (
@@ -148,15 +138,6 @@ export function Header() {
                 ))}
                 {isAuthenticated && (
                   <>
-                    <Button
-                      asChild
-                      className="mt-2 mx-4 gap-2 bg-primary/90 hover:bg-primary"
-                    >
-                      <Link href="/therapy/memory-enhanced" onClick={() => setIsMenuOpen(false)}>
-                        <MessageCircle className="w-4 h-4" />
-                        <span>Start Chat</span>
-                      </Link>
-                    </Button>
                     {user?.email === "knsalee@gmail.com" && (
                       <Link
                         href="/admin/meditations"
