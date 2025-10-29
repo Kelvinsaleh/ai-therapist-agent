@@ -16,8 +16,7 @@ import { CreatePostModal } from '@/components/community/create-post-modal';
 import { useSession } from '@/lib/contexts/session-context';
 import { toast } from 'sonner';
 import Image from 'next/image';
-import Lightbox from 'react-image-lightbox';
-import 'react-image-lightbox/style.css';
+import { SimpleLightbox } from '@/components/ui/simple-lightbox';
 
 interface CommunitySpace {
   _id: string;
@@ -671,15 +670,12 @@ export default function CommunityPageEnhanced() {
       />
 
       {lightboxOpen && (
-        <Lightbox
-          mainSrc={lightboxImages[lightboxIndex]}
-          nextSrc={lightboxImages[(lightboxIndex + 1) % lightboxImages.length]}
-          prevSrc={lightboxImages[(lightboxIndex + lightboxImages.length - 1) % lightboxImages.length]}
-          onCloseRequest={() => setLightboxOpen(false)}
-          onMovePrevRequest={() => setLightboxIndex((lightboxIndex + lightboxImages.length - 1) % lightboxImages.length)}
-          onMoveNextRequest={() => setLightboxIndex((lightboxIndex + 1) % lightboxImages.length)}
-          reactModalStyle={{ overlay: { zIndex: 9999 } }}
-          imageCaption={`Image ${lightboxIndex + 1} of ${lightboxImages.length}`}
+        <SimpleLightbox
+          images={lightboxImages}
+          index={lightboxIndex}
+          onClose={() => setLightboxOpen(false)}
+          onPrev={() => setLightboxIndex((lightboxIndex + lightboxImages.length - 1) % lightboxImages.length)}
+          onNext={() => setLightboxIndex((lightboxIndex + 1) % lightboxImages.length)}
         />
       )}
     </div>
