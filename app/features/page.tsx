@@ -3,65 +3,89 @@
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import {
-  Brain,
-  Shield,
-  Fingerprint,
-  Activity,
-  Bot,
-  LineChart,
-  Wifi,
-  Heart,
+	Brain,
+	Shield,
+	Fingerprint,
+	Activity,
+	Bot,
+	LineChart,
+	Heart,
+	MessageCircle,
+	Images,
+	Notebook,
+	Smile,
+	PlayCircle,
+	BarChart3,
+	CreditCard
 } from "lucide-react";
 
 const features = [
-  {
-    icon: <Bot className="w-10 h-10 text-primary" />,
-    title: "AI-Powered Therapy",
-    description:
-      "24/7 access to empathetic AI agents trained in various therapeutic approaches, providing personalized mental health support.",
-  },
-  {
-    icon: <Shield className="w-10 h-10 text-primary" />,
-    title: "Blockchain Security",
-    description:
-      "Your therapy sessions are secured by blockchain technology, ensuring complete privacy and transparent record-keeping.",
-  },
-  {
-    icon: <Brain className="w-10 h-10 text-primary" />,
-    title: "Smart Analysis",
-    description:
-      "Advanced NLP and emotion detection helps understand your mental state and provide appropriate interventions.",
-  },
-  {
-    icon: <Activity className="w-10 h-10 text-primary" />,
-    title: "Crisis Detection",
-    description:
-      "Real-time monitoring and emergency response protocols to ensure your safety during critical situations.",
-  },
-  {
-    icon: <Wifi className="w-10 h-10 text-primary" />,
-    title: "IoT Integration",
-    description:
-      "Connect with smart home devices to create an ambient therapeutic environment that adapts to your needs.",
-  },
-  {
-    icon: <LineChart className="w-10 h-10 text-primary" />,
-    title: "Progress Tracking",
-    description:
-      "Detailed analytics and insights about your mental health journey, with blockchain-verified session records.",
-  },
-  {
-    icon: <Fingerprint className="w-10 h-10 text-primary" />,
-    title: "Privacy First",
-    description:
-      "End-to-end encryption and zero-knowledge proofs ensure your data remains completely confidential.",
-  },
-  {
-    icon: <Heart className="w-10 h-10 text-primary" />,
-    title: "Holistic Care",
-    description:
-      "Integration with wearables and health providers for comprehensive mental wellness monitoring.",
-  },
+	{
+		icon: <Bot className="w-10 h-10 text-primary" />,
+		title: "AI Therapist (Warm & Conversational)",
+		description:
+			"Talk to a supportive AI that responds like a caring friend — empathetic, practical, and solution-focused.",
+	},
+	{
+		icon: <BarChart3 className="w-10 h-10 text-primary" />,
+		title: "Weekly Wellness Review",
+		description:
+			"Auto‑generated 150–250 word summaries of your week: mood trends, highlights, challenges, and gentle guidance.",
+	},
+	{
+		icon: <MessageCircle className="w-10 h-10 text-primary" />,
+		title: "Community Feed & Spaces",
+		description:
+			"Post with images, choose anonymous or named, reply to comments, and delete your content when needed.",
+	},
+	{
+		icon: <Images className="w-10 h-10 text-primary" />,
+		title: "Image Uploads (Vercel Blob)",
+		description:
+			"Fast, reliable image storage for posts and comments with a clean, tap‑to‑zoom lightbox experience.",
+	},
+	{
+		icon: <Notebook className="w-10 h-10 text-primary" />,
+		title: "Private Journaling",
+		description:
+			"Capture thoughts and reflections securely to spot patterns and support deeper self‑understanding.",
+	},
+	{
+		icon: <Smile className="w-10 h-10 text-primary" />,
+		title: "Mood Tracking & Insights",
+		description:
+			"Log daily moods and see trends over time to understand your emotional rhythm and triggers.",
+	},
+	{
+		icon: <Heart className="w-10 h-10 text-primary" />,
+		title: "Guided Meditations",
+		description:
+			"Calming sessions with session history to help you reset, breathe, and sleep better.",
+	},
+	{
+		icon: <Brain className="w-10 h-10 text-primary" />,
+		title: "CBT Tools",
+		description:
+			"Thought records and supportive insights that translate challenges into clear, doable next steps.",
+	},
+	{
+		icon: <LineChart className="w-10 h-10 text-primary" />,
+		title: "Profile Analytics",
+		description:
+			"A single place for your data: mood trends, activity highlights, and your Weekly Reviews.",
+	},
+	{
+		icon: <Shield className="w-10 h-10 text-primary" />,
+		title: "Secure Auth & Email Verification",
+		description:
+			"Account protection with verification emails and sensible privacy defaults for a safe experience.",
+	},
+	{
+		icon: <CreditCard className="w-10 h-10 text-primary" />,
+		title: "Premium Subscription (KES)",
+		description:
+			"Simple billing via Paystack — KES 1,300/month or KES 13,000/year with best‑value annual savings.",
+	},
 ];
 
 export default function FeaturesPage() {
