@@ -70,7 +70,7 @@ export default function ProfilePage() {
   const router = useRouter();
   
   // State management
-  const [activeTab, setActiveTab] = useState("profile");
+  const [activeTab, setActiveTab] = useState("analytics");
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -440,7 +440,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Tabs */}
-        <Tabs value="analytics" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2 lg:w-auto lg:inline-grid">
             <TabsTrigger value="analytics">
               <BarChart3 className="w-4 h-4 mr-2" />
