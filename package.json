@@ -11,6 +11,7 @@
     "db:studio": "npx drizzle-kit studio"
   },
   "dependencies": {
+    "@vercel/blob": "^0.24.0",
     "@auth/core": "^0.34.2",
     "@aws-sdk/client-apigatewaymanagementapi": "^3.726.1",
     "@aws-sdk/client-ses": "^3.726.1",
