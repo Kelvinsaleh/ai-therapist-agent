@@ -101,6 +101,7 @@
     "react-hook-form": "^7.52.2",
     "react-hot-toast": "^2.5.1",
     "react-icon-cloud": "^4.1.4",
+    "react-image-lightbox": "^5.1.4",
     "react-markdown": "^9.0.3",
     "react-use": "^17.6.0",
     "rechart": "^0.0.1",

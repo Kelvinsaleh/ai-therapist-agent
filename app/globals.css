@@ -215,6 +215,7 @@ html.keyboard-open body {
   body {
     @apply bg-background text-foreground;
     padding-top: 4rem; /* Add padding to prevent header from hiding content */
+    padding-bottom: 4.5rem; /* Add padding so footer does not hide content */
   }
 }
 

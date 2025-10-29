@@ -16,6 +16,8 @@ import { CreatePostModal } from '@/components/community/create-post-modal';
 import { useSession } from '@/lib/contexts/session-context';
 import { toast } from 'sonner';
 import Image from 'next/image';
+import Lightbox from 'react-image-lightbox';
+import 'react-image-lightbox/style.css';
 
 interface CommunitySpace {
   _id: string;
@@ -71,16 +73,19 @@ export default function CommunityPageEnhanced() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxImages, setLightboxImages] = useState<string[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   useEffect(() => {
     loadCommunityData();
   }, []);
 
   useEffect(() => {
-    if (spaces.length > 0) {
+    if (activeTab === 'feed') {
       loadAllPosts();
     }
-  }, [spaces]);
+  }, [activeTab]);
 
   const loadCommunityData = async () => {
     try {
@@ -404,7 +409,7 @@ export default function CommunityPageEnhanced() {
                     </CardContent>
                   </Card>
                 ) : (
-                  allPosts.map((post) => {
+                  allPosts.map((post, index) => {
                     const spaceInfo = getSpaceInfo(post.spaceId);
                     return (
                       <motion.div
@@ -471,15 +476,24 @@ export default function CommunityPageEnhanced() {
                             {/* Images */}
                             {post.images && post.images.length > 0 && (
                               <div className="mb-3">
-                                <div className={`grid gap-2 ${post.images.length === 1 ? 'grid-cols-1' : post.images.length === 2 ? 'grid-cols-2' : 'grid-cols-2'}`}>
+                                <div className={`grid gap-2 ${post.images.length === 1 ? 'grid-cols-1' : post.images.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}
+                                >
                                   {post.images.map((imageUrl, index) => (
-                                    <div key={index} className="relative">
+                                    <div
+                                      key={index}
+                                      className="relative cursor-pointer group"
+                                      onClick={() => {
+                                        setLightboxImages(post.images ?? []);
+                                        setLightboxIndex(index);
+                                        setLightboxOpen(true);
+                                      }}
+                                    >
                                       <Image
                                         src={imageUrl}
                                         alt={`Post image ${index + 1}`}
-                                        width={300}
-                                        height={200}
-                                        className="rounded-lg object-cover w-full h-48"
+                                        width={600}
+                                        height={400}
+                                        className="rounded-lg object-cover w-full h-56 group-hover:brightness-95 group-hover:ring-4 group-hover:ring-primary transition"
                                       />
                                     </div>
                                   ))}
@@ -651,6 +665,19 @@ export default function CommunityPageEnhanced() {
         feature="Create Posts"
         description="Premium users can create posts, comment on others' posts, and participate in community challenges."
       />
+
+      {lightboxOpen && (
+        <Lightbox
+          mainSrc={lightboxImages[lightboxIndex]}
+          nextSrc={lightboxImages[(lightboxIndex + 1) % lightboxImages.length]}
+          prevSrc={lightboxImages[(lightboxIndex + lightboxImages.length - 1) % lightboxImages.length]}
+          onCloseRequest={() => setLightboxOpen(false)}
+          onMovePrevRequest={() => setLightboxIndex((lightboxIndex + lightboxImages.length - 1) % lightboxImages.length)}
+          onMoveNextRequest={() => setLightboxIndex((lightboxIndex + 1) % lightboxImages.length)}
+          reactModalStyle={{ overlay: { zIndex: 9999 } }}
+          imageCaption={`Image ${lightboxIndex + 1} of ${lightboxImages.length}`}
+        />
+      )}
     </div>
   );
 }
