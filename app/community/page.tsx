@@ -429,7 +429,11 @@ export default function CommunityPageEnhanced() {
                                 </div>
                                 <div>
                                   <div className="font-medium flex items-center gap-2">
-                                    {post.isAnonymous ? 'Anonymous' : post.userId?.username || 'User'}
+                                    {post.isAnonymous
+                                      ? 'Anonymous'
+                                      : post.userId?.username && post.userId.username.trim() !== ''
+                                        ? post.userId.username
+                                        : ''}
                                     {post.isAnonymous && (
                                       <span className="text-xs text-muted-foreground">👤</span>
                                     )}

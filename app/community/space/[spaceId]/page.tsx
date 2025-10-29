@@ -11,6 +11,9 @@ import { ArrowLeft, Plus, Sparkles, Clock, Users, MessageSquare, Heart, Leaf } f
 import { PostComments } from '@/components/community/post-comments';
 import { useSession } from '@/lib/contexts/session-context';
 import { toast } from 'sonner';
+import Image from 'next/image';
+import Lightbox from 'react-image-lightbox';
+import 'react-image-lightbox/style.css';
 
 interface CommunitySpace {
   _id: string;
@@ -32,6 +35,7 @@ interface CommunityPost {
   content: string;
   mood?: string;
   isAnonymous: boolean;
+  images?: string[]; // <-- ADD THIS
   reactions: {
     heart: string[];
     support: string[];
@@ -58,6 +62,11 @@ export default function SpacePage() {
     isAnonymous: false
   });
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxImages, setLightboxImages] = useState<string[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   useEffect(() => {
     if (spaceId) {
@@ -110,23 +119,64 @@ export default function SpacePage() {
     }
   };
 
+  // Image handling functions:
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    const validFiles = files.filter(file => validTypes.includes(file.type) && file.size <= 5 * 1024 * 1024);
+    if (validFiles.length !== files.length) {
+      toast.error('Some files were skipped. Only JPEG, PNG, GIF, and WebP images under 5MB allowed.');
+    }
+    setSelectedImages(prev => [...prev, ...validFiles].slice(0, 3));
+    const newPreviews = validFiles.map(file => URL.createObjectURL(file));
+    setImagePreviews(prev => [...prev, ...newPreviews].slice(0, 3));
+  };
+  const removeImage = (index: number) => {
+    setSelectedImages(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => {
+      URL.revokeObjectURL(prev[index]);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+  const uploadImages = async (): Promise<string[]> => {
+    if (selectedImages.length === 0) return [];
+    const uploadPromises = selectedImages.map(async (file) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('postId', 'temp');
+      const response = await fetch('/api/community/upload-image', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+        body: formData,
+      });
+      const data = await response.json();
+      if (data.success) return data.imageUrl;
+      else throw new Error(data.error);
+    });
+    try {
+      return await Promise.all(uploadPromises);
+    } catch (error) {
+      toast.error('Failed to upload images');
+      return [];
+    }
+  };
+
   const handleCreatePost = async () => {
     if (!newPost.content.trim()) {
       toast.error('Please enter some content');
       return;
     }
-
     if (!isAuthenticated) {
       toast.error('Please log in to create posts');
       return;
     }
-
     if (userTier !== 'premium') {
       toast.error('Premium subscription required to create posts');
       return;
     }
-
     try {
+      // Upload images
+      const imageUrls = await uploadImages();
       const response = await fetch('/api/community/posts', {
         method: 'POST',
         headers: {
@@ -137,22 +187,22 @@ export default function SpacePage() {
           spaceId: spaceId,
           content: newPost.content,
           mood: newPost.mood || undefined,
-          isAnonymous: newPost.isAnonymous
+          isAnonymous: newPost.isAnonymous,
+          images: imageUrls
         })
       });
-
       const data = await response.json();
-
       if (data.success) {
         toast.success('Post created successfully!');
         setNewPost({ content: '', mood: '', isAnonymous: false });
+        setSelectedImages([]);
+        setImagePreviews([]);
         setShowCreatePost(false);
         loadSpacePosts();
       } else {
         toast.error(data.error || 'Failed to create post');
       }
     } catch (error) {
-      console.error('Error creating post:', error);
       toast.error('Failed to create post');
     }
   };
@@ -310,6 +360,52 @@ export default function SpacePage() {
                   <p className="text-sm text-muted-foreground text-right">
                     {newPost.content.length}/500
                   </p>
+                  {/* --- Add Mood Selector if you want here --- */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Add Images (Optional)</label>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={handleImageSelect}
+                          className="hidden"
+                          id="post-images"
+                        />
+                        <label
+                          htmlFor="post-images"
+                          className="flex items-center gap-1 text-sm text-muted-foreground cursor-pointer hover:text-primary border border-dashed border-muted-foreground rounded-lg px-3 py-2 w-full justify-center"
+                        >
+                          Add images ({selectedImages.length}/3)
+                        </label>
+                      </div>
+                      {/* image previews */}
+                      {imagePreviews.length > 0 && (
+                        <div className="grid grid-cols-3 gap-2">
+                          {imagePreviews.map((preview, index) => (
+                            <div key={index} className="relative">
+                              <Image
+                                src={preview}
+                                alt={`Preview ${index + 1}`}
+                                width={120}
+                                height={120}
+                                className="rounded object-cover w-full h-24"
+                              />
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeImage(index)}
+                                className="absolute -top-1 -right-1 h-6 w-6 p-0 bg-red-500 hover:bg-red-600 text-white rounded-full"
+                              >
+                                X
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                   <div className="flex gap-2">
                     <Button
                       onClick={handleCreatePost}
@@ -318,7 +414,7 @@ export default function SpacePage() {
                       <Sparkles className="w-4 h-4 mr-2" />
                       Post
                     </Button>
-                    <Button variant="outline" onClick={() => setShowCreatePost(false)}>
+                    <Button variant="outline" onClick={() => { setShowCreatePost(false); setSelectedImages([]); setImagePreviews([]); }}>
                       Cancel
                     </Button>
                   </div>
@@ -382,6 +478,33 @@ export default function SpacePage() {
                     <p className="text-gray-700 dark:text-gray-300 mb-3 leading-relaxed">
                       {post.content}
                     </p>
+                    
+                    {post.images && post.images.length > 0 && (
+                      <div className="mb-3">
+                        <div className={`grid gap-2 ${post.images.length === 1 ? 'grid-cols-1' : post.images.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}
+                        >
+                          {post.images.map((imageUrl, index) => (
+                            <div
+                              key={index}
+                              className="relative cursor-pointer group"
+                              onClick={() => {
+                                setLightboxImages(post.images ?? []);
+                                setLightboxIndex(index);
+                                setLightboxOpen(true);
+                              }}
+                            >
+                              <Image
+                                src={imageUrl}
+                                alt={`Post image ${index + 1}`}
+                                width={600}
+                                height={400}
+                                className="rounded-lg object-cover w-full h-56 group-hover:brightness-95 group-hover:ring-4 group-hover:ring-primary transition"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     
                     {post.aiReflection && (
                       <div className="bg-blue-50 dark:bg-blue-950 border-l-4 border-blue-400 dark:border-blue-600 p-3 mb-3 rounded-r">
@@ -463,6 +586,18 @@ export default function SpacePage() {
           </div>
         )}
       </div>
+      {lightboxOpen && (
+        <Lightbox
+          mainSrc={lightboxImages[lightboxIndex]}
+          nextSrc={lightboxImages[(lightboxIndex + 1) % lightboxImages.length]}
+          prevSrc={lightboxImages[(lightboxIndex + lightboxImages.length - 1) % lightboxImages.length]}
+          onCloseRequest={() => setLightboxOpen(false)}
+          onMovePrevRequest={() => setLightboxIndex((lightboxIndex + lightboxImages.length - 1) % lightboxImages.length)}
+          onMoveNextRequest={() => setLightboxIndex((lightboxIndex + 1) % lightboxImages.length)}
+          reactModalStyle={{ overlay: { zIndex: 9999 } }}
+          imageCaption={`Image ${lightboxIndex + 1} of ${lightboxImages.length}`}
+        />
+      )}
     </div>
   );
 }
