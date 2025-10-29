@@ -11,7 +11,6 @@ import {
 	LineChart,
 	Heart,
 	MessageCircle,
-	Images,
 	Notebook,
 	Smile,
 	PlayCircle,
@@ -24,67 +23,61 @@ const features = [
 		icon: <Bot className="w-10 h-10 text-primary" />,
 		title: "AI Therapist (Warm & Conversational)",
 		description:
-			"Talk to a supportive AI that responds like a caring friend — empathetic, practical, and solution-focused.",
+			"A supportive AI that talks like a caring friend — empathetic, practical, and solution‑focused. Get clear next steps without clinical jargon, anytime you need to check in.",
 	},
 	{
 		icon: <BarChart3 className="w-10 h-10 text-primary" />,
 		title: "Weekly Wellness Review",
 		description:
-			"Auto‑generated 150–250 word summaries of your week: mood trends, highlights, challenges, and gentle guidance.",
+			"A short, friendly 150–250 word report each week. It highlights mood trends, small wins, challenges, and 2–3 gentle suggestions so you start the next week grounded.",
 	},
 	{
 		icon: <MessageCircle className="w-10 h-10 text-primary" />,
 		title: "Community Feed & Spaces",
 		description:
-			"Post with images, choose anonymous or named, reply to comments, and delete your content when needed.",
-	},
-	{
-		icon: <Images className="w-10 h-10 text-primary" />,
-		title: "Image Uploads (Vercel Blob)",
-		description:
-			"Fast, reliable image storage for posts and comments with a clean, tap‑to‑zoom lightbox experience.",
+			"Share experiences in feed and spaces with optional anonymity. Reply to comments, and manage your posts with delete controls for a safer, kinder community.",
 	},
 	{
 		icon: <Notebook className="w-10 h-10 text-primary" />,
 		title: "Private Journaling",
 		description:
-			"Capture thoughts and reflections securely to spot patterns and support deeper self‑understanding.",
+			"Capture thoughts privately and return to them over time. Journaling pairs with insights so you can notice patterns and celebrate growth.",
 	},
 	{
 		icon: <Smile className="w-10 h-10 text-primary" />,
 		title: "Mood Tracking & Insights",
 		description:
-			"Log daily moods and see trends over time to understand your emotional rhythm and triggers.",
+			"Log daily moods in seconds and see trends that reveal your emotional rhythm. Spot triggers and track how recovery time improves.",
 	},
 	{
 		icon: <Heart className="w-10 h-10 text-primary" />,
 		title: "Guided Meditations",
 		description:
-			"Calming sessions with session history to help you reset, breathe, and sleep better.",
+			"Calming sessions you can start anytime, with a history of what you’ve completed. Reset, breathe, and wind down more easily.",
 	},
 	{
 		icon: <Brain className="w-10 h-10 text-primary" />,
 		title: "CBT Tools",
 		description:
-			"Thought records and supportive insights that translate challenges into clear, doable next steps.",
+			"Practical thought records and gentle reframes that turn sticky thoughts into clearer, doable next steps you can act on.",
 	},
 	{
 		icon: <LineChart className="w-10 h-10 text-primary" />,
 		title: "Profile Analytics",
 		description:
-			"A single place for your data: mood trends, activity highlights, and your Weekly Reviews.",
+			"Your personal hub for insights: mood trends, activity highlights, and a library of Weekly Reviews — all in one place.",
 	},
 	{
 		icon: <Shield className="w-10 h-10 text-primary" />,
 		title: "Secure Auth & Email Verification",
 		description:
-			"Account protection with verification emails and sensible privacy defaults for a safe experience.",
+			"Protected accounts with email verification and thoughtful privacy defaults. You choose when to be anonymous.",
 	},
 	{
 		icon: <CreditCard className="w-10 h-10 text-primary" />,
 		title: "Premium Subscription (KES)",
 		description:
-			"Simple billing via Paystack — KES 1,300/month or KES 13,000/year with best‑value annual savings.",
+			"Simple billing via Paystack — KES 1,300/month or KES 13,000/year. Annual plan offers the best value.",
 	},
 ];
 

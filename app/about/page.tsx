@@ -2,26 +2,26 @@
 
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
-import { Heart, Target, Sparkles } from "lucide-react";
+import { Heart, Target, Sparkles, Mail, MessageCircleHeart } from "lucide-react";
 
 const missions = [
   {
     icon: <Heart className="w-8 h-8 text-primary" />,
     title: "Our Mission",
     description:
-      "To democratize access to mental health support through ethical AI and blockchain technology, making quality therapeutic care available to everyone, everywhere, at any time.",
+      "Make caring mental health support feel human, accessible, and practical — so anyone can check in, feel heard, and get gentle next steps when they need them.",
   },
   {
     icon: <Target className="w-8 h-8 text-primary" />,
     title: "Our Vision",
     description:
-      "A world where mental health support is accessible, private, and personalized, powered by trusted AI agents and secured by blockchain technology.",
+      "A world where everyday care is normal: warm AI conversations, simple tools for growth, and communities that feel safe and kind.",
   },
   {
     icon: <Sparkles className="w-8 h-8 text-primary" />,
     title: "Our Values",
     description:
-      "Privacy, Innovation, Empathy, and Trust form the cornerstone of our platform, ensuring the highest standards of care and security.",
+      "Warmth over jargon, privacy by default, small steps that add up, and design that reduces friction rather than adding it.",
   },
 ];
 
@@ -36,11 +36,11 @@ export default function AboutPage() {
         className="text-center mb-20"
       >
         <h1 className="text-4xl font-bold mb-6 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-          About HOPE
+          About Hope
         </h1>
         <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-          We're revolutionizing mental health support by combining cutting-edge
-          AI technology with the security and transparency of blockchain.
+          Hope is a warm, AI‑guided space for mental wellness. It blends supportive chat, journaling, mood tracking,
+          community spaces, meditations, and a weekly wellness review that helps you notice progress without pressure.
         </p>
       </motion.div>
 
@@ -61,6 +61,36 @@ export default function AboutPage() {
           </motion.div>
         ))}
       </div>
+
+      {/* Contact / Support */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.3 }}
+        className="max-w-3xl mx-auto"
+      >
+        <Card className="p-6 bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="flex items-start gap-4">
+            <div className="p-3 rounded-lg bg-primary/10">
+              <Mail className="w-6 h-6 text-primary" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-xl font-semibold mb-1">Contact Us</h3>
+              <p className="text-muted-foreground mb-4">
+                Have a question, feedback, or need support? We’re here to help.
+              </p>
+              <div className="space-y-2 text-sm">
+                <p>
+                  Email: <a href="mailto:support@hope-therapy.com" className="text-primary underline">support@hope-therapy.com</a>
+                </p>
+                <p>
+                  Community: Open the app’s Community tab to share suggestions or ask for help.
+                </p>
+              </div>
+            </div>
+          </div>
+        </Card>
+      </motion.div>
     </div>
   );
 }

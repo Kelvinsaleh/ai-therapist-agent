@@ -59,11 +59,23 @@ export function CreatePostModal({ spaces, userTier, isAuthenticated, onPostCreat
       toast.error('Some files were skipped. Only JPEG, PNG, GIF, and WebP images under 5MB are allowed.');
     }
 
-    setSelectedImages(prev => [...prev, ...validFiles].slice(0, 3)); // Max 3 images
+    // Enforce max 6 images total
+    setSelectedImages(prev => {
+      const remaining = 6 - prev.length;
+      const toAdd = validFiles.slice(0, Math.max(0, remaining));
+      if (validFiles.length > toAdd.length) {
+        toast.error('You can upload up to 6 images per post.');
+      }
+      return [...prev, ...toAdd];
+    });
     
     // Create previews
     const newPreviews = validFiles.map(file => URL.createObjectURL(file));
-    setImagePreviews(prev => [...prev, ...newPreviews].slice(0, 3));
+    setImagePreviews(prev => {
+      const remaining = 6 - prev.length;
+      const toAdd = newPreviews.slice(0, Math.max(0, remaining));
+      return [...prev, ...toAdd];
+    });
   };
 
   const removeImage = (index: number) => {
@@ -113,6 +125,13 @@ export function CreatePostModal({ spaces, userTier, isAuthenticated, onPostCreat
       return;
     }
 
+    // Enforce 2000-word limit
+    const words = content.trim().split(/\s+/).filter(Boolean);
+    if (words.length > 2000) {
+      toast.error('Your post exceeds the 2000-word limit. Please shorten it.');
+      return;
+    }
+
     if (!selectedSpace) {
       toast.error('Please select a community space');
       return;
@@ -131,7 +150,7 @@ export function CreatePostModal({ spaces, userTier, isAuthenticated, onPostCreat
     setIsSubmitting(true);
     
     try {
-      // Upload images first
+      // Upload images first (max 6 enforced in selection)
       const imageUrls = await uploadImages();
 
       const response = await fetch('/api/community/posts', {
@@ -228,10 +247,9 @@ export function CreatePostModal({ spaces, userTier, isAuthenticated, onPostCreat
               value={content}
               onChange={(e) => setContent(e.target.value)}
               className="min-h-[120px]"
-              maxLength={500}
             />
             <div className="text-xs text-muted-foreground text-right">
-              {content.length}/500 characters
+              {content.trim().split(/\s+/).filter(Boolean).length}/2000 words
             </div>
           </div>
 
@@ -270,7 +288,7 @@ export function CreatePostModal({ spaces, userTier, isAuthenticated, onPostCreat
                   className="flex items-center gap-1 text-sm text-muted-foreground cursor-pointer hover:text-primary border border-dashed border-muted-foreground rounded-lg px-3 py-2 w-full justify-center"
                 >
                   <ImageIcon className="w-4 h-4" />
-                  Add images ({selectedImages.length}/3)
+                  Add images ({selectedImages.length}/6)
                 </label>
               </div>
               

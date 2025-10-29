@@ -123,10 +123,10 @@ export default function PricingPage() {
           className="text-center mb-16"
         >
           <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-            Upgrade to Premium
+            Simple, Honest Pricing
           </h1>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-            Unlock unlimited chats, full journaling, and more weekly meditations.
+            Start free. Go Premium for unlimited AI chat, journaling, meditations, and full analytics — all in KES.
           </p>
 
           {/* Key Features */}
@@ -207,7 +207,7 @@ export default function PricingPage() {
                 </Button>
 
                 <p className="text-xs text-center text-muted-foreground">
-                  Connect with others who understand your journey and can provide mutual support.
+                  Enjoy warm AI support, journaling, and meditations — no card required.
                 </p>
               </CardContent>
             </Card>
@@ -270,9 +270,7 @@ export default function PricingPage() {
                   )}
                 </Button>
 
-                <p className="text-xs text-center text-muted-foreground">
-                  Cancel anytime. No hidden fees.
-                </p>
+                <p className="text-xs text-center text-muted-foreground">Cancel anytime. No hidden fees.</p>
               </CardContent>
             </Card>
           </motion.div>
@@ -341,9 +339,7 @@ export default function PricingPage() {
                   )}
                 </Button>
 
-                <p className="text-xs text-center text-muted-foreground">
-                  Cancel anytime. No hidden fees.
-                </p>
+                <p className="text-xs text-center text-muted-foreground">Cancel anytime. No hidden fees.</p>
               </CardContent>
             </Card>
           </motion.div>
@@ -367,23 +363,23 @@ export default function PricingPage() {
               <ul className="space-y-3 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
                   <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                  All profiles are verified and safety-checked
+                  Account verification emails and secure sessions
                 </li>
                 <li className="flex items-start gap-2">
                   <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                  AI content moderation for all messages
+                  AI‑assisted content moderation in community spaces
                 </li>
                 <li className="flex items-start gap-2">
                   <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                  Easy report and block functionality
+                  Optional anonymity for posting in community
                 </li>
                 <li className="flex items-start gap-2">
                   <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                  Emergency escalation to crisis support
+                  Delete your posts and comments at any time
                 </li>
                 <li className="flex items-start gap-2">
                   <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                  Session time limits for healthy boundaries
+                  Encrypted transport (HTTPS) and sensible limits for healthy use
                 </li>
               </ul>
             </div>
@@ -394,19 +390,19 @@ export default function PricingPage() {
               <ul className="space-y-3 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
                   <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                  End-to-end encrypted messaging
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
                   No personal data shared without consent
                 </li>
                 <li className="flex items-start gap-2">
                   <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                  Anonymous matching options available
+                  Clear controls for anonymity in community
                 </li>
                 <li className="flex items-start gap-2">
                   <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                  GDPR compliant data handling
+                  Simple subscription management with Paystack
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                  We don’t sell your data
                 </li>
                 <li className="flex items-start gap-2">
                   <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />

@@ -126,9 +126,21 @@ export default function SpacePage() {
     if (validFiles.length !== files.length) {
       toast.error('Some files were skipped. Only JPEG, PNG, GIF, and WebP images under 5MB allowed.');
     }
-    setSelectedImages(prev => [...prev, ...validFiles].slice(0, 3));
+    // Enforce max 6 images total
+    setSelectedImages(prev => {
+      const remaining = 6 - prev.length;
+      const toAdd = validFiles.slice(0, Math.max(0, remaining));
+      if (validFiles.length > toAdd.length) {
+        toast.error('You can upload up to 6 images per post.');
+      }
+      return [...prev, ...toAdd];
+    });
     const newPreviews = validFiles.map(file => URL.createObjectURL(file));
-    setImagePreviews(prev => [...prev, ...newPreviews].slice(0, 3));
+    setImagePreviews(prev => {
+      const remaining = 6 - prev.length;
+      const toAdd = newPreviews.slice(0, Math.max(0, remaining));
+      return [...prev, ...toAdd];
+    });
   };
   const removeImage = (index: number) => {
     setSelectedImages(prev => prev.filter((_, i) => i !== index));
@@ -163,6 +175,12 @@ export default function SpacePage() {
   const handleCreatePost = async () => {
     if (!newPost.content.trim()) {
       toast.error('Please enter some content');
+      return;
+    }
+    // Enforce 2000-word limit
+    const words = newPost.content.trim().split(/\s+/).filter(Boolean);
+    if (words.length > 2000) {
+      toast.error('Your post exceeds the 2000-word limit. Please shorten it.');
       return;
     }
     if (!isAuthenticated) {
@@ -354,10 +372,9 @@ export default function SpacePage() {
                     value={newPost.content}
                     onChange={(e) => setNewPost({ ...newPost, content: e.target.value })}
                     className="min-h-[100px]"
-                    maxLength={500}
                   />
                   <p className="text-sm text-muted-foreground text-right">
-                    {newPost.content.length}/500
+                    {newPost.content.trim().split(/\s+/).filter(Boolean).length}/2000 words
                   </p>
                   {/* --- Add Mood Selector if you want here --- */}
                   <div className="space-y-2">
@@ -376,7 +393,7 @@ export default function SpacePage() {
                           htmlFor="post-images"
                           className="flex items-center gap-1 text-sm text-muted-foreground cursor-pointer hover:text-primary border border-dashed border-muted-foreground rounded-lg px-3 py-2 w-full justify-center"
                         >
-                          Add images ({selectedImages.length}/3)
+                          Add images ({selectedImages.length}/6)
                         </label>
                       </div>
                       {/* image previews */}
