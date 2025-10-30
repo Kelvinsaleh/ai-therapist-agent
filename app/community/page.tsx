@@ -168,6 +168,31 @@ export default function CommunityPageEnhanced() {
       setCommentCounts(counts);
     } catch (error) {
       console.error('Error loading feed:', error);
+      // Fallback: fetch first few spaces and grab recent posts from each
+      try {
+        const token = typeof window !== 'undefined' ? (localStorage.getItem('token') || localStorage.getItem('authToken')) : null;
+        const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+        const spacesRes = await fetch('/api/community/spaces', { headers, cache: 'no-store' });
+        if (spacesRes.ok) {
+          const spacesData = await spacesRes.json();
+          const spacesList: any[] = spacesData?.spaces || [];
+          const topSpaces = spacesList.slice(0, 4);
+          const postsArrays = await Promise.all(
+            topSpaces.map((s) => fetch(`/api/community/spaces/${s._id}/posts?limit=10`, { headers, cache: 'no-store' }).then(r => r.ok ? r.json() : { posts: [] }))
+          );
+          const merged = postsArrays.flatMap((d: any) => d.posts || []);
+          // Sort by createdAt desc
+          merged.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          setAllPosts(merged);
+          const counts: Record<string, number> = {};
+          merged.forEach((post: any) => {
+            counts[post._id] = post.comments?.length || 0;
+          });
+          setCommentCounts(counts);
+        }
+      } catch (fallbackError) {
+        console.error('Feed fallback failed:', fallbackError);
+      }
     }
   };
 

@@ -3,7 +3,7 @@ import { put } from '@vercel/blob';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 // Note: Next.js App Router handles large files natively
 // File is uploaded directly to Vercel Blob, bypassing body parser limits

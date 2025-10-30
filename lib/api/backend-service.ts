@@ -526,25 +526,37 @@ class BackendService {
   }
 
   async uploadMeditationFile(file: File): Promise<ApiResponse> {
-    const formData = new FormData();
-    formData.append('file', file);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
 
-    // Get auth token directly
-    let token = this.authToken;
-    if (typeof window !== 'undefined') {
-      token = token || localStorage.getItem('token') || localStorage.getItem('authToken') || null;
+      // Get auth token directly
+      let token = this.authToken;
+      if (typeof window !== 'undefined') {
+        token = token || localStorage.getItem('token') || localStorage.getItem('authToken') || null;
+      }
+
+      const response = await fetch(`${this.baseURL}/meditations/upload`, {
+        method: 'POST',
+        headers: {
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+        body: formData,
+        signal: AbortSignal.timeout(120000)
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        return { success: false, error: data.error || 'Upload failed' };
+      }
+
+      // expect { success, meditation } or { url }
+      const url = data?.meditation?.audioUrl || data?.audioUrl || data?.url;
+      return { success: true, data: { url } };
+    } catch (error) {
+      console.error('Direct upload error:', error);
+      return { success: false, error: 'Failed to upload audio file' };
     }
-
-    const headers: Record<string, string> = {};
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    return this.makeRequest('/meditations/upload', {
-      method: 'POST',
-      body: formData,
-      headers,
-    });
   }
 
   async uploadMeditationWithMetadata(file: File, metadata: {
@@ -565,37 +577,30 @@ class BackendService {
       formData.append('isPremium', metadata.isPremium.toString());
       formData.append('tags', JSON.stringify(metadata.tags));
 
-      // Call our local API route directly with auth token
       const token = this.authToken || 
         (typeof window !== 'undefined' ? localStorage.getItem('token') || localStorage.getItem('authToken') : null);
 
-      const response = await fetch('/api/meditations/upload', {
+      const response = await fetch(`${this.baseURL}/meditations/upload`, {
         method: 'POST',
         headers: {
           ...(token && { 'Authorization': `Bearer ${token}` })
         },
         body: formData,
+        signal: AbortSignal.timeout(180000)
       });
 
-      const result = await response.json();
-      
+      const result = await response.json().catch(() => ({}));
       if (response.ok) {
         return {
           success: true,
-          data: result.data
+          data: result?.meditation || result?.data || result
         };
       } else {
-        return {
-          success: false,
-          error: result.error || 'Upload failed'
-        };
+        return { success: false, error: result?.error || 'Upload failed' };
       }
     } catch (error) {
       console.error('Upload error:', error);
-      return {
-        success: false,
-        error: 'Failed to upload meditation'
-      };
+      return { success: false, error: 'Failed to upload meditation' };
     }
   }
 
