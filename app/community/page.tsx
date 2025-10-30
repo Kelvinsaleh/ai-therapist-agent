@@ -153,44 +153,21 @@ export default function CommunityPageEnhanced() {
 
   const loadAllPosts = async () => {
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-      const headers: HeadersInit = { 'Content-Type': 'application/json' };
-      
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
-      // Load posts from all spaces
-      const allPostsPromises = spaces.map(async (space) => {
-        try {
-          const response = await fetch(`/api/community/spaces/${space._id}/posts`, { headers });
-          const data = await response.json();
-          if (data.success) {
-            return data.posts || [];
-          }
-          return [];
-        } catch (error) {
-          console.error(`Error loading posts for space ${space._id}:`, error);
-          return [];
-        }
-      });
-
-      const postsArrays = await Promise.all(allPostsPromises);
-      const allPosts = postsArrays.flat();
-      
-      // Sort by creation date (newest first)
-      allPosts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      
-      setAllPosts(allPosts);
-      
-      // Extract comment counts from the populated posts data
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const res = await fetch(`/api/community/feed?limit=30`, { cache: 'no-store', signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (!res.ok) throw new Error('Failed to load feed');
+      const data = await res.json();
+      const posts = Array.isArray(data.posts) ? data.posts : [];
+      setAllPosts(posts);
       const counts: Record<string, number> = {};
-      allPosts.forEach((post: any) => {
-        counts[post._id] = post.comments?.length || 0;
+      posts.forEach((post: any) => {
+        counts[post._id] = post.commentCount || post.comments?.length || 0;
       });
       setCommentCounts(counts);
     } catch (error) {
-      console.error('Error loading all posts:', error);
+      console.error('Error loading feed:', error);
     }
   };
 
@@ -594,7 +571,7 @@ export default function CommunityPageEnhanced() {
                                 className="ml-auto"
                               >
                                 <MessageSquare className="w-4 h-4 mr-1" />
-                                {commentCounts[post._id] || post.comments?.length || 0} comments
+                                {commentCounts[post._id] || post.commentCount || post.comments?.length || 0} comments
                               </Button>
                             </div>
 
