@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+
 // Note: Next.js App Router handles large files natively
 // File is uploaded directly to Vercel Blob, bypassing body parser limits
 
@@ -38,6 +42,7 @@ export async function POST(request: NextRequest) {
     const blob = await put(path, file, {
       access: 'public',
       contentType: file.type,
+      token: process.env.BLOB_READ_WRITE_TOKEN
     });
 
     // Step 2: Save metadata to MongoDB backend
@@ -90,9 +95,10 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error uploading meditation:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Error uploading meditation:', message);
     return NextResponse.json(
-      { success: false, error: 'Failed to upload meditation' },
+      { success: false, error: `Failed to upload meditation: ${message}` },
       { status: 500 }
     );
   }
