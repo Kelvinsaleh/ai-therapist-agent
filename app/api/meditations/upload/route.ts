@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
 
     console.log('Saving meditation metadata to backend:', meditationData);
 
-    const backendResponse = await fetch(`${backendUrl}/meditation`, {
+    const backendResponse = await fetch(`${backendUrl}/meditations`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

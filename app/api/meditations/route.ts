@@ -10,7 +10,6 @@ export async function GET(request: NextRequest) {
     const isPremium = searchParams.get('isPremium');
     const limit = searchParams.get('limit') || '50';
     
-    // Fetch from backend - FIXED: using /meditation (singular)
     const backendUrl = process.env.BACKEND_API_URL || 'https://hope-backend-2.onrender.com';
     const params = new URLSearchParams();
     if (search) params.append('search', search);
@@ -18,7 +17,10 @@ export async function GET(request: NextRequest) {
     if (isPremium !== null) params.append('isPremium', isPremium);
     params.append('limit', limit);
 
-    const backendResponse = await fetch(`${backendUrl}/meditation?${params.toString()}`);
+    const backendResponse = await fetch(`${backendUrl}/meditations?${params.toString()}`, {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache' }
+    });
     
     if (!backendResponse.ok) {
       throw new Error(`Backend returned ${backendResponse.status}`);

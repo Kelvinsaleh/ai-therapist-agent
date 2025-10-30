@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Heart, MessageSquare, Leaf, Users, Plus, Sparkles, Lock, TrendingUp, Clock, Award, Trash2 } from 'lucide-react';
+import { Share2 } from 'lucide-react';
 import { CommunityChallenges } from '@/components/community/community-challenges';
 import { CommunityPrompts } from '@/components/community/community-prompts';
 import { PremiumUpgradeModal } from '@/components/community/premium-upgrade-modal';
@@ -226,6 +227,27 @@ export default function CommunityPageEnhanced() {
 
   const getReactionCount = (reactions: any, type: string) => {
     return reactions[type]?.length || 0;
+  };
+
+  const handleShare = async (postId: string) => {
+    try {
+      const shareUrl = `${window.location.origin}/community/space/${getSpaceInfo(postId)?._id || ''}`;
+      if ((navigator as any).share) {
+        await (navigator as any).share({ title: 'Hope Community Post', url: shareUrl });
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success('Link copied to clipboard');
+      }
+
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      await fetch(`/api/community/posts/${postId}/share`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } as any : undefined,
+      });
+      loadAllPosts();
+    } catch (e) {
+      toast.error('Failed to share post');
+    }
   };
 
   const formatTimeAgo = (dateString: string) => {
@@ -545,6 +567,16 @@ export default function CommunityPageEnhanced() {
                               >
                                 <Leaf className="w-4 h-4 mr-1" />
                                 {getReactionCount(post.reactions, 'growth')}
+                              </Button>
+
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleShare(post._id)}
+                                className="text-purple-500 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950"
+                              >
+                                <Share2 className="w-4 h-4 mr-1" />
+                                Share
                               </Button>
 
                               <Button
