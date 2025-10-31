@@ -385,7 +385,7 @@ export default function CommunityPageEnhanced() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4">
-          <TabsList className="grid w-full max-w-2xl mx-auto grid-cols-3">
+          <TabsList className="flex w-full max-w-2xl mx-auto overflow-x-auto gap-2 px-1 sm:px-0">
             <TabsTrigger value="feed">📝 Feed</TabsTrigger>
             <TabsTrigger value="spaces">🌍 Spaces</TabsTrigger>
             <TabsTrigger value="community">💬 Community</TabsTrigger>
@@ -443,7 +443,7 @@ export default function CommunityPageEnhanced() {
                       >
                         <Card className="hover:shadow-lg transition-shadow">
                           <CardContent className="pt-4">
-                            <div className="flex items-start justify-between mb-3">
+                            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
                               <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center">
                                   <span className="text-lg font-medium">
@@ -467,7 +467,7 @@ export default function CommunityPageEnhanced() {
                                   </div>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 {spaceInfo && (
                                   <Badge 
                                     variant="outline" 
@@ -503,7 +503,7 @@ export default function CommunityPageEnhanced() {
                             {/* Images */}
                             {post.images && post.images.length > 0 && (
                               <div className="mb-3">
-                                <div className={`grid gap-2 ${post.images.length === 1 ? 'grid-cols-1' : post.images.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}
+                                <div className={`grid gap-2 ${post.images.length === 1 ? 'grid-cols-1' : post.images.length === 2 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3'}`}
                                 >
                                   {post.images.map((imageUrl, index) => (
                                     <div
@@ -520,7 +520,7 @@ export default function CommunityPageEnhanced() {
                                         alt={`Post image ${index + 1}`}
                                         width={600}
                                         height={400}
-                                        className="rounded-lg object-cover w-full h-56 group-hover:brightness-95 group-hover:ring-4 group-hover:ring-primary transition"
+                                        className="rounded-lg object-cover w-full h-40 sm:h-56 group-hover:brightness-95 group-hover:ring-4 group-hover:ring-primary transition"
                                       />
                                     </div>
                                   ))}
