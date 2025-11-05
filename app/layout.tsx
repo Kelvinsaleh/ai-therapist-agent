@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
@@ -8,7 +9,6 @@ import { AudioPlayerProvider } from "@/lib/contexts/audio-player-context";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { SkipToMainContent, SkipToNavigation } from "@/components/ui/skip-link";
-import Head from "next/head";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -30,19 +30,20 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <Head>
+      <body className={inter.className}>
         {/* Google tag (gtag.js) */}
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-6JJDGJTFDJ"></script>
-        <script dangerouslySetInnerHTML={{
-          __html: `
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-6JJDGJTFDJ"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
             gtag('config', 'G-6JJDGJTFDJ');
-          `,
-        }} />
-      </Head>
-      <body className={inter.className}>
+          `}
+        </Script>
         <SkipToMainContent />
         <SkipToNavigation />
         <ThemeProvider>
