@@ -8,6 +8,7 @@ import { AudioPlayerProvider } from "@/lib/contexts/audio-player-context";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { SkipToMainContent, SkipToNavigation } from "@/components/ui/skip-link";
+import Head from "next/head";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -29,6 +30,18 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <Head>
+        {/* Google tag (gtag.js) */}
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-6JJDGJTFDJ"></script>
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-6JJDGJTFDJ');
+          `,
+        }} />
+      </Head>
       <body className={inter.className}>
         <SkipToMainContent />
         <SkipToNavigation />
