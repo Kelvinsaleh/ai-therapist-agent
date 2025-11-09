@@ -1,24 +1,29 @@
 <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Background circle -->
-  <circle cx="256" cy="256" r="256" fill="url(#gradient)"/>
+  <!-- Rounded square background with gradient -->
+  <rect width="512" height="512" rx="112" fill="url(#gradient)"/>
   
-  <!-- Audio waveform icon -->
+  <!-- Simplified audio waveform in center -->
   <g transform="translate(256, 256)">
-    <!-- Waveform bars representing audio/therapy waves -->
-    <rect x="-80" y="-60" width="12" height="120" rx="6" fill="white" opacity="0.9"/>
-    <rect x="-50" y="-80" width="12" height="160" rx="6" fill="white" opacity="0.9"/>
-    <rect x="-20" y="-100" width="12" height="200" rx="6" fill="white" opacity="1"/>
-    <rect x="10" y="-80" width="12" height="160" rx="6" fill="white" opacity="0.9"/>
-    <rect x="40" y="-60" width="12" height="120" rx="6" fill="white" opacity="0.9"/>
+    <!-- Center wave (tallest) -->
+    <rect x="-8" y="-100" width="16" height="200" rx="8" fill="white" opacity="1"/>
+    <!-- Left waves -->
+    <rect x="-48" y="-70" width="14" height="140" rx="7" fill="white" opacity="0.85"/>
+    <rect x="-78" y="-50" width="12" height="100" rx="6" fill="white" opacity="0.75"/>
+    <!-- Right waves -->
+    <rect x="34" y="-70" width="14" height="140" rx="7" fill="white" opacity="0.85"/>
+    <rect x="66" y="-50" width="12" height="100" rx="6" fill="white" opacity="0.75"/>
   </g>
   
-  <!-- Heart symbol for care/therapy -->
-  <path d="M256 360C256 360 200 310 200 260C200 235 220 215 245 215C257 215 268 220 276 228L256 248L236 228C244 220 255 215 267 215C292 215 312 235 312 260C312 310 256 360 256 360Z" fill="white" opacity="0.8"/>
+  <!-- Small heart accent at bottom -->
+  <g transform="translate(256, 380) scale(0.4)">
+    <path d="M0,0 C-20,-15 -35,-25 -35,-40 C-35,-52 -25,-60 -15,-60 C-8,-60 -2,-56 0,-52 C2,-56 8,-60 15,-60 C25,-60 35,-52 35,-40 C35,-25 20,-15 0,0 Z" fill="white" opacity="0.7"/>
+  </g>
   
-  <!-- Gradient definition -->
+  <!-- Gradient definition - Hope AI brand colors -->
   <defs>
     <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#7c3aed;stop-opacity:1" />
       <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
     </linearGradient>
   </defs>

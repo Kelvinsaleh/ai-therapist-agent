@@ -19,11 +19,11 @@ export const metadata: Metadata = {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
       { url: "/icon.svg", type: "image/svg+xml" },
-      { url: "/icon.png", type: "image/png", sizes: "192x192" },
-      { url: "/icon.png", type: "image/png", sizes: "512x512" },
+      { url: "/icon.png", type: "image/png", sizes: "any" },
     ],
     apple: [
-      { url: "/apple-icon.png", sizes: "180x180", type: "image/png" },
+      { url: "/icon.png", sizes: "180x180", type: "image/png" },
+      { url: "/icon.svg", type: "image/svg+xml" },
     ],
     shortcut: "/favicon.ico",
   },
@@ -34,9 +34,9 @@ export const metadata: Metadata = {
     siteName: "Hope AI",
     images: [
       {
-        url: "/og-image.png",
-        width: 1200,
-        height: 630,
+        url: "/icon.png",
+        width: 512,
+        height: 512,
         alt: "Hope - AI Therapist - Your personal AI therapist for mental health support",
       },
     ],
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Hope - AI Therapist",
     description: "Your personal AI therapist for mental health support",
-    images: ["/og-image.png"],
+    images: ["/icon.png"],
     creator: "@hopeai",
   },
   ...(process.env.NEXT_PUBLIC_SITE_URL && {

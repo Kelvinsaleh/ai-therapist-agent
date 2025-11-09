@@ -160,7 +160,7 @@ export default function ResetPasswordPage() {
               Reset Your Password
             </h1>
             <p className="text-muted-foreground">
-              Enter your new password below.
+              Enter your new password below. Your reset code has been verified.
             </p>
           </div>
 
