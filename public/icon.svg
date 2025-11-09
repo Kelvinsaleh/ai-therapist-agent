@@ -1,0 +1,26 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="256" fill="url(#gradient)"/>
+  
+  <!-- Audio waveform icon -->
+  <g transform="translate(256, 256)">
+    <!-- Waveform bars representing audio/therapy waves -->
+    <rect x="-80" y="-60" width="12" height="120" rx="6" fill="white" opacity="0.9"/>
+    <rect x="-50" y="-80" width="12" height="160" rx="6" fill="white" opacity="0.9"/>
+    <rect x="-20" y="-100" width="12" height="200" rx="6" fill="white" opacity="1"/>
+    <rect x="10" y="-80" width="12" height="160" rx="6" fill="white" opacity="0.9"/>
+    <rect x="40" y="-60" width="12" height="120" rx="6" fill="white" opacity="0.9"/>
+  </g>
+  
+  <!-- Heart symbol for care/therapy -->
+  <path d="M256 360C256 360 200 310 200 260C200 235 220 215 245 215C257 215 268 220 276 228L256 248L236 228C244 220 255 215 267 215C292 215 312 235 312 260C312 310 256 360 256 360Z" fill="white" opacity="0.8"/>
+  
+  <!-- Gradient definition -->
+  <defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+</svg>
+
