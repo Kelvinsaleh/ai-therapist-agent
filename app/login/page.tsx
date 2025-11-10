@@ -140,7 +140,7 @@ export default function LoginPage() {
                 }}
                 error={fieldErrors.email}
                 required
-                className="pl-12 py-2 text-base rounded-xl bg-card bg-opacity-80 border text-white placeholder:text-muted-foreground"
+                className="pl-12 py-2 text-base rounded-xl bg-card bg-opacity-80 border text-foreground placeholder:text-muted-foreground"
                 helperText="Enter your email address"
               />
               <AccessibleInput
@@ -156,7 +156,7 @@ export default function LoginPage() {
                 }}
                 error={fieldErrors.password}
                 required
-                className="pl-12 py-2 text-base rounded-xl bg-card bg-opacity-80 border text-white placeholder:text-muted-foreground"
+                className="pl-12 py-2 text-base rounded-xl bg-card bg-opacity-80 border text-foreground placeholder:text-muted-foreground"
                 helperText="Enter your password"
               />
             </div>
