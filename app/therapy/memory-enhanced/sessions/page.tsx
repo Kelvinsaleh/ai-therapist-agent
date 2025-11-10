@@ -21,10 +21,11 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { logger } from "@/lib/utils/logger";
 import { useSession } from "@/lib/contexts/session-context";
+import { toast } from "sonner";
 
 export default function MemoryEnhancedSessionsPage() {
   const router = useRouter();
-  const { user } = useSession();
+  const { user, isAuthenticated } = useSession();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
@@ -47,6 +48,13 @@ export default function MemoryEnhancedSessionsPage() {
   }, []);
 
   const handleNewSession = async () => {
+    // Check if user is authenticated before creating a new session
+    if (!isAuthenticated) {
+      toast.error("Please sign in to start a new session");
+      router.push('/login');
+      return;
+    }
+
     try {
       setIsCreating(true);
       const newSessionId = await createChatSession();
