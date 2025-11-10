@@ -74,8 +74,11 @@ export default function SignupPage() {
         }
         router.push(verifyUrl);
       } else {
-        // Redirect new users to the AI chat page
-        router.push("/therapy/memory-enhanced/sessions");
+        // Stop loading state before redirect
+        setLoading(false);
+        // Redirect new users directly to the AI chat page (no dashboard loading)
+        router.replace("/therapy/memory-enhanced/sessions");
+        return; // Exit early to prevent any further execution
       }
     } catch (err: any) {
       const errorMessage = err.message || "Signup failed. Please try again.";

@@ -82,16 +82,7 @@ export default function MemoryEnhancedSessionsPage() {
     router.push(`/therapy/memory-enhanced`);
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-muted-foreground">Loading sessions...</p>
-        </div>
-      </div>
-    );
-  }
+  // Show content immediately, sessions load in background
 
   return (
     <div className="min-h-screen bg-background">
@@ -145,7 +136,12 @@ export default function MemoryEnhancedSessionsPage() {
         </motion.div>
 
         {/* Previous Sessions */}
-        {sessions.length > 0 ? (
+        {isLoading ? (
+          <div className="text-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
+            <p className="text-sm text-muted-foreground">Loading sessions...</p>
+          </div>
+        ) : sessions.length > 0 ? (
           <div className="space-y-4">
             <h2 className="text-xl font-semibold flex items-center gap-2">
               <Clock className="w-5 h-5 text-primary" />

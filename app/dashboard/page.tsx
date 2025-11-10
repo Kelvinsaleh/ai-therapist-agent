@@ -60,16 +60,7 @@ export default function DashboardPage() {
     }
   };
 
-  if (isLoading || loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex items-center gap-2">
-          <Loader2 className="w-6 h-6 animate-spin" />
-          <span>Loading dashboard...</span>
-        </div>
-      </div>
-    );
-  }
+  // Show content immediately, load data in background
 
   if (!isAuthenticated) {
     return (
@@ -102,6 +93,14 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
+        {/* Loading indicator - inline, not blocking */}
+        {loading && (
+          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span>Loading dashboard data...</span>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
