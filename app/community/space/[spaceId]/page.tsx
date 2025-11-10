@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Plus, Sparkles, Clock, Users, MessageSquare, Heart, Leaf } from 'lucide-react';
+import { ArrowLeft, Plus, Sparkles, Clock, Users, MessageSquare, Heart, Leaf, Trash2 } from 'lucide-react';
 import { PostComments } from '@/components/community/post-comments';
 import { useSession } from '@/lib/contexts/session-context';
 import { toast } from 'sonner';
@@ -48,7 +48,7 @@ interface CommunityPost {
 export default function SpacePage() {
   const params = useParams();
   const router = useRouter();
-  const { isAuthenticated, userTier } = useSession();
+  const { isAuthenticated, userTier, user } = useSession();
   const spaceId = params.spaceId as string;
   
   const [space, setSpace] = useState<CommunitySpace | null>(null);
@@ -281,6 +281,33 @@ export default function SpacePage() {
     return moodMap[mood || 'calm'] || '💭';
   };
 
+  const handleDeletePost = async (postId: string) => {
+    if (!confirm('Are you sure you want to delete this post?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/community/posts/${postId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success('Post deleted');
+        loadSpacePosts(); // Reload posts
+      } else {
+        toast.error(data.error || 'Failed to delete post');
+      }
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      toast.error('Failed to delete post');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -484,11 +511,25 @@ export default function SpacePage() {
                           </div>
                         </div>
                       </div>
-                      {post.mood && (
-                        <Badge variant="secondary" className="text-sm">
-                          {getMoodEmoji(post.mood)} {post.mood.charAt(0).toUpperCase() + post.mood.slice(1)}
-                        </Badge>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {post.mood && (
+                          <Badge variant="secondary" className="text-sm">
+                            {getMoodEmoji(post.mood)} {post.mood.charAt(0).toUpperCase() + post.mood.slice(1)}
+                          </Badge>
+                        )}
+                        {/* Delete button for post owner */}
+                        {user && (post.userId?._id === user._id || post.userId?._id === user.id) && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeletePost(post._id)}
+                            className="h-6 w-6 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+                            title="Delete post"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
                     
                     <p className="text-gray-700 dark:text-gray-300 mb-3 leading-relaxed">

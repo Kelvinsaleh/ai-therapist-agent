@@ -62,9 +62,17 @@ interface CommunityStats {
   totalSpaces: number;
 }
 
+const shuffle = (array: any[]) => {
+  let arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+};
 
 export default function CommunityPageEnhanced() {
-  const { isAuthenticated, userTier } = useSession();
+  const { isAuthenticated, userTier, user } = useSession();
   const [spaces, setSpaces] = useState<CommunitySpace[]>([]);
   const [activeTab, setActiveTab] = useState('feed');
   const [allPosts, setAllPosts] = useState<CommunityPost[]>([]);
@@ -159,7 +167,7 @@ export default function CommunityPageEnhanced() {
       clearTimeout(timeoutId);
       if (!res.ok) throw new Error('Failed to load feed');
       const data = await res.json();
-      const posts = Array.isArray(data.posts) ? data.posts : [];
+      const posts = Array.isArray(data.posts) ? shuffle(data.posts) : [];
       setAllPosts(posts);
       const counts: Record<string, number> = {};
       posts.forEach((post: any) => {
@@ -181,11 +189,11 @@ export default function CommunityPageEnhanced() {
             topSpaces.map((s) => fetch(`/api/community/spaces/${s._id}/posts?limit=10`, { headers, cache: 'no-store' }).then(r => r.ok ? r.json() : { posts: [] }))
           );
           const merged = postsArrays.flatMap((d: any) => d.posts || []);
-          // Sort by createdAt desc
-          merged.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-          setAllPosts(merged);
+          // Shuffle merged posts
+          const shuffled = shuffle(merged);
+          setAllPosts(shuffled);
           const counts: Record<string, number> = {};
-          merged.forEach((post: any) => {
+          shuffled.forEach((post: any) => {
             counts[post._id] = post.comments?.length || 0;
           });
           setCommentCounts(counts);
@@ -388,7 +396,6 @@ export default function CommunityPageEnhanced() {
           <TabsList className="flex w-full max-w-2xl mx-auto overflow-x-auto gap-2 px-1 sm:px-0">
             <TabsTrigger value="feed">📝 Feed</TabsTrigger>
             <TabsTrigger value="spaces">🌍 Spaces</TabsTrigger>
-            <TabsTrigger value="community">💬 Community</TabsTrigger>
           </TabsList>
 
           <TabsContent value="feed" className="mt-4">
@@ -483,12 +490,13 @@ export default function CommunityPageEnhanced() {
                                   </Badge>
                                 )}
                                 {/* Delete button for post owner */}
-                                {post.userId?._id === localStorage.getItem('userId') && (
+                                {user && (post.userId?._id === user._id || post.userId?._id === user.id) && (
                                   <Button
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => handleDeletePost(post._id)}
                                     className="h-6 w-6 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                    title="Delete post"
                                   >
                                     <Trash2 className="w-3 h-3" />
                                   </Button>
@@ -684,13 +692,6 @@ export default function CommunityPageEnhanced() {
                   </Card>
                 </div>
               )}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="community" className="mt-4">
-            <div className="grid lg:grid-cols-2 gap-4">
-              <CommunityChallenges userTier={userTier} />
-              <CommunityPrompts userTier={userTier} />
             </div>
           </TabsContent>
         </Tabs>
