@@ -5,12 +5,25 @@ import { useRouter } from "next/navigation";
 import { createChatSession } from "@/lib/api/chat";
 import { motion } from "framer-motion";
 import { Brain, Sparkles } from "lucide-react";
+import { useSession } from "@/lib/contexts/session-context";
 
 export default function NewTherapyRedirectPage() {
   const router = useRouter();
+  const { isAuthenticated, isLoading } = useSession();
   const [status, setStatus] = useState<'creating' | 'redirecting' | 'error'>('creating');
 
   useEffect(() => {
+    // Wait for authentication check to complete
+    if (isLoading) {
+      return;
+    }
+
+    // Redirect to login if not authenticated
+    if (!isAuthenticated) {
+      router.replace('/login');
+      return;
+    }
+
     const go = async () => {
       try {
         setStatus('creating');
@@ -29,7 +42,7 @@ export default function NewTherapyRedirectPage() {
       }
     };
     go();
-  }, [router]);
+  }, [router, isAuthenticated, isLoading]);
 
   return (
     <div className="min-h-[70vh] flex items-center justify-center">

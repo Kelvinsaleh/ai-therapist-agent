@@ -107,6 +107,13 @@ export function SessionHistory({ params, onNewSession, onSessionSelect }: Sessio
   };
 
   const handleNewSession = async () => {
+    // Check if user is authenticated before creating a new session
+    if (!isAuthenticated) {
+      toast.error("Please sign in to start a new session");
+      router.push('/login');
+      return;
+    }
+
     try {
       if (onNewSession) {
         await onNewSession();

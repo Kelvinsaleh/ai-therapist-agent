@@ -114,7 +114,7 @@ const glowAnimation = {
 const COMPLETION_THRESHOLD = 5;
 
 export default function TherapyPage() {
-  const { user } = useSession();
+  const { user, isAuthenticated } = useSession();
   const params = useParams();
   const router = useRouter();
   const [message, setMessage] = useState("");
@@ -146,6 +146,12 @@ export default function TherapyPage() {
   const [hideFooter, setHideFooter] = useState<boolean>(false);
 
   const handleNewSession = async () => {
+    // Check if user is authenticated before creating a new session
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
+
     try {
       setIsLoading(true);
       const newSessionId = await createChatSession();

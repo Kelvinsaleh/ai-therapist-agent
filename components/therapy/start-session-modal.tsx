@@ -105,6 +105,8 @@ export function StartSessionModal({ open, onOpenChange, onNewSession }: StartSes
   const handleStartSession = async () => {
     if (!isAuthenticated) {
       toast.error("Please sign in to start a session");
+      onOpenChange(false);
+      router.push('/login');
       return;
     }
 

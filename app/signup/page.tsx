@@ -68,17 +68,14 @@ export default function SignupPage() {
       if (response.requiresVerification && response.userId) {
         // Build verification URL
         let verifyUrl = `/verify-email?userId=${response.userId}&email=${encodeURIComponent(email)}`;
-        
-        // In development mode, include devOTP if provided
-        if (response.devOTP) {
-          verifyUrl += `&devOTP=${response.devOTP}`;
+        // In development mode, include devOTP if provided (ignore TypeScript error if property is missing)
+        if ('devOTP' in response && (response as any).devOTP) {
+          verifyUrl += `&devOTP=${(response as any).devOTP}`;
         }
-        
-        // Redirect to verification page with userId and email
         router.push(verifyUrl);
       } else {
-        // Old flow: direct login (backwards compatibility)
-        router.push("/login");
+        // Redirect new users to the AI chat page
+        router.push("/therapy/memory-enhanced/sessions");
       }
     } catch (err: any) {
       const errorMessage = err.message || "Signup failed. Please try again.";
