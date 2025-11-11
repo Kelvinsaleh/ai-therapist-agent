@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Plus, Sparkles, Clock, Users, MessageSquare, Heart, Leaf, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Sparkles, Clock, Users, MessageSquare, Heart, Trash2 } from 'lucide-react';
 import { PostComments } from '@/components/community/post-comments';
 import { useSession } from '@/lib/contexts/session-context';
 import { toast } from 'sonner';
@@ -584,26 +584,6 @@ export default function SpacePage() {
                       >
                         <Heart className="w-4 h-4 mr-1" />
                         {getReactionCount(post.reactions, 'heart')}
-                      </Button>
-                      
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleReaction(post._id, 'support')}
-                        className="text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950"
-                      >
-                        <MessageSquare className="w-4 h-4 mr-1" />
-                        {getReactionCount(post.reactions, 'support')}
-                      </Button>
-                      
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleReaction(post._id, 'growth')}
-                        className="text-green-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-950"
-                      >
-                        <Leaf className="w-4 h-4 mr-1" />
-                        {getReactionCount(post.reactions, 'growth')}
                       </Button>
 
                       <Button

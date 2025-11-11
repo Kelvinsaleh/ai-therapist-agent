@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Heart, MessageSquare, Leaf, Users, Plus, Sparkles, Lock, TrendingUp, Clock, Award, Trash2 } from 'lucide-react';
+import { Heart, MessageSquare, Users, Plus, Sparkles, Lock, TrendingUp, Clock, Award, Trash2 } from 'lucide-react';
 import { Share2 } from 'lucide-react';
 import { CommunityChallenges } from '@/components/community/community-challenges';
 import { CommunityPrompts } from '@/components/community/community-prompts';
@@ -504,26 +504,6 @@ export default function CommunityPageEnhanced() {
                               >
                                 <Heart className="w-4 h-4 mr-1" />
                                 {getReactionCount(post.reactions, 'heart')}
-                              </Button>
-                              
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleReaction(post._id, 'support')}
-                                className="text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950"
-                              >
-                                <MessageSquare className="w-4 h-4 mr-1" />
-                                {getReactionCount(post.reactions, 'support')}
-                              </Button>
-                              
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleReaction(post._id, 'growth')}
-                                className="text-green-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-950"
-                              >
-                                <Leaf className="w-4 h-4 mr-1" />
-                                {getReactionCount(post.reactions, 'growth')}
                               </Button>
 
                               <Button
