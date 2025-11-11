@@ -120,6 +120,10 @@ export function CreatePostModal({ spaces, userTier, isAuthenticated, onPostCreat
   };
 
   const handleSubmit = async () => {
+    if (isSubmitting) {
+      return;
+    }
+
     if (!content.trim()) {
       toast.error('Please enter some content for your post');
       return;
