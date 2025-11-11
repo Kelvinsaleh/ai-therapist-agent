@@ -45,6 +45,25 @@ interface CommunityPost {
   createdAt: string;
 }
 
+function PostContent({ content }: { content: string }) {
+  const charLimit = 320;
+  const isLong = content.length > charLimit;
+  const [expanded, setExpanded] = useState(false);
+  if (!isLong) return <span>{content}</span>;
+  return (
+    <>
+      {expanded ? content : content.slice(0, charLimit) + '...'}
+      <button
+        type="button"
+        className="ml-1 text-primary underline hover:text-primary/80 text-xs align-baseline"
+        onClick={() => setExpanded((e) => !e)}
+      >
+        {expanded ? 'See less' : 'See more...'}
+      </button>
+    </>
+  );
+}
+
 export default function SpacePage() {
   const params = useParams();
   const router = useRouter();
@@ -533,7 +552,7 @@ export default function SpacePage() {
                     </div>
                     
                     <p className="text-gray-700 dark:text-gray-300 mb-3 leading-relaxed">
-                      {post.content}
+                      <PostContent content={post.content} />
                     </p>
                     
                     {post.images && post.images.length > 0 && (

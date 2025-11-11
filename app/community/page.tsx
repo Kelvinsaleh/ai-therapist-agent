@@ -71,6 +71,28 @@ const shuffle = (array: any[]) => {
   return arr;
 };
 
+function PostContent({ content, postId }: { content: string; postId: string }) {
+  const [expandedPostIds, setExpandedPostIds] = useState<{ [key: string]: boolean }>({});
+  const charLimit = 320;
+  // We want this state in parent, but simplify here for single post usage
+  const isLong = content.length > charLimit;
+  const [expanded, setExpanded] = useState(false);
+
+  if (!isLong) return <span>{content}</span>;
+  return (
+    <>
+      {expanded ? content : content.slice(0, charLimit) + '...'}
+      <button
+        type="button"
+        className="ml-1 text-primary underline hover:text-primary/80 text-xs align-baseline"
+        onClick={() => setExpanded((e) => !e)}
+      >
+        {expanded ? 'See less' : 'See more...'}
+      </button>
+    </>
+  );
+}
+
 export default function CommunityPageEnhanced() {
   const { isAuthenticated, userTier, user } = useSession();
   const [spaces, setSpaces] = useState<CommunitySpace[]>([]);
@@ -454,7 +476,7 @@ export default function CommunityPageEnhanced() {
                             </div>
                             
                             <p className="text-gray-700 dark:text-gray-300 mb-3 leading-relaxed">
-                              {post.content}
+                              <PostContent content={post.content} postId={post._id} />
                             </p>
                             
                             {/* Images */}
