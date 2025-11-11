@@ -245,6 +245,72 @@ export function MemoryEnhancedChat({ sessionId, userId }: MemoryEnhancedChatProp
     }
   };
 
+  // Starter prompt click handler
+  const handlePromptClick = async (prompt: string) => {
+    if (isTyping) return;
+    setInputMessage(prompt);
+    // Wait for state update, then send
+    setTimeout(() => handleSendMessagePrompt(prompt), 0);
+  };
+
+  // Helper to send a specific prompt text (separate from the inputMessage state to avoid race conditions)
+  const handleSendMessagePrompt = async (promptMsg: string) => {
+    if (!promptMsg.trim() || isTyping) return;
+
+    // Detect CBT triggers
+    const hasCBTTriggers = detectCBTTriggers(promptMsg);
+    const cbtSuggestions = hasCBTTriggers ? await getCBTSuggestions(promptMsg) : [];
+
+    const userMessage: ChatMessage = {
+      role: "user",
+      content: promptMsg,
+      timestamp: new Date(),
+      context: {
+        mood: userMemory?.moodPatterns[userMemory.moodPatterns.length - 1]?.mood || 3,
+        themes: extractThemes(promptMsg),
+        isCBTTriggered: hasCBTTriggers,
+        cbtInsights: hasCBTTriggers ? { copingStrategies: cbtSuggestions } : undefined,
+      }
+    };
+    setMessages(prev => [...prev, userMessage]);
+    setInputMessage("");
+    setIsTyping(true);
+
+    try {
+      const therapyContext = userMemoryManager.getTherapyContext();
+      const therapySuggestions = userMemoryManager.getTherapySuggestions();
+      const { backendService } = await import("@/lib/api/backend-service");
+      const userMemoryReal = await userMemoryManager.loadUserMemory(userId);
+      const memoryRequest = {
+        message: promptMsg,
+        sessionId,
+        userId,
+        context: therapyContext,
+        suggestions: therapySuggestions,
+        userMemory: {
+          journalEntries: userMemoryReal.journalEntries.slice(-5),
+          meditationHistory: userMemoryReal.meditationHistory.slice(-3),
+          moodPatterns: userMemoryReal.moodPatterns.slice(-7),
+          insights: userMemoryReal.insights.slice(-3),
+          profile: userMemoryReal.profile,
+        }
+      };
+      const response = await backendService.sendMemoryEnhancedMessage(memoryRequest);
+      if (!response.success) throw new Error(response.error || "Unknown error");
+      const assistantMsg: ChatMessage = {
+        role: "assistant",
+        content: response.response,
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, assistantMsg]);
+    } catch (error) {
+      setMessages(prev => [...prev, { role: "assistant", content: "Sorry, I ran into a problem answering that.", timestamp: new Date() }]);
+      console.error("Failed to get AI response:", error);
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
 
   const extractThemes = (text: string): string[] => {
     const themes = [];
@@ -309,6 +375,14 @@ export function MemoryEnhancedChat({ sessionId, userId }: MemoryEnhancedChatProp
 
     return insights;
   };
+
+  const STARTER_PROMPTS = [
+    "I feel stressed — help me calm down.",
+    "I just want to talk about how I feel.",
+    "Give me a quick self-reflection question.",
+    "I need some motivation today.",
+    "Guide me through a short meditation."
+  ];
 
   return (
     <div className="flex flex-col h-full">
@@ -460,6 +534,19 @@ export function MemoryEnhancedChat({ sessionId, userId }: MemoryEnhancedChatProp
 
       {/* Input Area */}
       <div className="border-t p-4">
+        <div className="flex flex-wrap gap-2 mb-4">
+          {messages.length === 0 && STARTER_PROMPTS.map((prompt, idx) => (
+            <Button
+              key={idx}
+              variant="outline"
+              size="sm"
+              className="rounded-full text-xs"
+              onClick={() => handlePromptClick(prompt)}
+            >
+              {prompt}
+            </Button>
+          ))}
+        </div>
         <div className="flex gap-2">
           <input
             type="text"
