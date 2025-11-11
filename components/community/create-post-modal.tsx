@@ -129,10 +129,10 @@ export function CreatePostModal({ spaces, userTier, isAuthenticated, onPostCreat
       return;
     }
 
-    // Enforce 2000-word limit
-    const words = content.trim().split(/\s+/).filter(Boolean);
-    if (words.length > 2000) {
-      toast.error('Your post exceeds the 2000-word limit. Please shorten it.');
+    // Enforce 2000-character limit
+    const contentLength = content.trim().length;
+    if (contentLength > 2000) {
+      toast.error(`Your post is ${contentLength} characters. Maximum allowed is 2000 characters. Please shorten it.`);
       return;
     }
 
@@ -172,6 +172,26 @@ export function CreatePostModal({ spaces, userTier, isAuthenticated, onPostCreat
         })
       });
 
+      if (!response.ok) {
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch {
+          errorData = { error: `Server error (${response.status})` };
+        }
+        
+        console.error('Post creation error:', errorData);
+        
+        if (errorData.upgradeRequired) {
+          toast.error('Premium subscription required to create posts');
+        } else {
+          const errorMessage = errorData.error || errorData.message || `Failed to create post (${response.status})`;
+          const errorDetails = errorData.details ? `: ${errorData.details}` : '';
+          toast.error(`${errorMessage}${errorDetails}`);
+        }
+        return;
+      }
+
       const data = await response.json();
 
       if (data.success) {
@@ -193,7 +213,8 @@ export function CreatePostModal({ spaces, userTier, isAuthenticated, onPostCreat
       }
     } catch (error) {
       console.error('Error creating post:', error);
-      toast.error('Failed to create post');
+      const errorMessage = error instanceof Error ? error.message : 'Network error';
+      toast.error(`Failed to create post: ${errorMessage}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -251,9 +272,10 @@ export function CreatePostModal({ spaces, userTier, isAuthenticated, onPostCreat
               value={content}
               onChange={(e) => setContent(e.target.value)}
               className="min-h-[120px]"
+              maxLength={2000}
             />
-            <div className="text-xs text-muted-foreground text-right">
-              {content.trim().split(/\s+/).filter(Boolean).length}/2000 words
+            <div className={`text-xs text-right ${content.trim().length > 2000 ? 'text-red-500 font-semibold' : content.trim().length > 1800 ? 'text-orange-500' : 'text-muted-foreground'}`}>
+              {content.trim().length}/2000 characters
             </div>
           </div>
 

@@ -24,27 +24,95 @@ async function handleRequest(request: NextRequest) {
     }
 
     let response;
-    if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') {
-      response = await fetch(url, { 
-        method, 
-        headers,
-        cache: 'no-store'
-      });
-    } else {
-      const body = await request.text();
-      console.log('Request body:', body.substring(0, 100));
-      response = await fetch(url, { method, headers, body });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    
+    try {
+      if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') {
+        response = await fetch(url, { 
+          method, 
+          headers,
+          cache: 'no-store',
+          signal: controller.signal
+        });
+      } else {
+        const body = await request.text();
+        console.log('Request body length:', body.length);
+        if (body) {
+          console.log('Request body preview:', body.substring(0, 200));
+        }
+        response = await fetch(url, { 
+          method, 
+          headers, 
+          body,
+          signal: controller.signal
+        });
+      }
+      
+      clearTimeout(timeoutId);
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      console.error('Fetch error:', fetchError);
+      if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'Request timeout - backend took too long to respond'
+          },
+          { status: 504 }
+        );
+      }
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Failed to connect to backend server',
+          details: fetchError instanceof Error ? fetchError.message : 'Network error'
+        },
+        { status: 503 }
+      );
     }
     
     console.log(`Backend response status: ${response.status}`);
     
-    const data = await response.text();
+    let data;
     const contentType = response.headers.get('content-type') || 'application/json';
     
-    return new NextResponse(data, {
+    try {
+      const textData = await response.text();
+      if (contentType.includes('application/json')) {
+        data = textData ? JSON.parse(textData) : {};
+      } else {
+        data = textData;
+      }
+    } catch (parseError) {
+      console.error('Error parsing response:', parseError);
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Invalid response from backend',
+          details: 'Backend returned non-JSON response'
+        },
+        { status: 502 }
+      );
+    }
+    
+    // If backend returned an error, log it and return proper JSON
+    if (!response.ok) {
+      console.error('Backend error response:', data);
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: data.error || data.message || 'Backend server error',
+          details: data.details || data
+        },
+        { status: response.status }
+      );
+    }
+    
+    return NextResponse.json(data, {
       status: response.status,
       headers: { 
-        'content-type': contentType,
+        'content-type': 'application/json',
         'Access-Control-Allow-Origin': '*',
       },
     });
