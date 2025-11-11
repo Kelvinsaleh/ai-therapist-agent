@@ -30,7 +30,7 @@ export function FixedChat() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6">
+    <div className="fixed right-6 bottom-24 md:bottom-6 z-[60]">
       <Button
         size="icon"
         className="h-14 w-14 rounded-full shadow-lg hover:scale-105 transition-transform"
