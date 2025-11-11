@@ -459,29 +459,27 @@ export default function CommunityPageEnhanced() {
                             
                             {/* Images */}
                             {post.images && post.images.length > 0 && (
-                              <div className="mb-3">
-                                <div className={`grid gap-2 ${post.images.length === 1 ? 'grid-cols-1' : post.images.length === 2 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3'}`}
-                                >
-                                  {post.images.map((imageUrl, index) => (
-                                    <div
-                                      key={index}
-                                      className="relative cursor-pointer group"
-                                      onClick={() => {
-                                        setLightboxImages(post.images ?? []);
-                                        setLightboxIndex(index);
-                                        setLightboxOpen(true);
-                                      }}
-                                    >
-                                      <Image
-                                        src={imageUrl}
-                                        alt={`Post image ${index + 1}`}
-                                        width={600}
-                                        height={400}
-                                        className="rounded-lg object-cover w-full h-40 sm:h-56 group-hover:brightness-95 group-hover:ring-4 group-hover:ring-primary transition"
-                                      />
-                                    </div>
-                                  ))}
-                                </div>
+                              <div className="mb-3 space-y-3">
+                                {post.images.map((imageUrl, index) => (
+                                  <div
+                                    key={index}
+                                    className="relative cursor-pointer group rounded-lg overflow-hidden bg-muted/40 dark:bg-muted/20"
+                                    onClick={() => {
+                                      setLightboxImages(post.images ?? []);
+                                      setLightboxIndex(index);
+                                      setLightboxOpen(true);
+                                    }}
+                                  >
+                                    <Image
+                                      src={imageUrl}
+                                      alt={`Post image ${index + 1}`}
+                                      width={1200}
+                                      height={800}
+                                      className="w-full h-auto group-hover:brightness-[0.98] transition"
+                                      style={{ width: "100%", height: "auto" }}
+                                    />
+                                  </div>
+                                ))}
                               </div>
                             )}
                             
