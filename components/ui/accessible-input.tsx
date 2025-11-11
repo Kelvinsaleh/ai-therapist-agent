@@ -13,6 +13,8 @@ interface AccessibleInputProps extends React.InputHTMLAttributes<HTMLInputElemen
   labelClassName?: string;
   errorClassName?: string;
   helperClassName?: string;
+  containerClassName?: string;
+  rightContent?: React.ReactNode;
   onKeyboardEnter?: () => void;
   onKeyboardEscape?: () => void;
   onKeyboardTab?: () => void;
@@ -29,6 +31,8 @@ export const AccessibleInput = forwardRef<HTMLInputElement, AccessibleInputProps
     labelClassName,
     errorClassName,
     helperClassName,
+    containerClassName,
+    rightContent,
     onKeyboardEnter,
     onKeyboardEscape,
     onKeyboardTab,
@@ -50,7 +54,7 @@ export const AccessibleInput = forwardRef<HTMLInputElement, AccessibleInputProps
     });
 
     return (
-      <div className="space-y-2">
+      <div className={cn("space-y-2", containerClassName)}>
         {label && (
           <Label
             htmlFor={inputId}
@@ -69,28 +73,36 @@ export const AccessibleInput = forwardRef<HTMLInputElement, AccessibleInputProps
           </Label>
         )}
         
-        <Input
-          ref={(node) => {
-            if (typeof ref === 'function') {
-              ref(node);
-            } else if (ref) {
-              ref.current = node;
-            }
-            if (inputRef.current) {
-              inputRef.current = node;
-            }
-          }}
-          id={inputId}
-          className={cn(
-            'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
-            error && 'border-red-500 focus:ring-red-500',
-            className
+        <div className="relative">
+          <Input
+            ref={(node) => {
+              if (typeof ref === 'function') {
+                ref(node);
+              } else if (ref) {
+                ref.current = node;
+              }
+              if (inputRef.current) {
+                inputRef.current = node;
+              }
+            }}
+            id={inputId}
+            className={cn(
+              rightContent && 'pr-12',
+              'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
+              error && 'border-red-500 focus:ring-red-500',
+              className
+            )}
+            aria-invalid={error ? 'true' : 'false'}
+            aria-describedby={describedBy || undefined}
+            aria-required={required}
+            {...props}
+          />
+          {rightContent && (
+            <div className="absolute inset-y-0 right-3 flex items-center">
+              {rightContent}
+            </div>
           )}
-          aria-invalid={error ? 'true' : 'false'}
-          aria-describedby={describedBy || undefined}
-          aria-required={required}
-          {...props}
-        />
+        </div>
         
         {error && (
           <p

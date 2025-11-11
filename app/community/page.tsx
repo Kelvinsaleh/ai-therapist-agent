@@ -338,57 +338,6 @@ export default function CommunityPageEnhanced() {
           <p className="text-xl text-muted-foreground mb-4">
             Connect, share, and grow together in a safe, supportive space
           </p>
-          
-          
-          {/* Stats */}
-          {stats && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto mt-4">
-              <Card className="bg-white/70 backdrop-blur-sm border-2 border-blue-200 hover:border-blue-400 transition-colors">
-                <CardContent className="pt-4">
-                  <div className="flex items-center gap-2">
-                    <Users className="w-5 h-5 text-blue-600" />
-                    <div>
-                      <div className="text-2xl font-bold text-blue-600">{stats.activeUsers}</div>
-                      <div className="text-sm text-muted-foreground">Active Members</div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="bg-white/70 backdrop-blur-sm border-2 border-purple-200 hover:border-purple-400 transition-colors">
-                <CardContent className="pt-4">
-                  <div className="flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5 text-purple-600" />
-                    <div>
-                      <div className="text-2xl font-bold text-purple-600">{stats.totalPosts}</div>
-                      <div className="text-sm text-muted-foreground">Total Posts</div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="bg-white/70 backdrop-blur-sm border-2 border-green-200 hover:border-green-400 transition-colors">
-                <CardContent className="pt-4">
-                  <div className="flex items-center gap-2">
-                    <Heart className="w-5 h-5 text-green-600" />
-                    <div>
-                      <div className="text-2xl font-bold text-green-600">{stats.totalComments}</div>
-                      <div className="text-sm text-muted-foreground">Interactions</div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="bg-white/70 backdrop-blur-sm border-2 border-orange-200 hover:border-orange-400 transition-colors">
-                <CardContent className="pt-4">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-orange-600" />
-                    <div>
-                      <div className="text-2xl font-bold text-orange-600">{stats.totalSpaces}</div>
-                      <div className="text-sm text-muted-foreground">Active Spaces</div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
         </motion.div>
 
         {/* Tabs */}
