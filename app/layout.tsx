@@ -13,46 +13,60 @@ import { SkipToMainContent, SkipToNavigation } from "@/components/ui/skip-link";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Hope - AI Therapist",
-  description: "Your personal AI therapist for mental health support",
-  icons: {
-    icon: [
-      { url: "/favicon.ico", sizes: "any" },
-      { url: "/icon.svg", type: "image/svg+xml" },
-      { url: "/icon.png", type: "image/png", sizes: "any" },
-    ],
-    apple: [
-      { url: "/icon.png", sizes: "180x180", type: "image/png" },
-      { url: "/icon.svg", type: "image/svg+xml" },
-    ],
-    shortcut: "/favicon.ico",
+  title: "Hope — AI Mental Health Companion | Meditations, Journaling & Support Community",
+  description:
+    "Find calm and clarity with Hope — your AI-powered mental health companion. Chat safely, explore guided meditations, journal with AI insights, and connect with a supportive community. Start free on ultra-predict.co.ke.",
+  keywords: [
+    "mental health app",
+    "AI therapy",
+    "meditation app",
+    "journaling app",
+    "mindfulness",
+    "mental wellness",
+    "self care",
+    "anxiety support",
+    "depression help",
+    "emotional support",
+    "Hope app",
+    "AI mental health companion",
+    "ultra predict",
+    "ultra-predict.co.ke",
+  ],
+  robots: {
+    index: true,
+    follow: true,
   },
+  authors: [{ name: "Hope by Ultra Predict" }],
+  icons: {
+    icon: [{ url: "/favicon.png", type: "image/png" }],
+    shortcut: "/favicon.png",
+  },
+  // Metadata base ensures OG/Twitter absolute URLs
+  metadataBase: new URL("https://ultra-predict.co.ke"),
   openGraph: {
-    title: "Hope - AI Therapist",
-    description: "Your personal AI therapist for mental health support",
-    url: process.env.NEXT_PUBLIC_SITE_URL || "",
-    siteName: "Hope AI",
+    type: "website",
+    url: "https://ultra-predict.co.ke/",
+    title: "Hope — Your AI Mental Health Companion",
+    description:
+      "Talk, heal, and grow. Hope is your safe space for mental health — featuring AI chat, guided meditations, journaling, and a caring community.",
+    siteName: "Hope",
     images: [
       {
-        url: "/icon.png",
-        width: 512,
-        height: 512,
-        alt: "Hope - AI Therapist - Your personal AI therapist for mental health support",
+        url: "https://ultra-predict.co.ke/og-image.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Hope — AI Mental Health Companion",
       },
     ],
     locale: "en_US",
-    type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Hope - AI Therapist",
-    description: "Your personal AI therapist for mental health support",
-    images: ["/icon.png"],
-    creator: "@hopeai",
+    title: "Hope — AI Mental Health Companion",
+    description:
+      "Find peace of mind with Hope. Chat with an AI companion, meditate, journal, and connect with others who understand.",
+    images: ["https://ultra-predict.co.ke/og-image.jpg"],
   },
-  ...(process.env.NEXT_PUBLIC_SITE_URL && {
-    metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL),
-  }),
   manifest: "/manifest.json",
 };
 
