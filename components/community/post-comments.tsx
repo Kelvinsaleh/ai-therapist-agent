@@ -285,7 +285,9 @@ export function PostComments({ postId, userTier, isAuthenticated, onCommentAdded
               </span>
             </div>
             <span className="text-sm font-medium">
-              {comment.isAnonymous ? 'Anonymous' : comment.userId?.username || 'User'}
+              {comment.isAnonymous
+                ? 'Anonymous'
+                : (comment.userId?.username && comment.userId.username.trim() !== '' ? comment.userId.username : 'User')}
             </span>
             {comment.isAnonymous && (
               <span className="text-xs text-muted-foreground">👤</span>
