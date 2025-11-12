@@ -425,16 +425,22 @@ export default function CommunityPageEnhanced() {
                               <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center">
                                   <span className="text-lg font-medium">
-                                    {post.isAnonymous ? '?' : post.userId?.username?.charAt(0).toUpperCase() || '?'}
+                                    {post.isAnonymous 
+                                      ? '?' 
+                                      : (post.userId?.username?.charAt(0).toUpperCase() || 
+                                         post.userId?.name?.charAt(0).toUpperCase() || 
+                                         '?')}
                                   </span>
                                 </div>
                                 <div>
                                   <div className="font-medium flex items-center gap-2">
                                     {post.isAnonymous
                                       ? 'Anonymous'
-                                      : post.userId?.username && post.userId.username.trim() !== ''
+                                      : (post.userId?.username && post.userId.username.trim() !== '')
                                         ? post.userId.username
-                                        : ''}
+                                        : (post.userId?.name && post.userId.name.trim() !== '')
+                                          ? post.userId.name
+                                          : 'User'}
                                     {post.isAnonymous && (
                                       <span className="text-xs text-muted-foreground">👤</span>
                                     )}

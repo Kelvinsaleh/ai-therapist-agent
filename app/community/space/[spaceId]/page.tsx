@@ -517,12 +517,22 @@ export default function SpacePage() {
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center">
                           <span className="text-lg font-medium">
-                            {post.isAnonymous ? '?' : post.userId?.username?.charAt(0).toUpperCase() || '?'}
+                            {post.isAnonymous 
+                              ? '?' 
+                              : (post.userId?.username?.charAt(0).toUpperCase() || 
+                                 post.userId?.name?.charAt(0).toUpperCase() || 
+                                 '?')}
                           </span>
                         </div>
                         <div>
                           <div className="font-medium">
-                            {post.isAnonymous ? 'Anonymous' : post.userId?.username || 'User'}
+                            {post.isAnonymous
+                              ? 'Anonymous'
+                              : (post.userId?.username && post.userId.username.trim() !== '')
+                                ? post.userId.username
+                                : (post.userId?.name && post.userId.name.trim() !== '')
+                                  ? post.userId.name
+                                  : 'User'}
                           </div>
                           <div className="text-sm text-muted-foreground flex items-center gap-1">
                             <Clock className="w-3 h-3" />
