@@ -46,20 +46,30 @@ interface CommunityPost {
 }
 
 function PostContent({ content }: { content: string }) {
-  const charLimit = 320;
-  const isLong = content.length > charLimit;
   const [expanded, setExpanded] = useState(false);
-  if (!isLong) return <span>{content}</span>;
   return (
     <>
-      {expanded ? content : content.slice(0, charLimit) + '...'}
-      <button
-        type="button"
-        className="ml-1 text-primary underline hover:text-primary/80 text-xs align-baseline"
-        onClick={() => setExpanded((e) => !e)}
+      <span
+        className={
+          expanded
+            ? 'text-[15px] md:text-base text-gray-700 dark:text-gray-300'
+            : 'block text-[13px] md:text-sm text-muted-foreground leading-relaxed line-clamp-3 transition-all duration-200'
+        }
+        style={expanded ? {} : { WebkitLineClamp: 3, display: '-webkit-box', WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+        aria-expanded={expanded}
       >
-        {expanded ? 'See less' : 'See more...'}
-      </button>
+        {content}
+      </span>
+      {content.trim().split(/\s+/).length > 20 || content.length > 120 ? (
+        <button
+          type="button"
+          aria-label={expanded ? 'Collapse post' : 'Expand full post'}
+          className="ml-1 text-primary underline hover:text-primary/80 text-xs align-baseline focus:outline-none focus:ring-2 focus:ring-primary rounded transition-all"
+          onClick={() => setExpanded((e) => !e)}
+        >
+          {expanded ? 'See less' : 'See more'}
+        </button>
+      ) : null}
     </>
   );
 }
@@ -561,7 +571,7 @@ export default function SpacePage() {
                       </div>
                     </div>
                     
-                    <p className="text-gray-700 dark:text-gray-300 mb-3 leading-relaxed">
+                    <p className="mb-3 leading-relaxed">
                       <PostContent content={post.content} />
                     </p>
                     
