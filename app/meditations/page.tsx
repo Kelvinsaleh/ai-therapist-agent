@@ -481,22 +481,22 @@ export default function MeditationsPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-2 sm:p-4">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-3 mb-4">
+        <div className="text-center mb-6 sm:mb-8">
+          <div className="flex flex-col xs:flex-row items-center justify-center gap-2 sm:gap-3 mb-2 sm:mb-4">
             {showFavorites && (
               <Heart className="w-8 h-8 text-red-500 fill-current" />
             )}
-            <h1 className="text-4xl font-bold text-gray-900">
+            <h1 className="text-2xl xs:text-3xl sm:text-4xl font-bold text-gray-900">
               {showFavorites ? "My Favorite Meditations" : "Meditation Library"}
             </h1>
             {showFavorites && (
               <Heart className="w-8 h-8 text-red-500 fill-current" />
             )}
           </div>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-base xs:text-lg text-gray-600 max-w-xs xs:max-w-2xl mx-auto">
             {showFavorites 
               ? "Your personal collection of meditations that bring you peace and mindfulness."
               : "Discover guided meditations to help you find peace, reduce stress, and improve your well-being."
@@ -534,9 +534,9 @@ export default function MeditationsPage() {
         )}
 
         {/* Search and Filter */}
-        <Card className="mb-8">
-          <CardContent className="p-6">
-            <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4">
+        <Card className="mb-6 sm:mb-8">
+          <CardContent className="p-2 sm:p-6">
+            <form onSubmit={handleSearch} className="flex flex-col gap-2 sm:flex-row sm:gap-4">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
@@ -547,7 +547,7 @@ export default function MeditationsPage() {
                   className="pl-10"
                 />
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-row flex-wrap gap-2">
                 <Button
                   type="button"
                   variant={!showFavorites ? "default" : "outline"}
@@ -628,7 +628,7 @@ export default function MeditationsPage() {
 
         {/* Meditation Cards */}
         {!isLoading && filteredMeditations.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             <AnimatePresence>
               {filteredMeditations.map((meditation) => (
                 <motion.div
@@ -646,7 +646,7 @@ export default function MeditationsPage() {
                     ariaDescribedBy={`meditation-${meditation.id}-description`}
                     interactive={false}
                   >
-                    <div className="flex items-start justify-between mb-3">
+                    <div className="flex flex-col sm:flex-row items-start justify-between mb-3 gap-2 sm:gap-0">
                       <div className="flex items-center gap-2">
                         <Headphones className="w-5 h-5 text-primary" aria-hidden="true" />
                         <h3 className="text-lg font-semibold">{meditation.title}</h3>
@@ -660,7 +660,7 @@ export default function MeditationsPage() {
                         {meditation.description}
                       </p>
                       
-                      <div className="flex items-center gap-4 text-sm text-gray-500">
+                      <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
                         <div className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
                           {meditation.duration} min
@@ -688,7 +688,7 @@ export default function MeditationsPage() {
                         )}
                       </div>
 
-                      <div className="flex gap-2">
+                      <div className="flex flex-col sm:flex-row gap-2 w-full">
                         <AccessibleButton
                           onClick={(e) => {
                             e.preventDefault();

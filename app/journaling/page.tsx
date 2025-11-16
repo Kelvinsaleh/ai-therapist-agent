@@ -700,10 +700,10 @@ export default function JournalingPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-20">
-        <div className="text-center mb-12">
-          <div className="flex items-center justify-center gap-4 mb-4">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+    <div className="container mx-auto px-2 xs:px-4 py-8 sm:py-12 md:py-20">
+        <div className="text-center mb-8 sm:mb-12">
+          <div className="flex flex-col xs:flex-row items-center justify-center gap-2 sm:gap-4 mb-2 sm:mb-4">
+            <h1 className="text-2xl xs:text-3xl sm:text-4xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
               AI Journal
             </h1>
             {/* Backend Connection Status */}
@@ -720,12 +720,12 @@ export default function JournalingPage() {
               </div>
             )}
           </div>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-4">
+          <p className="text-base xs:text-lg text-muted-foreground max-w-xs xs:max-w-2xl mx-auto mb-2 sm:mb-4">
             Write freely, reflect deeply, and discover insights about your mental well-being
           </p>
           
           {/* Stats */}
-          <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
+          <div className="flex flex-col xs:flex-row items-center justify-center gap-4 sm:gap-6 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <NotebookPen className="w-4 h-4" />
               <span>{entries.length} entries</span>
@@ -748,9 +748,9 @@ export default function JournalingPage() {
           </div>
         </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8">
         {/* New Entry Form */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 min-w-0">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -760,19 +760,19 @@ export default function JournalingPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2">Title (optional)</label>
+                <label className="block text-xs sm:text-sm font-medium mb-2">Title (optional)</label>
                 <input
                   type="text"
                   value={entryTitle}
                   onChange={(e) => setEntryTitle(e.target.value)}
                   placeholder="Give your entry a title..."
-                  className="w-full p-3 rounded-md border bg-background"
+                  className="w-full p-2 sm:p-3 rounded-md border bg-background"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">How are you feeling today?</label>
-                <div className="flex items-center gap-4">
+                <label className="block text-xs sm:text-sm font-medium mb-2">How are you feeling today?</label>
+                <div className="flex items-center gap-2 xs:gap-4">
                   <motion.span 
                     className="text-2xl"
                     animate={{ scale: mood <= 2 ? [1, 1.2, 1] : 1 }}
@@ -1101,7 +1101,7 @@ export default function JournalingPage() {
         </div>
 
         {/* Entries List */}
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* Search and Filter */}
           <Card>
             <CardHeader>
@@ -1136,7 +1136,7 @@ export default function JournalingPage() {
           </Card>
 
           {/* Entries */}
-          <div className="space-y-3 max-h-[600px] overflow-y-auto">
+          <div className="space-y-2 sm:space-y-3 max-h-[400px] sm:max-h-[600px] overflow-y-auto">
             <AnimatePresence>
               {filteredEntries.map((entry) => (
                 <motion.div
@@ -1224,14 +1224,14 @@ export default function JournalingPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+            className="fixed inset-0 bg-black/50 flex items-center justify-center p-2 sm:p-4 z-50"
             onClick={() => setSelectedEntry(null)}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-background rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto"
+              className="bg-background rounded-lg max-w-full sm:max-w-2xl w-full max-h-[80vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <Card>
