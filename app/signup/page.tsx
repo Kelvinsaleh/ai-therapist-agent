@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
-import { Eye, EyeOff, Mail, User, Lock } from "lucide-react";
+import { Eye, EyeOff, Mail, User, Lock, Loader2 } from "lucide-react";
 import { registerUser } from "@/lib/api/auth";
 
 export default function SignupPage() {
@@ -131,6 +131,7 @@ export default function SignupPage() {
                       className="pl-12 py-2 text-base rounded-xl bg-card bg-opacity-80 border border-primary focus:outline-none focus:ring-2 focus:ring-primary text-foreground placeholder:text-muted-foreground"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
+                      disabled={loading}
                       required
                     />
                   </div>
@@ -151,6 +152,7 @@ export default function SignupPage() {
                       className="pl-12 py-2 text-base rounded-xl bg-card bg-opacity-80 border border-primary focus:outline-none focus:ring-2 focus:ring-primary text-foreground placeholder:text-muted-foreground"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
+                      disabled={loading}
                       required
                     />
                   </div>
@@ -172,6 +174,7 @@ export default function SignupPage() {
                     className="pl-12 pr-12 py-2 text-base rounded-xl bg-card bg-opacity-80 border border-primary focus:outline-none focus:ring-2 focus:ring-primary text-foreground placeholder:text-muted-foreground"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    disabled={loading}
                     required
                   />
                   <button
@@ -200,6 +203,7 @@ export default function SignupPage() {
                     className="pl-12 pr-12 py-2 text-base rounded-xl bg-card bg-opacity-80 border border-primary focus:outline-none focus:ring-2 focus:ring-primary text-foreground placeholder:text-muted-foreground"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
+                    disabled={loading}
                     required
                   />
                   <button
@@ -224,7 +228,14 @@ export default function SignupPage() {
               type="submit"
               disabled={loading}
             >
-              {loading ? "Signing up..." : "Sign Up"}
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Signing up...
+                </>
+              ) : (
+                "Sign Up"
+              )}
             </Button>
           </form>
           <div className="my-6 border-t border-primary/10" />

@@ -22,6 +22,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [navigatingToSignup, setNavigatingToSignup] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
   const [showPassword, setShowPassword] = useState(false);
 
@@ -114,6 +115,11 @@ export default function LoginPage() {
     }
   };
 
+  const handleSignupClick = () => {
+    // Show immediate visual feedback
+    setNavigatingToSignup(true);
+  };
+
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/30">
       <Container className="flex flex-col items-center justify-center w-full">
@@ -200,9 +206,17 @@ export default function LoginPage() {
               </span>
               <Link
                 href="/signup"
-                className="text-primary font-semibold underline hover:text-primary/80 transition-colors"
+                onClick={handleSignupClick}
+                className="text-primary font-semibold underline hover:text-primary/80 transition-colors flex items-center gap-1"
               >
-                Sign up
+                {navigatingToSignup ? (
+                  <>
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    <span>Loading...</span>
+                  </>
+                ) : (
+                  "Sign up"
+                )}
               </Link>
               <span className="text-muted-foreground">·</span>
               <Link

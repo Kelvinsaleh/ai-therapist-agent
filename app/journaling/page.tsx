@@ -29,6 +29,7 @@ import { format, startOfDay, isToday, isYesterday } from "date-fns";
 import { useSession } from "@/lib/contexts/session-context";
 import { getFeatureLimits, checkJournalLimit } from "@/lib/session-limits";
 import { toast } from "sonner";
+import React from "react";
 
 interface JournalEntry {
   id: string;
@@ -699,6 +700,36 @@ export default function JournalingPage() {
     return "text-green-500";
   };
 
+  function JournalEntryContent({ content }: { content: string }) {
+    const [expanded, setExpanded] = useState(false);
+    const shouldClamp = content.trim().split(/\s+/).length > 20 || content.length > 120;
+    return (
+      <>
+        <span
+          className={
+            expanded
+              ? 'text-[15px] md:text-base text-gray-700 dark:text-gray-300'
+              : 'block text-[13px] md:text-sm text-muted-foreground leading-relaxed line-clamp-3 transition-all duration-200'
+          }
+          style={expanded ? {} : { WebkitLineClamp: 3, display: '-webkit-box', WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+          aria-expanded={expanded}
+        >
+          {content}
+        </span>
+        {shouldClamp && (
+          <button
+            type="button"
+            aria-label={expanded ? 'Collapse journal content' : 'Expand full journal content'}
+            className="ml-1 text-primary underline hover:text-primary/80 text-xs align-baseline focus:outline-none focus:ring-2 focus:ring-primary rounded transition-all"
+            onClick={() => setExpanded((e) => !e)}
+          >
+            {expanded ? 'See less' : 'See more'}
+          </button>
+        )}
+      </>
+    );
+  }
+
   return (
     <div className="container mx-auto px-2 xs:px-4 py-8 sm:py-12 md:py-20">
         <div className="text-center mb-8 sm:mb-12">
@@ -1167,8 +1198,8 @@ export default function JournalingPage() {
                         </div>
                       </div>
                       
-                      <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-                        {entry.content}
+                      <p className="mb-2">
+                        <JournalEntryContent content={entry.content} />
                       </p>
                       
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
