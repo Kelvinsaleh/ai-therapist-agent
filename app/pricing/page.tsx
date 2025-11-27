@@ -5,12 +5,13 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Star, Heart, Shield, Users, Crown, MessageSquare, Lock, Headphones, NotebookPen } from "lucide-react";
+import { Check, Star, Heart, Shield, Users, Crown, MessageSquare, Lock, Headphones, NotebookPen, Smartphone } from "lucide-react";
 import { paystackService, PaymentPlan } from "@/lib/payments/paystack-service";
 import { useSession } from "@/lib/contexts/session-context";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { feedback } from "@/lib/utils/feedback";
+import { MobileDownloadButton } from "@/components/mobile-download-button";
 
 export default function PricingPage() {
   const [isLoading, setIsLoading] = useState<string | null>(null);
@@ -412,6 +413,31 @@ export default function PricingPage() {
             </div>
           </div>
         </motion.div>
+
+        {/* Mobile App Download Section */}
+        {process.env.NEXT_PUBLIC_APK_DOWNLOAD_URL && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.35 }}
+            className="text-center mt-16 mb-8"
+          >
+            <Card className="max-w-2xl mx-auto bg-gradient-to-r from-primary/10 to-primary/5 border-2 border-primary/20">
+              <CardContent className="p-8">
+                <div className="flex items-center justify-center mb-4">
+                  <div className="p-3 rounded-full bg-primary/20">
+                    <Smartphone className="w-8 h-8 text-primary" />
+                  </div>
+                </div>
+                <h2 className="text-2xl font-bold mb-2">Download Our Mobile App</h2>
+                <p className="text-muted-foreground mb-6">
+                  Get Hope on your Android device for the best mobile experience.
+                </p>
+                <MobileDownloadButton variant="default" className="text-lg px-8 py-6 h-auto" />
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
 
         {/* CTA Section */}
         <motion.div

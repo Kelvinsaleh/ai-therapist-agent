@@ -15,8 +15,11 @@ import {
 	Smile,
 	PlayCircle,
 	BarChart3,
-	CreditCard
+	CreditCard,
+	Smartphone,
+	Download
 } from "lucide-react";
+import { MobileDownloadButton } from "@/components/mobile-download-button";
 
 const features = [
 	{
@@ -116,6 +119,33 @@ export default function FeaturesPage() {
           </motion.div>
         ))}
       </div>
+
+      {/* Mobile App Download Section */}
+      {process.env.NEXT_PUBLIC_APK_DOWNLOAD_URL && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.7 }}
+          className="mt-16"
+        >
+          <Card className="p-8 bg-gradient-to-r from-primary/10 to-primary/5 border-2 border-primary/20">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="flex items-center gap-4">
+                <div className="p-4 rounded-full bg-primary/20">
+                  <Smartphone className="w-8 h-8 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-semibold mb-2">Download Our Mobile App</h3>
+                  <p className="text-muted-foreground">
+                    Take Hope with you everywhere. Download the Android app for a better mobile experience.
+                  </p>
+                </div>
+              </div>
+              <MobileDownloadButton variant="default" className="text-lg px-8 py-6 h-auto" />
+            </div>
+          </Card>
+        </motion.div>
+      )}
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}

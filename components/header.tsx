@@ -13,6 +13,7 @@ import { ThemeToggle } from "./theme-toggle";
 import { SignInButton } from "@/components/auth/sign-in-button";
 import { ProfileDropdown } from "@/components/profile-dropdown";
 import { useSession } from "@/lib/contexts/session-context";
+import { MobileDownloadButton } from "./mobile-download-button";
 
 export function Header() {
   const { isAuthenticated, user } = useSession();
@@ -76,6 +77,7 @@ export function Header() {
             </nav>
 
             <div className="flex items-center gap-3">
+              <MobileDownloadButton variant="outline" className="hidden md:flex" />
               <ThemeToggle />
 
               {/* Mobile menu button */}
@@ -156,6 +158,9 @@ export function Header() {
                     <SignInButton />
                   </div>
                 )}
+                <div className="px-4 py-2">
+                  <MobileDownloadButton variant="outline" className="w-full" />
+                </div>
               </nav>
             </div>
           </>

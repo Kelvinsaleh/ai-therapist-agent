@@ -2,7 +2,8 @@
 
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
-import { Heart, Target, Sparkles, Mail, MessageCircleHeart } from "lucide-react";
+import { Heart, Target, Sparkles, Mail, MessageCircleHeart, Smartphone } from "lucide-react";
+import { MobileDownloadButton } from "@/components/mobile-download-button";
 
 const missions = [
   {
@@ -62,11 +63,36 @@ export default function AboutPage() {
         ))}
       </div>
 
+      {/* Mobile App Download Section */}
+      {process.env.NEXT_PUBLIC_APK_DOWNLOAD_URL && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="max-w-3xl mx-auto mb-8"
+        >
+          <Card className="p-6 bg-gradient-to-r from-primary/10 to-primary/5 border-2 border-primary/20">
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-lg bg-primary/20">
+                <Smartphone className="w-6 h-6 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-semibold mb-1">Download Our Mobile App</h3>
+                <p className="text-muted-foreground mb-4">
+                  Get the Hope app on your Android device for the best mobile experience.
+                </p>
+                <MobileDownloadButton variant="default" />
+              </div>
+            </div>
+          </Card>
+        </motion.div>
+      )}
+
       {/* Contact / Support */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.3 }}
+        transition={{ duration: 0.5, delay: 0.4 }}
         className="max-w-3xl mx-auto"
       >
         <Card className="p-6 bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -77,14 +103,14 @@ export default function AboutPage() {
             <div className="flex-1">
               <h3 className="text-xl font-semibold mb-1">Contact Us</h3>
               <p className="text-muted-foreground mb-4">
-                Have a question, feedback, or need support? We’re here to help.
+                Have a question, feedback, or need support? We're here to help.
               </p>
               <div className="space-y-2 text-sm">
                 <p>
                   Email: <a href="mailto:support@hope-therapy.com" className="text-primary underline">support@hope-therapy.com</a>
                 </p>
                 <p>
-                  Community: Open the app’s Community tab to share suggestions or ask for help.
+                  Community: Open the app's Community tab to share suggestions or ask for help.
                 </p>
               </div>
             </div>
