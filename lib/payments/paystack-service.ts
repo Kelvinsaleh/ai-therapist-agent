@@ -45,7 +45,7 @@ class PaystackService {
       {
         id: 'monthly',
         name: 'Monthly Plan',
-        price: 1300,
+        price: 500,
         currency: 'KES',
         interval: 'monthly',
         paystackPlanCode: process.env.PAYSTACK_MONTHLY_PLAN_CODE || 'PLN_monthly_plan',
@@ -53,24 +53,22 @@ class PaystackService {
           'Unlimited AI therapy sessions',
           'Advanced mood tracking',
           'Personalized insights',
-          '24/7 crisis support',
           'Full meditation library',
           'AI journal analysis',
           'Advanced progress tracking',
           'Priority email support',
-          'Advanced voice therapy',
           'Unlimited session duration'
         ]
       },
       {
         id: 'annually',
         name: 'Annual Plan',
-        price: 13000,
+        price: 6000,
         currency: 'KES',
         interval: 'annually',
         paystackPlanCode: process.env.PAYSTACK_ANNUAL_PLAN_CODE || 'PLN_annual_plan',
         popular: true,
-        savings: 2600, // KES 15,600 - KES 13,000 = KES 2,600 savings
+        savings: 1200, // example: 12 months * 500 = 6000, keep a hypothetical savings field
         features: [
           'Everything in Monthly Plan',
           'Priority support',
@@ -194,8 +192,7 @@ class PaystackService {
   // Create subscription through backend
   async createSubscription(
     customerEmail: string,
-    planCode: string,
-    authorizationCode: string
+    planId: string
   ): Promise<PaymentResponse> {
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
@@ -203,16 +200,14 @@ class PaystackService {
         throw new Error('Authentication token not found');
       }
 
-      const response = await fetch(`${this.backendUrl}/payments/subscription`, {
+      const response = await fetch(`${this.backendUrl}/payments/subscription/create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          customerEmail,
-          planCode,
-          authorizationCode
+          planId
         })
       });
 
@@ -221,7 +216,8 @@ class PaystackService {
       if (data.success) {
         return {
           success: true,
-          reference: data.subscriptionCode,
+          reference: data.subscription?.subscription_code || data.subscription?.id || undefined,
+          authorization_url: data.authorization_url || undefined,
           message: 'Subscription created successfully'
         };
       } else {
@@ -287,7 +283,7 @@ class PaystackService {
   }
 
   // Cancel subscription through backend
-  async cancelSubscription(userId: string): Promise<PaymentResponse> {
+  async cancelSubscription(userId: string, subscriptionId?: string): Promise<PaymentResponse> {
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
       if (!token) {
@@ -301,7 +297,8 @@ class PaystackService {
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          userId
+          userId,
+          subscriptionId
         })
       });
 

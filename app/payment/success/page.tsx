@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle, Loader2, Crown } from "lucide-react";
 import { toast } from "sonner";
 import { useSession } from "@/lib/contexts/session-context";
+import { paystackService } from "@/lib/payments/paystack-service";
 import { LoadingDots } from "@/components/ui/loading-dots";
 
 export default function PaymentSuccessPage() {
@@ -30,23 +31,18 @@ export default function PaymentSuccessPage() {
       const paymentRef = reference || trxref;
 
       try {
-        const token = localStorage.getItem('token') || localStorage.getItem('authToken');
-        
         // Show progress feedback
         setMessage('Verifying your payment with Paystack...');
-        
-        const response = await fetch('/api/payments/verify', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ reference: paymentRef })
-        });
 
-        const data = await response.json();
+        if (!paymentRef) {
+          setStatus('error');
+          setMessage('No payment reference provided');
+          return;
+        }
 
-        if (data.success) {
+        const data = await paystackService.verifyPayment(paymentRef);
+
+  if (data.success) {
           setMessage('Payment verified! Activating premium features...');
           
           // Small delay for better UX
@@ -82,13 +78,7 @@ export default function PaymentSuccessPage() {
         } else {
           setStatus('error');
           setMessage(data.error || 'Payment verification failed');
-          toast.error('Payment verification failed');
-          
-          if (data.supportInfo) {
-            setTimeout(() => {
-              alert(`Payment Issue\n\nIf your payment was processed, please contact:\n${data.supportInfo.email}\n\n${data.supportInfo.message}`);
-            }, 2000);
-          }
+          toast.error(data.error || 'Payment verification failed');
         }
       } catch (error) {
         console.error('Payment verification error:', error);

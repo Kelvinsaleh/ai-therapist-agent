@@ -1,6 +1,6 @@
 {
-  "name": "Hope - AI Therapist",
-  "short_name": "Hope AI",
+  "name": "Hope",
+  "short_name": "Hope",
   "description": "Your personal AI therapist for mental health support",
   "start_url": "/",
   "display": "standalone",
@@ -9,10 +9,16 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/icon.png",
+      "src": "/home.png",
       "sizes": "any",
       "type": "image/png",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
     }
   ]
 }

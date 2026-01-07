@@ -122,6 +122,7 @@ export default function RootLayout({
         <meta property="og:title" content="Hope – AI Mental Health App for Journaling, Meditation & Support" />
         <meta property="og:description" content="Journal, meditate, chat, and connect with a healing community. Hope helps you build calm, clarity, and connection through AI-powered mental wellness tools." />
         <meta property="og:image" content="https://ultra-predict.co.ke/assets/hope-cover.jpg" />
+  <meta property="og:image" content="/home.png" />
         <meta property="og:url" content="https://ultra-predict.co.ke/hope" />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="Hope – Mental Wellness App" />
@@ -129,6 +130,10 @@ export default function RootLayout({
         <meta name="twitter:title" content="Hope – Your AI Mental Wellness App" />
         <meta name="twitter:description" content="Heal, journal, and meditate with Hope — your safe AI-powered space for mental wellness and community connection." />
         <meta name="twitter:image" content="https://ultra-predict.co.ke/assets/hope-cover.jpg" />
+  <meta name="twitter:image" content="/home.png" />
+  {/* Favicons & touch icons (use simple home.png included in public/) */}
+  <link rel="icon" href="/home.png" />
+  <link rel="apple-touch-icon" href="/home.png" />
         <meta name="twitter:site" content="@HopeAppOfficial" />
         {/* STRUCTURED DATA (JSON-LD for Google Rich Results) */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({

@@ -14,19 +14,7 @@ class JournalingScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final journalEntriesAsync = ref.watch(journalEntriesProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Journaling'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {
-              // TODO: Implement search
-            },
-          ),
-        ],
-      ),
-      body: journalEntriesAsync.when(
+    return journalEntriesAsync.when(
         data: (entries) {
           if (entries.isEmpty) {
             return Center(
@@ -91,20 +79,6 @@ class JournalingScreen extends ConsumerWidget {
             ],
           ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const JournalEntryFormScreen(),
-            ),
-          ).then((_) {
-            ref.read(journalEntriesProvider.notifier).loadEntries();
-          });
-        },
-        icon: const Icon(Icons.add),
-        label: const Text('New Entry'),
       ),
     );
   }

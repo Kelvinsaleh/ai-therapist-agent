@@ -59,10 +59,16 @@ export default function PricingPage() {
   return (
     <div className="min-h-screen bg-muted/5 py-20">
       <div className="max-w-5xl mx-auto px-6">
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
           <div className="text-center mb-10">
             <h1 className="text-3xl md:text-4xl font-extrabold">Simple plans. No surprises.</h1>
-            <p className="mt-3 text-muted-foreground max-w-2xl mx-auto">FREE — Support without pressure. PREMIUM — Depth, clarity, continuity.</p>
+            <p className="mt-3 text-muted-foreground max-w-2xl mx-auto">
+              FREE — Support without pressure. PREMIUM — Depth, clarity, continuity.
+            </p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-6 items-start mb-10">
@@ -83,7 +89,9 @@ export default function PricingPage() {
                   <li>✔ Community access & mood check-ins</li>
                 </ul>
                 <div className="mt-6">
-                  <Button onClick={handleSignIn} className="w-full" variant={"secondary" as any}>Sign in to get started</Button>
+                  <Button onClick={handleSignIn} className="w-full" variant={"secondary" as any}>
+                    Sign in to get started
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -112,8 +120,22 @@ export default function PricingPage() {
                 </ul>
 
                 <div className="mt-6 grid grid-cols-1 gap-3">
-                  <Button onClick={() => handleSubscribe('monthly')} disabled={isLoading === 'monthly'} className="w-full bg-primary">{isLoading === 'monthly' ? 'Processing...' : `Subscribe — KES ${monthlyPlan?.price ?? 500} / month`}</Button>
-                  <Button onClick={() => handleSubscribe('annually')} disabled={isLoading === 'annually'} className="w-full" variant={"outline" as any}>{isLoading === 'annually' ? 'Processing...' : `Subscribe annually — KES ${annualPlan?.price ?? 5000}`}</Button>
+                  <Button
+                    onClick={() => handleSubscribe("monthly")}
+                    disabled={isLoading === "monthly"}
+                    className="w-full bg-primary"
+                  >
+                    {isLoading === "monthly" ? "Processing..." : `Subscribe — KES ${monthlyPlan?.price ?? 500} / month`}
+                  </Button>
+
+                  <Button
+                    onClick={() => handleSubscribe("annually")}
+                    disabled={isLoading === "annually"}
+                    className="w-full"
+                    variant={"outline" as any}
+                  >
+                    {isLoading === "annually" ? "Processing..." : `Subscribe annually — KES ${annualPlan?.price ?? 5000}`}
+                  </Button>
                 </div>
 
                 <p className="mt-4 text-xs text-muted-foreground">Cancel anytime. No hidden fees. Pricing shown in KES; USD is approximate.</p>
@@ -140,10 +162,19 @@ export default function PricingPage() {
           </div>
 
           {process.env.NEXT_PUBLIC_APK_DOWNLOAD_URL && (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.35 }} className="text-center mt-8 mb-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.35 }}
+              className="text-center mt-8 mb-8"
+            >
               <Card className="max-w-2xl mx-auto bg-gradient-to-r from-primary/10 to-primary/5 border-2 border-primary/20">
                 <CardContent className="p-8">
-                  <div className="flex items-center justify-center mb-4"><div className="p-3 rounded-full bg-primary/20"><Smartphone className="w-8 h-8 text-primary" /></div></div>
+                  <div className="flex items-center justify-center mb-4">
+                    <div className="p-3 rounded-full bg-primary/20">
+                      <Smartphone className="w-8 h-8 text-primary" />
+                    </div>
+                  </div>
                   <h2 className="text-2xl font-bold mb-2">Download Our Mobile App</h2>
                   <p className="text-muted-foreground mb-6">Get Hope on your Android device for the best mobile experience.</p>
                   <MobileDownloadButton variant="default" className="text-lg px-8 py-6 h-auto" />
@@ -157,7 +188,9 @@ export default function PricingPage() {
               <CardContent className="p-8">
                 <h2 className="text-2xl font-bold mb-4">Ready to go Premium?</h2>
                 <p className="text-muted-foreground mb-6">Unlock unlimited chat, journaling, and meditations today.</p>
-                <Button onClick={() => router.push('/pricing')} size="lg" className="bg-primary hover:bg-primary/90"><Users className="w-4 h-4 mr-2" /> Get Started Today</Button>
+                <Button onClick={() => router.push('/pricing')} size="lg" className="bg-primary hover:bg-primary/90">
+                  <Users className="w-4 h-4 mr-2" /> Get Started Today
+                </Button>
               </CardContent>
             </Card>
           </motion.div>
@@ -166,4 +199,3 @@ export default function PricingPage() {
     </div>
   );
 }
-
