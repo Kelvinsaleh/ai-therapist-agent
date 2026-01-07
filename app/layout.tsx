@@ -43,9 +43,10 @@ export const metadata: Metadata = {
   robots: {
     index: true,
     follow: true,
-    maxSnippet: -1,
-    maxImagePreview: "large",
-    maxVideoPreview: -1,
+    // Use quoted hyphen-keys to match Next's Metadata type
+    'max-snippet': -1,
+    'max-image-preview': 'large',
+    'max-video-preview': -1,
   },
   icons: {
     icon: [
@@ -114,7 +115,7 @@ export default function RootLayout({
         <meta name="theme-color" content="#ffffff" />
         <meta name="apple-mobile-web-app-title" content="Hope" />
         <meta name="application-name" content="Hope" />
-        <link rel="alternate" hreflang="en" href="https://ultra-predict.co.ke/hope" />
+  <link rel="alternate" hrefLang="en" href="https://ultra-predict.co.ke/hope" />
         <meta name="geo.region" content="KE" />
         <meta name="geo.placename" content="Kenya" />
         <meta name="geo.position" content="-1.286389;36.817223" />
@@ -170,22 +171,22 @@ export default function RootLayout({
         }) }} />
         {/* FEATURED PAGES META TAGS */}
         {/* 🪶 JOURNALING PAGE */}
-        <link rel="alternate" hreflang="en" href="https://ultra-predict.co.ke/hope/journaling" />
+  <link rel="alternate" hrefLang="en" href="https://ultra-predict.co.ke/hope/journaling" />
         <meta property="article:section" content="AI Journaling for Mental Health" />
         <meta name="title" content="AI Journaling for Self-Care & Stress Relief | Hope App" />
         <meta name="description" content="Reflect, release, and heal through guided AI journaling on Hope. Track emotions, write freely, and gain clarity every day." />
         {/* 🧘 MEDITATION PAGE */}
-        <link rel="alternate" hreflang="en" href="https://ultra-predict.co.ke/hope/meditation" />
+  <link rel="alternate" hrefLang="en" href="https://ultra-predict.co.ke/hope/meditation" />
         <meta property="article:section" content="Meditation for Mindfulness & Calm" />
         <meta name="title" content="Guided Meditations for Anxiety & Peace | Hope App" />
         <meta name="description" content="Experience calm and balance through guided meditations designed to reduce anxiety, quiet your mind, and improve sleep." />
         {/* 🤖 AI CHAT PAGE */}
-        <link rel="alternate" hreflang="en" href="https://ultra-predict.co.ke/hope/chat" />
+  <link rel="alternate" hrefLang="en" href="https://ultra-predict.co.ke/hope/chat" />
         <meta property="article:section" content="AI Chat for Emotional Support" />
         <meta name="title" content="AI Chat Companion for Mental Health | Hope App" />
         <meta name="description" content="Chat anytime with Hope’s empathetic AI companion for motivation, mindfulness, and emotional understanding." />
         {/* 💬 COMMUNITY PAGE */}
-        <link rel="alternate" hreflang="en" href="https://ultra-predict.co.ke/hope/community" />
+  <link rel="alternate" hrefLang="en" href="https://ultra-predict.co.ke/hope/community" />
         <meta property="article:section" content="Mental Health Community & Support" />
         <meta name="title" content="Mental Health Community – Connect & Heal Together | Hope App" />
         <meta name="description" content="Join a global mental health community built around empathy, encouragement, and emotional healing. You’re not alone — find hope with us." />

@@ -1,5 +1,14 @@
 import express from 'express';
-import cors from 'cors';
+let cors: any;
+try {
+  // Import cors if available; keep example server resilient when dependency is not installed
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  cors = require('cors');
+} catch (e) {
+  // eslint-disable-next-line no-console
+  console.warn('Optional dependency "cors" not installed. Requests may not be CORS-restricted in this example.');
+  cors = (opts: any) => (_req: any, _res: any, next: any) => next();
+}
 import fetch from 'node-fetch';
 import http from 'http';
 import https from 'https';
@@ -7,7 +16,7 @@ import https from 'https';
 const PORT = process.env.PORT ? Number(process.env.PORT) : 3001;
 const AI_API_URL = process.env.AI_API_URL || 'https://api.openai.com/v1/chat/completions';
 const AI_API_KEY = process.env.AI_API_KEY || '';
-const CORS_ORIGIN = process.env.CORS_ORIGIN || 'https://<my-frontend>.vercel.app';
+const CORS_ORIGIN = process.env.CORS_ORIGIN || 'https://<my-frontend>.vercel.app,https://hopementalhealthsupport.xyz,http://hopementalhealthsupport.xyz';
 
 if (!AI_API_KEY) {
   // eslint-disable-next-line no-console
