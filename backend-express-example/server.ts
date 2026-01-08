@@ -16,7 +16,7 @@ import https from 'https';
 const PORT = process.env.PORT ? Number(process.env.PORT) : 3001;
 const AI_API_URL = process.env.AI_API_URL || 'https://api.openai.com/v1/chat/completions';
 const AI_API_KEY = process.env.AI_API_KEY || '';
-const CORS_ORIGIN = process.env.CORS_ORIGIN || 'https://<my-frontend>.vercel.app,https://hopementalhealthsupport.xyz,http://hopementalhealthsupport.xyz';
+const CORS_ORIGIN = process.env.CORS_ORIGIN || 'https://<my-frontend>.vercel.app,https://hopementalhealthsupport.xyz,http://hopementalhealthsupport.xyz,https://www.hopementalhealthsupport.xyz,http://www.hopementalhealthsupport.xyz';
 
 if (!AI_API_KEY) {
   // eslint-disable-next-line no-console

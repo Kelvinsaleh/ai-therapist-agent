@@ -41,7 +41,13 @@ export default function PricingPage() {
       }
 
       if (res.authorization_url) {
-        window.location.href = res.authorization_url;
+        try {
+          // Prefer same-window navigation to ensure full redirect
+          window.location.assign(res.authorization_url);
+        } catch (e) {
+          // Fallback to opening in new tab if assign fails
+          window.open(res.authorization_url, '_blank');
+        }
         return;
       }
 

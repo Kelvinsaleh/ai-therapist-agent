@@ -200,18 +200,39 @@ class PaystackService {
         throw new Error('Authentication token not found');
       }
 
-      const response = await fetch(`${this.backendUrl}/payments/subscription/create`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          planId
-        })
-      });
+      // Use AbortController to avoid hanging requests (e.g., CORS/preflight or network issues)
+      const controller = new AbortController();
+      const timeoutMs = 30000; // 30 seconds
+      const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
-      const data = await response.json();
+      let response: Response;
+      try {
+        response = await fetch(`${this.backendUrl}/payments/subscription/create`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({ planId }),
+          signal: controller.signal
+        });
+      } catch (err: any) {
+        if (err.name === 'AbortError') {
+          return { success: false, error: 'Request timed out. Please try again.' };
+        }
+        console.error('Network error creating subscription:', err);
+        return { success: false, error: err instanceof Error ? err.message : 'Network error' };
+      } finally {
+        clearTimeout(timeout);
+      }
+
+      let data: any;
+      try {
+        data = await response.json();
+      } catch (err) {
+        console.error('Invalid JSON response from subscription/create:', err);
+        return { success: false, error: 'Invalid response from server' };
+      }
 
       if (data.success) {
         return {

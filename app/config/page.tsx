@@ -118,7 +118,10 @@ NEXTAUTH_SECRET=your-secret-key-here
 
 # Production URLs (update when deployed)
 # BACKEND_API_URL=https://your-backend-render-url.onrender.com
-# NEXT_PUBLIC_BACKEND_API_URL=https://your-backend-render-url.onrender.com`}
+# NEXT_PUBLIC_BACKEND_API_URL=https://your-backend-render-url.onrender.com
+# Example for the new frontend domain:
+# NEXT_PUBLIC_SITE_URL=https://hopementalhealthsupport.xyz
+# BACKEND_API_URL=https://hope-backend-2.onrender.com`}
               </pre>
             </div>
 
