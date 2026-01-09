@@ -4,31 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, TrendingUp, Heart, Activity, RefreshCw, Download, Share2 } from 'lucide-react';
+import { Calendar, TrendingUp, Heart, Activity, RefreshCw, Download, Share2, History, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-
-interface WeeklyReportData {
-  content: string;
-  metadata: {
-    weekStart: string;
-    weekEnd: string;
-    generatedAt: string;
-    dataPoints: {
-      moodEntries: number;
-      journalEntries: number;
-      meditationSessions: number;
-      therapySessions: number;
-    };
-    isFailover: boolean;
-  };
-  insights: {
-    averageMood: number;
-    moodTrend: string;
-    topEmotions: string[];
-    activityStreak: number;
-    progressHighlights: string[];
-  };
-}
+import { weeklyReportStorage, WeeklyReportData } from '@/lib/storage/weekly-report-storage';
 
 interface WeeklyReportProps {
   className?: string;
@@ -38,7 +16,80 @@ export function WeeklyReport({ className }: WeeklyReportProps) {
   const [report, setReport] = useState<WeeklyReportData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [savedReports, setSavedReports] = useState<WeeklyReportData[]>([]);
+  const [showSavedReports, setShowSavedReports] = useState(false);
+  const [loadingSavedReports, setLoadingSavedReports] = useState(false);
   const { toast } = useToast();
+
+  // Load latest report from storage on mount
+  useEffect(() => {
+    if (weeklyReportStorage.isAvailable()) {
+      const latestReport = weeklyReportStorage.getLatestReport();
+      if (latestReport) {
+        setReport(latestReport);
+      }
+      // Load saved reports list
+      setLoadingSavedReports(true);
+      try {
+        const reports = weeklyReportStorage.getAllReports();
+        setSavedReports(reports);
+      } catch (error) {
+        console.error('Error loading saved reports:', error);
+      } finally {
+        setLoadingSavedReports(false);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const loadSavedReports = () => {
+    setLoadingSavedReports(true);
+    try {
+      const reports = weeklyReportStorage.getAllReports();
+      setSavedReports(reports);
+    } catch (error) {
+      console.error('Error loading saved reports:', error);
+    } finally {
+      setLoadingSavedReports(false);
+    }
+  };
+
+  const loadReport = (reportToLoad: WeeklyReportData) => {
+    setReport(reportToLoad);
+    toast({
+      title: "Report Loaded",
+      description: "Report loaded from storage",
+    });
+  };
+
+  const deleteReport = (weekEnd: string) => {
+    if (!confirm('Are you sure you want to delete this report? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      weeklyReportStorage.deleteReport(weekEnd);
+      
+      // If the deleted report is the current one, clear it
+      if (report && report.metadata.weekEnd === weekEnd) {
+        const latestReport = weeklyReportStorage.getLatestReport();
+        setReport(latestReport);
+      }
+      
+      loadSavedReports();
+      toast({
+        title: "Report Deleted",
+        description: "Report has been removed from storage",
+      });
+    } catch (error) {
+      console.error('Error deleting report:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete report",
+        variant: "destructive",
+      });
+    }
+  };
 
   const generateReport = async () => {
     setLoading(true);
@@ -68,10 +119,23 @@ export function WeeklyReport({ className }: WeeklyReportProps) {
         throw new Error(data.error || 'Failed to generate report');
       }
 
-      setReport(data.report);
+      const generatedReport = data.report;
+      setReport(generatedReport);
+      
+      // Save to local storage
+      if (weeklyReportStorage.isAvailable()) {
+        try {
+          weeklyReportStorage.saveReport(generatedReport);
+          loadSavedReports();
+        } catch (error) {
+          console.error('Error saving report to storage:', error);
+          // Non-blocking error - report is still displayed
+        }
+      }
+      
       toast({
         title: "Weekly Report Generated",
-        description: "Your personalized wellness report is ready!",
+        description: "Your personalized wellness report is ready and saved!",
       });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to generate report';
@@ -209,6 +273,62 @@ Data Points:
           {error && (
             <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-red-800 text-sm">{error}</p>
+            </div>
+          )}
+
+          {/* Saved Reports Section */}
+          {savedReports.length > 0 && (
+            <div className="mb-4">
+              <Button 
+                variant="outline" 
+                className="w-full justify-between"
+                onClick={() => setShowSavedReports(!showSavedReports)}
+              >
+                <div className="flex items-center gap-2">
+                  <History className="h-4 w-4" />
+                  <span>Saved Reports ({savedReports.length})</span>
+                </div>
+                {showSavedReports ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </Button>
+              {showSavedReports && (
+                <div className="mt-2 space-y-2 max-h-64 overflow-y-auto border rounded-lg p-2">
+                  {loadingSavedReports ? (
+                    <div className="text-center py-4 text-sm text-gray-500">Loading...</div>
+                  ) : (
+                    savedReports.map((savedReport, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                        onClick={() => loadReport(savedReport)}
+                      >
+                        <div className="flex-1">
+                          <div className="text-sm font-medium">
+                            Week of {formatDate(savedReport.metadata.weekStart)} - {formatDate(savedReport.metadata.weekEnd)}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            Generated: {formatDate(savedReport.metadata.generatedAt)}
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteReport(savedReport.metadata.weekEnd);
+                          }}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
           )}
 

@@ -316,10 +316,23 @@ export default function ProfilePage() {
       if (user?._id && editedProfile) {
         const { userMemoryManager } = await import("@/lib/memory/user-memory");
         if (userMemoryManager.memory) {
-          userMemoryManager.memory.profile.goals = editedProfile.goals;
-          userMemoryManager.memory.profile.challenges = editedProfile.challenges;
+          // Update all profile fields to memory
+          userMemoryManager.memory.profile.goals = editedProfile.goals || [];
+          userMemoryManager.memory.profile.challenges = editedProfile.challenges || [];
+          if (editedProfile.communicationStyle) {
+            userMemoryManager.memory.profile.preferences.communicationStyle = editedProfile.communicationStyle as 'gentle' | 'direct' | 'supportive';
+          }
+          if (editedProfile.bio) {
+            // Store bio in memory (if memory structure supports it, otherwise store in preferences)
+            // Note: Bio might not be directly stored in memory structure, but we can add it to preferences if needed
+          }
           await userMemoryManager.saveUserMemory();
-          console.log("✅ AI memory updated with latest profile data");
+          console.log("✅ AI memory updated with latest profile data:", {
+            goals: editedProfile.goals,
+            challenges: editedProfile.challenges,
+            communicationStyle: editedProfile.communicationStyle,
+            experienceLevel: editedProfile.experienceLevel
+          });
         }
       }
       
