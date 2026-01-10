@@ -9,15 +9,20 @@ export function Footer() {
   const { user } = useSession();
   const pathname = usePathname();
   
-  // Hide footer only on individual chat conversation pages (not on main pages)
-  // Show footer on: homepage, therapy list, meditations, journaling, community, etc.
-  const hideFooter = 
-    pathname && (
-      (pathname.match(/^\/therapy\/[^\/]+$/) && !pathname.includes('/sessions')) ||
-      pathname.includes('/matching/chat/')
-    );
+  // Show footer on all pages except individual chat conversation pages
+  // Hide footer only on specific chat pages:
+  // - /therapy/[sessionId] where sessionId is exactly 24 hex characters (MongoDB ObjectId)
+  // - /matching/chat/[id]
+  const isIndividualChatPage = pathname && (
+    /^\/therapy\/[a-f0-9]{24}$/i.test(pathname) ||
+    pathname.startsWith('/matching/chat/')
+  );
   
-  if (hideFooter) return null;
+  // Return null only if it's confirmed to be an individual chat page
+  // Otherwise, always show the footer (even if pathname is null during SSR)
+  if (isIndividualChatPage) {
+    return null;
+  }
 
   return (
     <footer
