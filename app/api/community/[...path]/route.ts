@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const BACKEND_API_URL = process.env.BACKEND_API_URL || 'https://hope-backend-2.onrender.com';
 
+// Mark this route as dynamic since it accesses request.headers and request.url
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 async function handleRequest(request: NextRequest) {
   try {
     const { pathname, search } = request.nextUrl;

@@ -3,6 +3,10 @@ import { put } from '@vercel/blob';
 
 const BACKEND_API_URL = process.env.BACKEND_API_URL || 'https://hope-backend-2.onrender.com';
 
+// Mark this route as dynamic since it accesses request.headers and formData
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();

@@ -7,13 +7,13 @@ import {
   Lock,
   Key,
   Fingerprint,
-  Security,
+  ShieldCheck,
   Eye,
   Database,
   Download,
   Edit,
   Trash2,
-  Block,
+  Ban,
   Import,
   Gavel,
   Mail,
@@ -117,7 +117,7 @@ export default function PrivacySecurityPage() {
             {
               title: "Mood & Activity Data",
               description: "Mood tracking data, meditation completion, and wellness metrics. This helps generate personalized insights and weekly reports (Premium).",
-              icon: <Security className="w-5 h-5 text-primary" />,
+              icon: <ShieldCheck className="w-5 h-5 text-primary" />,
             },
             {
               title: "Community Posts (Optional)",
@@ -179,7 +179,7 @@ export default function PrivacySecurityPage() {
               {
                 title: "API Security",
                 description: "All API requests require authentication via JWT tokens. Server-side requests use API keys. Optional certificate pinning and HMAC signatures provide additional protection.",
-                icon: <Security className="w-5 h-5 text-primary" />,
+                icon: <ShieldCheck className="w-5 h-5 text-primary" />,
               },
               {
                 title: "CORS Protection",
@@ -199,7 +199,7 @@ export default function PrivacySecurityPage() {
               {
                 title: "Input Validation & Sanitization",
                 description: "All user inputs are validated and sanitized to prevent XSS attacks, SQL injection, and other security vulnerabilities.",
-                icon: <Security className="w-5 h-5 text-primary" />,
+                icon: <ShieldCheck className="w-5 h-5 text-primary" />,
               },
             ].map((feature, index) => (
               <div key={feature.title} className="flex items-start gap-4 pb-6 border-b last:border-b-0 last:pb-0">
@@ -245,7 +245,7 @@ export default function PrivacySecurityPage() {
             {
               title: "Right to Restrict Processing",
               description: "You can opt-out of analytics, crash reporting, and data collection through Privacy Settings. We respect your choices and will stop processing your data accordingly.",
-              icon: <Block className="w-6 h-6 text-primary" />,
+              icon: <Ban className="w-6 h-6 text-primary" />,
             },
             {
               title: "Right to Data Portability",

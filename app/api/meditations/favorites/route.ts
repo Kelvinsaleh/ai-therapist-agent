@@ -3,6 +3,10 @@ import { getToken } from "next-auth/jwt";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.BACKEND_API_URL || "https://hope-backend-2.onrender.com";
 
+// Mark this route as dynamic since it accesses request headers
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 export async function GET(request: NextRequest) {
   try {
     // Get auth token
