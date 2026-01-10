@@ -7,12 +7,22 @@ import { usePathname } from "next/navigation";
 export function Footer() {
   const pathname = usePathname();
   
-  // Show footer on all pages except individual chat conversation pages
-  // Hide footer only on specific chat pages:
-  // - /therapy/[sessionId] where sessionId is exactly 24 hex characters (MongoDB ObjectId)
+  // Hide footer on individual chat conversation pages
+  // Hide footer on:
+  // - /therapy/[any sessionId] - any sessionId format (not just 24 hex chars)
   // - /matching/chat/[id]
+  // - /therapy/memory-enhanced (if it's an active chat session)
   const isIndividualChatPage = pathname && (
-    /^\/therapy\/[a-f0-9]{24}$/i.test(pathname) ||
+    // Match /therapy/[sessionId] where sessionId is not "sessions", "new", "memory-enhanced", or other special routes
+    (/^\/therapy\/[^/]+$/.test(pathname) && 
+     pathname !== '/therapy' && 
+     pathname !== '/therapy/sessions' &&
+     pathname !== '/therapy/new' &&
+     pathname !== '/therapy/memory-enhanced' &&
+     !pathname.startsWith('/therapy/memory-enhanced/sessions')) ||
+    // Also hide on memory-enhanced chat page if it has a session
+    (pathname === '/therapy/memory-enhanced') ||
+    // Match matching chat routes
     pathname.startsWith('/matching/chat/')
   );
   

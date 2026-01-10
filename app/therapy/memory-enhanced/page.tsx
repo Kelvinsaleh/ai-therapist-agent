@@ -124,22 +124,28 @@ export default function MemoryEnhancedTherapyPage() {
     loadSessions();
   }, [messages]);
 
-  // Check for existing session or redirect to sessions list
+  // Check for sessionId from URL params (for /therapy/[sessionId] route)
   useEffect(() => {
     const checkSession = async () => {
-      const storedId = typeof window !== 'undefined' ? localStorage.getItem('memoryEnhancedSessionId') : null;
+      // Get sessionId from URL params
+      const urlSessionId = params?.sessionId as string | undefined;
       
-      if (!storedId) {
-        // No session found, redirect to sessions list
-        router.push('/therapy/memory-enhanced/sessions');
+      if (urlSessionId && urlSessionId !== 'sessions' && urlSessionId !== 'new' && urlSessionId !== 'memory-enhanced') {
+        setSessionId(urlSessionId);
+        // Store in localStorage for consistency
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('memoryEnhancedSessionId', urlSessionId);
+        }
         return;
       }
       
-      setSessionId(storedId);
+      // If no valid sessionId in URL, redirect to sessions list
+      router.push('/therapy');
+      return;
     };
 
     checkSession();
-  }, [router]);
+  }, [router, params]);
 
   // Load chat history whenever we have a valid sessionId
   useEffect(() => {
@@ -257,6 +263,8 @@ export default function MemoryEnhancedTherapyPage() {
       setSessionId(newSessionId);
       try { if (typeof window !== 'undefined') localStorage.setItem('memoryEnhancedSessionId', newSessionId); } catch {}
       setMessages([]);
+      // Navigate to the new session
+      router.push(`/therapy/${newSessionId}`);
       setIsLoading(false);
     } catch (error) {
       logger.error("Failed to create new session", error);
@@ -553,6 +561,8 @@ export default function MemoryEnhancedTherapyPage() {
         setMessages(formattedHistory);
         setSessionId(selectedSessionId);
         try { if (typeof window !== 'undefined') localStorage.setItem('memoryEnhancedSessionId', selectedSessionId); } catch {}
+        // Navigate to the selected session
+        router.push(`/therapy/${selectedSessionId}`);
       }
     } catch (error) {
       logger.error("Failed to load session", error);
@@ -592,7 +602,7 @@ export default function MemoryEnhancedTherapyPage() {
       <Button
         variant="ghost"
         size="icon"
-        onClick={() => router.push('/therapy/memory-enhanced/sessions')}
+        onClick={() => router.push('/therapy')}
         className="fixed top-4 left-4 z-[100] w-10 h-10 rounded-full bg-background/80 backdrop-blur-sm shadow-lg border border-border hover:bg-background"
         style={{ position: 'fixed' }}
       >

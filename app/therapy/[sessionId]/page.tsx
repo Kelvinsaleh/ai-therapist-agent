@@ -653,8 +653,21 @@ export default function TherapyPage() {
   };
 
   // Single page - just the chat interface
+  // This page takes full viewport and doesn't use the default layout padding
   return (
-    <div className="fixed inset-0 bg-background" style={{ position: 'fixed', width: '100%', height: '100vh' }}>
+    <div 
+      className="fixed inset-0 bg-background" 
+      style={{ 
+        position: 'fixed', 
+        width: '100%', 
+        height: '100vh',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 1
+      }}
+    >
       {/* Floating back button - ALWAYS fixed to viewport top, never moves */}
       <Button
         variant="ghost"
