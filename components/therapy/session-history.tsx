@@ -216,7 +216,7 @@ export function SessionHistory({ params, onNewSession, onSessionSelect }: Sessio
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => router.push("/dashboard")}
+            onClick={() => router.push("/therapy")}
             className="gap-2"
           >
             <ArrowLeft className="w-4 h-4" />

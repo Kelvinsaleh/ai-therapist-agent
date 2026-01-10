@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AccessibleCard } from "@/components/ui/accessible-card";
 import { AccessibleButton } from "@/components/ui/accessible-button";
@@ -47,6 +48,7 @@ export default function MeditationsPage() {
   const [meditations, setMeditations] = useState<Meditation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 300); // Debounce search input
   const [filterPremium, setFilterPremium] = useState<boolean | null>(null);
   const [showFavorites, setShowFavorites] = useState(false);
   const [favoriteStatus, setFavoriteStatus] = useState<Record<string, boolean>>({});
@@ -92,7 +94,7 @@ export default function MeditationsPage() {
       setIsLoading(true);
 
       const params = new URLSearchParams();
-      if (searchQuery) params.append("search", searchQuery);
+      if (debouncedSearchQuery) params.append("search", debouncedSearchQuery);
       if (filterPremium !== null) params.append("isPremium", String(filterPremium));
       params.append("limit", "50");
 
@@ -144,7 +146,7 @@ export default function MeditationsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [searchQuery, filterPremium]);
+  }, [debouncedSearchQuery, filterPremium]);
 
 
   useEffect(() => {
@@ -184,6 +186,19 @@ export default function MeditationsPage() {
       });
     }
   }, [isAuthenticated, meditations]);
+
+  // Check favorite status for favorite meditations when they load
+  useEffect(() => {
+    if (isAuthenticated && favoriteMeditations.length > 0) {
+      favoriteMeditations.forEach(meditation => {
+        // Set favorite status to true for favorite meditations
+        setFavoriteStatus(prev => ({
+          ...prev,
+          [meditation.id]: true
+        }));
+      });
+    }
+  }, [isAuthenticated, favoriteMeditations]);
 
   const loadFavorites = useCallback(async () => {
     if (!isAuthenticated) return;
@@ -359,10 +374,8 @@ export default function MeditationsPage() {
       if (response.ok) {
         console.log('Success! Favorite status confirmed');
         
-        // Refresh favorites list if we're viewing favorites
-        if (showFavorites) {
-          loadFavorites();
-        }
+        // Always refresh favorites list to keep it in sync
+        loadFavorites();
         
         toast.success(
           isCurrentlyFavorited 
@@ -435,12 +448,31 @@ export default function MeditationsPage() {
     }
   };
 
+  // Memoize filtered meditations for performance
+  const filteredMeditations = useMemo(() => {
+    const sourceMeditations = showFavorites ? favoriteMeditations : meditations;
+    
+    return sourceMeditations.filter(meditation => {
+      const lowerSearchQuery = searchQuery.toLowerCase();
+      const matchesSearch = !searchQuery || 
+        meditation.title.toLowerCase().includes(lowerSearchQuery) ||
+        meditation.description.toLowerCase().includes(lowerSearchQuery) ||
+        meditation.category.toLowerCase().includes(lowerSearchQuery) ||
+        meditation.tags.some((tag: string) => tag.toLowerCase().includes(lowerSearchQuery));
+
+      const matchesPremium = filterPremium === null || meditation.isPremium === filterPremium;
+
+      return matchesSearch && matchesPremium;
+    });
+  }, [showFavorites, favoriteMeditations, meditations, searchQuery, filterPremium]);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    loadMeditations();
+    // Search is handled by debounced query, no need to call loadMeditations here
+    // loadMeditations will be called automatically when debouncedSearchQuery changes
   };
 
-  const handlePlayAll = () => {
+  const handlePlayAll = useCallback(() => {
     if (filteredMeditations.length === 0) {
       toast.error('No meditations to play');
       return;
@@ -467,18 +499,7 @@ export default function MeditationsPage() {
     // Play the playlist starting from the first track
     playPlaylist(meditationsForPlayer, 0);
     toast.success(`Playing ${meditationsForPlayer.length} meditations`);
-  };
-
-  const filteredMeditations = (showFavorites ? favoriteMeditations : meditations).filter(meditation => {
-    const matchesSearch = meditation.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         meditation.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         meditation.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         meditation.tags.some((tag: string) => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-
-    const matchesPremium = filterPremium === null || meditation.isPremium === filterPremium;
-
-    return matchesSearch && matchesPremium;
-  });
+  }, [filteredMeditations, userTier, playPlaylist]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-2 sm:p-4">
@@ -544,7 +565,7 @@ export default function MeditationsPage() {
                   placeholder="Search meditations..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 transition-all duration-200"
                 />
               </div>
               <div className="flex flex-row flex-wrap gap-2">
@@ -560,7 +581,13 @@ export default function MeditationsPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setShowFavorites(!showFavorites)}
+                    onClick={() => {
+                      setShowFavorites(!showFavorites);
+                      // Refresh favorites when switching to favorites view
+                      if (!showFavorites) {
+                        loadFavorites();
+                      }
+                    }}
                     size="sm"
                     className={`gap-2 transition-colors ${
                       showFavorites 
@@ -630,13 +657,17 @@ export default function MeditationsPage() {
         {!isLoading && filteredMeditations.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             <AnimatePresence>
-              {filteredMeditations.map((meditation) => (
+              {filteredMeditations.map((meditation, index) => (
                 <motion.div
                   key={meditation.id}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ 
+                    duration: 0.2, // Faster animation
+                    delay: index * 0.02, // Staggered but fast
+                    ease: [0.4, 0, 0.2, 1] // Smooth easing
+                  }}
                 >
                   <AccessibleCard
                     title={meditation.title}

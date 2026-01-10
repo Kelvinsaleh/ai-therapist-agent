@@ -81,9 +81,9 @@ export default function PaymentFailurePage() {
                 Need help? Our support team is here to assist you.
               </p>
               <Button variant="ghost" size="sm" asChild className="mt-2">
-                <Link href="/config">
-                  Contact Support
-                </Link>
+                <a href="mailto:knsalee@gmail.com?subject=Payment Support Request">
+                  Contact Support (knsalee@gmail.com)
+                </a>
               </Button>
             </div>
           </CardContent>

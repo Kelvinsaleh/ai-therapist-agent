@@ -57,8 +57,8 @@ export default function NotFound() {
             </div>
 
             <div className="pt-4 border-t">
-              <p className="text-xs text-muted-foreground">
-                Need help? Contact our support team or try one of these popular pages:
+              <p className="text-xs text-muted-foreground mb-2">
+                Need help? Contact our support team at <a href="mailto:knsalee@gmail.com" className="text-primary underline">knsalee@gmail.com</a> or try one of these popular pages:
               </p>
               <div className="flex flex-wrap gap-2 mt-3">
                 <Button variant="ghost" size="sm" asChild>
@@ -71,7 +71,7 @@ export default function NotFound() {
                   <Link href="/meditations">Meditations</Link>
                 </Button>
                 <Button variant="ghost" size="sm" asChild>
-                  <Link href="/dashboard">Dashboard</Link>
+                  <Link href="/therapy">Therapy</Link>
                 </Button>
               </div>
             </div>

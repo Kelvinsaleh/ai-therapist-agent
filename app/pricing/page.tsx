@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,18 +8,37 @@ import { Badge } from "@/components/ui/badge";
 import { Users, Smartphone } from "lucide-react";
 import { paystackService } from "@/lib/payments/paystack-service";
 import { useSession } from "@/lib/contexts/session-context";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { MobileDownloadButton } from "@/components/mobile-download-button";
+import { PaymentModal } from "@/components/payments/payment-modal";
 
 export default function PricingPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { isAuthenticated, user, refreshUserTier } = useSession();
   const [isLoading, setIsLoading] = useState<null | "monthly" | "annually">(null);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentUrl, setPaymentUrl] = useState<string>("");
+  const [paymentReference, setPaymentReference] = useState<string>("");
 
   const plans = paystackService.getPlans();
   const monthlyPlan = plans.find((p) => p.id === "monthly");
   const annualPlan = plans.find((p) => p.id === "annually");
+
+  // Check if returning from payment success
+  useEffect(() => {
+    const reference = searchParams.get('reference') || searchParams.get('trxref');
+    if (reference && isAuthenticated) {
+      // Verify payment automatically
+      paystackService.verifyPayment(reference).then((result) => {
+        if (result.success) {
+          toast.success("🎉 Payment successful! Premium features activated.");
+          refreshUserTier();
+        }
+      });
+    }
+  }, [searchParams, isAuthenticated, refreshUserTier]);
 
   const handleSignIn = () => router.push("/login");
 
@@ -32,34 +51,52 @@ export default function PricingPage() {
 
     try {
       setIsLoading(planId);
-      const res = await paystackService.createSubscription(user.email, planId);
+      // Use initializePayment to charge the exact amount from code (converted to KES)
+      const res = await paystackService.initializePayment(
+        user.email,
+        planId,
+        user.id || user._id || String(user._id) || "",
+        {
+          callback_url: `${window.location.origin}/payment/success`,
+        }
+      );
 
       if (!res.success) {
-        toast.error?.(res.error || "Failed to create subscription");
+        toast.error?.(res.error || "Failed to initialize payment");
         setIsLoading(null);
         return;
       }
 
-      if (res.authorization_url) {
-        try {
-          // Prefer same-window navigation to ensure full redirect
-          window.location.assign(res.authorization_url);
-        } catch (e) {
-          // Fallback to opening in new tab if assign fails
-          window.open(res.authorization_url, '_blank');
-        }
-        return;
+      if (res.authorization_url && res.reference) {
+        // Show payment modal instead of redirecting
+        setPaymentUrl(res.authorization_url);
+        setPaymentReference(res.reference);
+        setPaymentModalOpen(true);
+        setIsLoading(null);
+      } else {
+        toast.error?.("Failed to get payment URL");
+        setIsLoading(null);
       }
-
-      toast.success?.("Subscription created. Activating premium features...");
-      await refreshUserTier();
-      router.push("/dashboard");
     } catch (err) {
       console.error("Subscribe error:", err);
-      toast.error?.("Something went wrong while creating subscription");
-    } finally {
+      toast.error?.("Something went wrong while starting payment");
       setIsLoading(null);
     }
+  };
+
+  const handlePaymentSuccess = async () => {
+    setPaymentModalOpen(false);
+    toast.success("🎉 Payment successful! Activating premium features...");
+    await refreshUserTier();
+    // Optionally navigate to therapy sessions
+    setTimeout(() => {
+      router.push("/therapy");
+    }, 2000);
+  };
+
+  const handlePaymentCancelled = () => {
+    setPaymentModalOpen(false);
+    toast.info("Payment cancelled");
   };
 
   return (
@@ -102,8 +139,14 @@ export default function PricingPage() {
                     <span className="text-lg font-semibold">Depth, clarity, continuity</span>
                   </div>
                   <div className="text-right">
-                    <div className="text-2xl font-bold">KES {monthlyPlan?.price ?? 500}</div>
-                    <div className="text-sm text-muted-foreground">~$3.85 / month</div>
+                    <div className="text-2xl font-bold">${monthlyPlan?.price?.toFixed(2) ?? '3.99'}</div>
+                    <div className="text-sm text-muted-foreground">/ month</div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      ≈ KES {Math.round((monthlyPlan?.price ?? 3.99) * 130)} / month
+                    </div>
+                    <div className="text-xs text-muted-foreground italic">
+                      (1 USD = 130 KES)
+                    </div>
                   </div>
                 </CardTitle>
               </CardHeader>
@@ -118,11 +161,20 @@ export default function PricingPage() {
                 </ul>
 
                 <div className="mt-6 grid grid-cols-1 gap-3">
-                  <Button onClick={() => handleSubscribe('monthly')} disabled={isLoading === 'monthly'} className="w-full bg-primary">{isLoading === 'monthly' ? 'Processing...' : `Subscribe — KES ${monthlyPlan?.price ?? 500} / month`}</Button>
-                  <Button onClick={() => handleSubscribe('annually')} disabled={isLoading === 'annually'} className="w-full" variant={"outline" as any}>{isLoading === 'annually' ? 'Processing...' : `Subscribe annually — KES ${annualPlan?.price ?? 5000}`}</Button>
+                  <Button onClick={() => handleSubscribe('monthly')} disabled={isLoading === 'monthly'} className="w-full bg-primary">{isLoading === 'monthly' ? 'Processing...' : `Subscribe — $${monthlyPlan?.price?.toFixed(2) ?? '3.99'} / month`}</Button>
+                  <Button onClick={() => handleSubscribe('annually')} disabled={isLoading === 'annually'} className="w-full" variant={"outline" as any}>{isLoading === 'annually' ? 'Processing...' : `Subscribe annually — $${annualPlan?.price?.toFixed(2) ?? '39.90'} / year`}</Button>
                 </div>
 
-                <p className="mt-4 text-xs text-muted-foreground">Cancel anytime. No hidden fees. Pricing shown in KES; USD is approximate.</p>
+                {annualPlan?.savings && (
+                  <div className="mt-2 p-2 bg-green-50 rounded-md">
+                    <p className="text-sm text-green-700 font-medium">2 Months Free!</p>
+                    <p className="text-xs text-green-600">Save ${annualPlan.savings.toFixed(2)} with annual plan</p>
+                  </div>
+                )}
+
+                <p className="mt-4 text-xs text-muted-foreground">
+                  Cancel anytime. No hidden fees. Prices shown in USD; payment processed in KES (130 KES = 1 USD).
+                </p>
               </CardContent>
             </Card>
           </div>
@@ -169,6 +221,18 @@ export default function PricingPage() {
           </motion.div>
         </motion.div>
       </div>
+
+      {/* Payment Modal */}
+      {paymentModalOpen && paymentUrl && paymentReference && (
+        <PaymentModal
+          authorizationUrl={paymentUrl}
+          reference={paymentReference}
+          isOpen={paymentModalOpen}
+          onClose={() => setPaymentModalOpen(false)}
+          onPaymentSuccess={handlePaymentSuccess}
+          onPaymentCancelled={handlePaymentCancelled}
+        />
+      )}
     </div>
   );
 }

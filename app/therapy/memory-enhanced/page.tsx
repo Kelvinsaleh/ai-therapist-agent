@@ -631,9 +631,13 @@ export default function MemoryEnhancedTherapyPage() {
                   {messages.map((msg, index) => (
                     <motion.div
                       key={msg.timestamp.toISOString()}
-                      initial={{ opacity: 0, y: 20 }}
+                      initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: index * 0.05 }}
+                      transition={{ 
+                        duration: 0.15, // Faster animation for smoother feel
+                        delay: Math.min(index * 0.02, 0.2), // Limit max delay
+                        ease: [0.4, 0, 0.2, 1] // Smooth easing
+                      }}
                       className="py-3 group"
                     >
                       <div className={cn(

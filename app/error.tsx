@@ -71,10 +71,10 @@ export default function Error({ error, reset }: ErrorProps) {
               </p>
               <div className="flex flex-col gap-2">
                 <Button variant="ghost" size="sm" asChild>
-                  <Link href="/config">
+                  <a href="mailto:knsalee@gmail.com?subject=Error Report - ${error.digest || 'Unknown'}">
                     <MessageCircle className="w-4 h-4 mr-2" />
-                    Check System Status
-                  </Link>
+                    Email Support (knsalee@gmail.com)
+                  </a>
                 </Button>
                 <Button variant="ghost" size="sm" asChild>
                   <Link href="/therapy/memory-enhanced">

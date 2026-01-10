@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, LogOut, Settings, BarChart3 } from 'lucide-react';
+import { User, LogOut, Settings, BarChart3, Shield } from 'lucide-react';
 
 export function ProfileDropdown() {
   const { user, logout, isAuthenticated } = useSession();
@@ -78,6 +78,12 @@ export function ProfileDropdown() {
           <Link href="/profile" className="flex items-center">
             <Settings className="mr-2 h-4 w-4" />
             <span>Settings</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/privacy-security" className="flex items-center">
+            <Shield className="mr-2 h-4 w-4" />
+            <span>Privacy & Security</span>
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />

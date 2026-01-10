@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
         success: false, 
         error: 'Failed to verify payment. Please contact support if your payment was processed.',
         supportInfo: {
-          email: 'support@hope-ai.com',
+          email: 'knsalee@gmail.com',
           message: 'Include your payment reference and user email for faster assistance.'
         }
       },

@@ -110,8 +110,8 @@ export default function PaymentSuccessPage() {
               <p className="text-sm text-green-600">
                 You now have access to all premium features!
               </p>
-              <Button onClick={() => router.push('/dashboard')} className="w-full">
-                Go to Dashboard
+              <Button onClick={() => router.push('/therapy')} className="w-full">
+                Go to Therapy
               </Button>
             </div>
           )}
@@ -121,8 +121,8 @@ export default function PaymentSuccessPage() {
               <Button onClick={() => router.push('/pricing')} variant="outline" className="w-full">
                 Try Again
               </Button>
-              <Button onClick={() => router.push('/dashboard')} variant="ghost" className="w-full">
-                Go to Dashboard
+              <Button onClick={() => router.push('/therapy')} variant="ghost" className="w-full">
+                Go to Therapy
               </Button>
             </div>
           )}

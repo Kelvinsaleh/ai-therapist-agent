@@ -50,7 +50,7 @@ export function AccessibleCard({
       className={cn(
         'focus:outline-none',
         interactive && 'cursor-pointer hover:shadow-lg transition-shadow',
-        interactive && 'focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
+        interactive && 'focus:ring-2 focus:ring-primary focus:ring-offset-2',
         className
       )}
       onClick={onClick}

@@ -19,8 +19,8 @@ export async function GET(
       );
     }
 
-    // Validate meditation ID
-    if (!meditationId || meditationId.length !== 24) {
+    // Validate meditation ID - backend will validate ObjectId format
+    if (!meditationId || meditationId.trim().length === 0) {
       return NextResponse.json(
         { error: "Invalid meditation ID" },
         { status: 400 }

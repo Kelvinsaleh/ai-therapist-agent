@@ -125,9 +125,9 @@ export default function VerifyEmailPage() {
 
         toast.success("Email verified successfully! Welcome to Hope Therapy!");
         
-        // Redirect to dashboard
+        // Redirect to therapy sessions
         setTimeout(() => {
-          router.push("/dashboard");
+          router.push("/therapy");
         }, 1000);
       } else {
         if (data.codeExpired) {

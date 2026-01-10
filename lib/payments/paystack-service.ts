@@ -39,14 +39,17 @@ class PaystackService {
     this.backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.BACKEND_API_URL || 'https://hope-backend-2.onrender.com';
   }
 
+  // Exchange rate: 1 USD = 130 KES (approximate)
+  private readonly USD_TO_KES_RATE = 130;
+
   // Available subscription plans
   getPlans(): PaymentPlan[] {
     return [
       {
         id: 'monthly',
         name: 'Monthly Plan',
-        price: 500,
-        currency: 'KES',
+        price: 3.99, // $3.99 USD
+        currency: 'USD',
         interval: 'monthly',
         paystackPlanCode: process.env.PAYSTACK_MONTHLY_PLAN_CODE || 'PLN_monthly_plan',
         features: [
@@ -63,12 +66,12 @@ class PaystackService {
       {
         id: 'annually',
         name: 'Annual Plan',
-        price: 6000,
-        currency: 'KES',
+        price: 39.90, // $39.90 USD (10 months = 2 months free: $3.99 * 10)
+        currency: 'USD',
         interval: 'annually',
         paystackPlanCode: process.env.PAYSTACK_ANNUAL_PLAN_CODE || 'PLN_annual_plan',
         popular: true,
-        savings: 1200, // example: 12 months * 500 = 6000, keep a hypothetical savings field
+        savings: 7.98, // Save $7.98 total (2 months * $3.99 = $7.98)
         features: [
           'Everything in Monthly Plan',
           'Priority support',
@@ -77,10 +80,15 @@ class PaystackService {
           'Family sharing (up to 3 members)',
           'Export data',
           'Premium meditation content',
-          '2 months free (save KES 2,600)'
+          '2 months free (save $7.98)'
         ]
       }
     ];
+  }
+
+  // Convert USD to KES for display
+  convertUsdToKes(usdAmount: number): number {
+    return Math.round(usdAmount * this.USD_TO_KES_RATE);
   }
 
   // Initialize payment through backend

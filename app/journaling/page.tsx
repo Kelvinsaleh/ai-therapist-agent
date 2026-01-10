@@ -23,13 +23,14 @@ import {
   CheckCircle,
   Zap
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format, startOfDay, isToday, isYesterday } from "date-fns";
 import { useSession } from "@/lib/contexts/session-context";
 import { getFeatureLimits, checkJournalLimit } from "@/lib/session-limits";
 import { toast } from "sonner";
 import React from "react";
+import { useDebounce } from "@/hooks/use-debounce";
 
 interface JournalEntry {
   id: string;
@@ -686,13 +687,21 @@ export default function JournalingPage() {
     }
   };
 
-  const filteredEntries = entries.filter(entry => {
-    const matchesSearch = entry.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         entry.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         entry.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesMood = filterMood === null || entry.mood === filterMood;
-    return matchesSearch && matchesMood;
-  });
+  // Debounce search term for better performance
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+  // Memoize filtered entries for performance
+  const filteredEntries = useMemo(() => {
+    return entries.filter(entry => {
+      const lowerSearchTerm = debouncedSearchTerm.toLowerCase();
+      const matchesSearch = !debouncedSearchTerm || 
+        entry.title.toLowerCase().includes(lowerSearchTerm) ||
+        entry.content.toLowerCase().includes(lowerSearchTerm) ||
+        entry.tags.some(tag => tag.toLowerCase().includes(lowerSearchTerm));
+      const matchesMood = filterMood === null || entry.mood === filterMood;
+      return matchesSearch && matchesMood;
+    });
+  }, [entries, debouncedSearchTerm, filterMood]);
 
   const getMoodColor = (moodValue: number) => {
     if (moodValue <= 2) return "text-red-500";
@@ -1169,12 +1178,17 @@ export default function JournalingPage() {
           {/* Entries */}
           <div className="space-y-2 sm:space-y-3 max-h-[400px] sm:max-h-[600px] overflow-y-auto">
             <AnimatePresence>
-              {filteredEntries.map((entry) => (
+              {filteredEntries.map((entry, index) => (
                 <motion.div
                   key={entry.id}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ 
+                    duration: 0.2, // Faster animation
+                    delay: index * 0.02, // Staggered but fast
+                    ease: [0.4, 0, 0.2, 1] // Smooth easing
+                  }}
                 >
                   <Card 
                     className={`cursor-pointer transition-all hover:shadow-md ${

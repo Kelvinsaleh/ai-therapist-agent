@@ -129,7 +129,7 @@ export default function FeaturesPage() {
           support.
         </p>
         <a
-          href="/dashboard"
+          href="/therapy"
           className="inline-flex items-center px-6 py-3 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
         >
           Start Your Journey
