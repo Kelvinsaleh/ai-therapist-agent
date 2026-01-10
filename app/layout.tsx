@@ -162,7 +162,7 @@ export default function RootLayout({
           <SessionProvider>
             <AudioPlayerProvider>
               <Header />
-              <main id="main-content" className="min-h-screen pt-16 pb-20 md:pb-0" role="main">
+              <main id="main-content" className="min-h-screen pt-16 pb-20" role="main">
                 {children}
               </main>
               <Footer />
