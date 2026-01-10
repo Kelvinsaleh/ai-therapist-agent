@@ -9,10 +9,13 @@ export function Footer() {
   const { user } = useSession();
   const pathname = usePathname();
   
-  // Hide footer on individual chat pages (but show on sessions list)
+  // Hide footer only on individual chat conversation pages (not on main pages)
+  // Show footer on: homepage, therapy list, meditations, journaling, community, etc.
   const hideFooter = 
-    (pathname?.startsWith('/therapy/') && pathname !== '/therapy' && !pathname?.includes('/sessions')) ||
-    pathname?.includes('/matching/chat/');
+    pathname && (
+      (pathname.match(/^\/therapy\/[^\/]+$/) && !pathname.includes('/sessions')) ||
+      pathname.includes('/matching/chat/')
+    );
   
   if (hideFooter) return null;
 
