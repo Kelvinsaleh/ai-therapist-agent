@@ -216,10 +216,7 @@ export default function SpacePage() {
       toast.error('Please log in to create posts');
       return;
     }
-    if (userTier !== 'premium') {
-      toast.error('Premium subscription required to create posts');
-      return;
-    }
+    // Post creation is free for all users
     try {
       // Upload images
       const imageUrls = await uploadImages();
@@ -255,6 +252,38 @@ export default function SpacePage() {
 
   const handleReaction = async (postId: string, reactionType: string) => {
     try {
+      // Optimistically update UI (no page refresh)
+      const userId = localStorage.getItem('userId') || localStorage.getItem('token');
+      
+      // Update state immediately for instant feedback
+      setPosts(prevPosts => 
+        prevPosts.map(post => {
+          if (post._id === postId) {
+            // Check if user already reacted with this type
+            const currentReactions = { ...post.reactions };
+            const reactionArray = currentReactions[reactionType] || [];
+            const hasReactedSameType = reactionArray.includes(userId);
+            
+            // Remove user from ALL reaction types first (single engagement rule)
+            const allReactionTypes = ['heart', 'support', 'growth'];
+            for (const type of allReactionTypes) {
+              if (currentReactions[type]) {
+                currentReactions[type] = currentReactions[type].filter((id: string) => id !== userId);
+              }
+            }
+            
+            // If user wasn't already reacted with this type, add them
+            if (!hasReactedSameType) {
+              currentReactions[reactionType] = [...(currentReactions[reactionType] || []), userId];
+            }
+            
+            return { ...post, reactions: currentReactions };
+          }
+          return post;
+        })
+      );
+      
+      // Call API in background to sync (no page refresh)
       const response = await fetch(`/api/community/posts/${postId}/react`, {
         method: 'POST',
         headers: {
@@ -266,6 +295,7 @@ export default function SpacePage() {
 
       const data = await response.json();
 
+      // Update with backend response if successful (but don't reload entire feed)
       if (data.success) {
         setPosts(prevPosts => 
           prevPosts.map(post => 
@@ -277,6 +307,7 @@ export default function SpacePage() {
       }
     } catch (error) {
       console.error('Error reacting to post:', error);
+      // Optionally revert optimistic update on error
     }
   };
 
@@ -409,8 +440,8 @@ export default function SpacePage() {
           </Card>
         </motion.div>
 
-        {/* Create Post */}
-        {isAuthenticated && userTier === 'premium' && (
+        {/* Create Post - Free for all authenticated users */}
+        {isAuthenticated && (
           <Card className="mb-6">
             <CardContent className="pt-6">
               {!showCreatePost ? (

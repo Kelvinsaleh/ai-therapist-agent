@@ -44,8 +44,8 @@ export default function PricingPage() {
 
   const handleSubscribe = async (planId: "monthly" | "annually") => {
     if (!isAuthenticated || !user) {
-      toast("Please sign in to subscribe");
-      router.push("/login");
+      toast.error("Unable to subscribe: User session not found. Please restart the app and log in.");
+      // Don't redirect to login - user should already be logged in to use the app
       return;
     }
 

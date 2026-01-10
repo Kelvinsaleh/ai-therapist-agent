@@ -240,6 +240,38 @@ export default function CommunityPageEnhanced() {
 
   const handleReaction = async (postId: string, reactionType: string) => {
     try {
+      // Optimistically update UI (no page refresh)
+      const userId = localStorage.getItem('userId') || localStorage.getItem('token');
+      
+      // Update state immediately for instant feedback
+      setAllPosts((prevPosts: any[]) => 
+        prevPosts.map((post: any) => {
+          if (post._id === postId) {
+            // Check if user already reacted with this type
+            const currentReactions = { ...post.reactions };
+            const reactionArray = currentReactions[reactionType] || [];
+            const hasReactedSameType = reactionArray.includes(userId);
+            
+            // Remove user from ALL reaction types first (single engagement rule)
+            const allReactionTypes = ['heart', 'support', 'growth'];
+            for (const type of allReactionTypes) {
+              if (currentReactions[type]) {
+                currentReactions[type] = currentReactions[type].filter((id: string) => id !== userId);
+              }
+            }
+            
+            // If user wasn't already reacted with this type, add them
+            if (!hasReactedSameType) {
+              currentReactions[reactionType] = [...(currentReactions[reactionType] || []), userId];
+            }
+            
+            return { ...post, reactions: currentReactions };
+          }
+          return post;
+        })
+      );
+      
+      // Call API in background to sync (no page refresh)
       const response = await fetch(`/api/community/posts/${postId}/react`, {
         method: 'POST',
         headers: {
@@ -251,6 +283,7 @@ export default function CommunityPageEnhanced() {
 
       const data = await response.json();
 
+      // Update with backend response if successful (but don't reload entire feed)
       if (data.success) {
         setAllPosts((prevPosts: any[]) => 
           prevPosts.map((post: any) => 
@@ -262,6 +295,7 @@ export default function CommunityPageEnhanced() {
       }
     } catch (error) {
       console.error('Error reacting to post:', error);
+      // Optionally revert optimistic update on error
     }
   };
 
@@ -663,8 +697,8 @@ export default function CommunityPageEnhanced() {
       <PremiumUpgradeModal
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
-        feature="Create Posts"
-        description="Premium users can create posts, comment on others' posts, and participate in community challenges."
+        feature="Advanced Features"
+        description="Upgrade to premium for AI insights, unlimited access, and advanced community features."
       />
 
       {lightboxOpen && (

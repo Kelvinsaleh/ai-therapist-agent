@@ -146,11 +146,7 @@ export function CreatePostModal({ spaces, userTier, isAuthenticated, onPostCreat
       return;
     }
 
-    if (userTier === 'free') {
-      toast.error('Premium subscription required to create posts');
-      return;
-    }
-
+    // Post creation is free for all users
     setIsSubmitting(true);
     
     try {
@@ -182,13 +178,10 @@ export function CreatePostModal({ spaces, userTier, isAuthenticated, onPostCreat
         
         console.error('Post creation error:', errorData);
         
-        if (errorData.upgradeRequired) {
-          toast.error('Premium subscription required to create posts');
-        } else {
-          const errorMessage = errorData.error || errorData.message || `Failed to create post (${response.status})`;
-          const errorDetails = errorData.details ? `: ${errorData.details}` : '';
-          toast.error(`${errorMessage}${errorDetails}`);
-        }
+        // Show error message from backend
+        const errorMessage = errorData.error || errorData.message || `Failed to create post (${response.status})`;
+        const errorDetails = errorData.details ? `: ${errorData.details}` : '';
+        toast.error(`${errorMessage}${errorDetails}`);
         return;
       }
 
@@ -205,11 +198,7 @@ export function CreatePostModal({ spaces, userTier, isAuthenticated, onPostCreat
         setImagePreviews([]);
         if (onPostCreated) onPostCreated();
       } else {
-        if (data.upgradeRequired) {
-          toast.error('Premium subscription required to create posts');
-        } else {
-          toast.error(data.error || 'Failed to create post');
-        }
+        toast.error(data.error || 'Failed to create post');
       }
     } catch (error) {
       console.error('Error creating post:', error);
