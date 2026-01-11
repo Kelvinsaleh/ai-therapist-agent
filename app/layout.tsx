@@ -49,11 +49,12 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/icon.svg", type: "image/svg+xml" }
+      { url: "/app-icon.png", sizes: "192x192", type: "image/png" },
+      { url: "/app-icon.png", sizes: "512x512", type: "image/png" }
     ],
-    shortcut: "/icon.svg",
+    shortcut: "/app-icon.png",
     apple: [
-      { url: "/icon.svg", sizes: "180x180", type: "image/svg+xml" }
+      { url: "/app-icon.png", sizes: "180x180", type: "image/png" }
     ]
   },
   metadataBase: new URL("https://hopementalhealthsupport.xyz"),
