@@ -629,6 +629,12 @@ class BackendService {
     return this.makeRequest(`/subscription/status?userId=${userId}`);
   }
 
+  async startFreeTrial(): Promise<ApiResponse> {
+    return this.makeRequest(`/subscription/start-trial`, {
+      method: 'POST',
+    });
+  }
+
   // Rescue Pair / Matching methods - Additional methods for pricing features
   async getActiveMatches(): Promise<ApiResponse> {
     return this.makeRequest('/rescue-pairs/active');

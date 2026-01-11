@@ -19,6 +19,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import { userMemoryManager } from "@/lib/memory/user-memory";
 import { useSession } from "@/lib/contexts/session-context";
+import { computeIsPremium } from "@/hooks/usePremium";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistanceToNow } from "date-fns";
@@ -64,6 +65,8 @@ const SUGGESTED_QUESTIONS = [
   { text: "I need help with work-life balance" },
 ];
 
+const FREE_MESSAGES_PER_MONTH = 150;
+
 const glowAnimation = {
   initial: { opacity: 0.5, scale: 1 },
   animate: {
@@ -94,6 +97,8 @@ export default function MemoryEnhancedTherapyPage() {
   const [sessionId, setSessionId] = useState<string>("");
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [isPremium, setIsPremium] = useState<boolean>(false);
+  const [trialEndsAt, setTrialEndsAt] = useState<string | null>(null);
+  const [trialWillAutoBill, setTrialWillAutoBill] = useState<boolean>(true);
   const [isVoiceMode, setIsVoiceMode] = useState<boolean>(false);
   const [isCompletingSession, setIsCompletingSession] = useState(false);
   
@@ -108,6 +113,25 @@ export default function MemoryEnhancedTherapyPage() {
   
   // Keyboard overlay adjustment using custom hook
   const keyboardHeight = useKeyboardOffset();
+
+  const getUsageKey = () => {
+    const now = new Date();
+    return `chat-usage-${now.getFullYear()}-${now.getMonth() + 1}`;
+  };
+
+  const getRemainingFreeMessages = () => {
+    if (typeof window === "undefined") return FREE_MESSAGES_PER_MONTH;
+    const key = getUsageKey();
+    const used = Number(localStorage.getItem(key) || "0");
+    return Math.max(0, FREE_MESSAGES_PER_MONTH - used);
+  };
+
+  const incrementUsage = () => {
+    if (typeof window === "undefined") return;
+    const key = getUsageKey();
+    const used = Number(localStorage.getItem(key) || "0");
+    localStorage.setItem(key, String(used + 1));
+  };
 
   // Use authenticated user id (support both _id and id)
   const userId = (user?._id as unknown as string) || (user?.id as unknown as string) || "";
@@ -210,12 +234,23 @@ export default function MemoryEnhancedTherapyPage() {
     try {
       if (!user?._id) return;
       const res = await backendService.getSubscriptionStatus(user._id as unknown as string);
-      if (res?.success) {
-        const data = res.data;
-        setIsPremium(Boolean(data?.isActive || data?.plan === 'premium'));
-      }
+      const subscriptionActive = res?.success && Boolean(res.data?.isActive || res.data?.plan === 'premium');
+      const trialEnds = (res as any)?.data?.trial?.trialEndsAt as string | undefined || (user as any)?.trialEndsAt as string | undefined;
+      setTrialEndsAt(trialEnds || null);
+      setTrialWillAutoBill((res as any)?.data?.trial?.willAutoBill ?? true);
+      const premium = computeIsPremium({
+        userTier: (user as any)?.tier as string | undefined,
+        trialEndsAt: trialEnds,
+        subscriptionActive,
+      });
+      setIsPremium(premium);
     } catch (e) {
-      setIsPremium(false);
+      const premium = computeIsPremium({
+        userTier: (user as any)?.tier as string | undefined,
+        trialEndsAt: (user as any)?.trialEndsAt as string | undefined,
+        subscriptionActive: false,
+      });
+      setIsPremium(premium);
     }
   };
 
@@ -270,6 +305,27 @@ export default function MemoryEnhancedTherapyPage() {
       logger.error("Failed to create new session", error);
       setIsLoading(false);
     }
+  };
+
+  const renderTrialBanner = () => {
+    if (!trialEndsAt) return null;
+    const ends = new Date(trialEndsAt);
+    if (Number.isNaN(ends.getTime())) return null;
+    const daysLeft = Math.max(0, Math.ceil((ends.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+    return (
+      <div className="mx-4 mt-4 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-primary shadow-sm">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="font-semibold">Free trial active</div>
+            <div className="text-primary/80">Ends in {daysLeft} day{daysLeft === 1 ? '' : 's'} ({ends.toLocaleDateString()}). Billing continues after the trial unless you cancel before billing.</div>
+          </div>
+          <Button size="sm" variant={"outline" as any} onClick={() => router.push('/pricing')}>
+            Cancel before billing
+          </Button>
+        </div>
+        <div className="mt-1 text-xs text-primary/70">Auto-billing: {trialWillAutoBill ? 'On' : 'Off'}</div>
+      </div>
+    );
   };
 
   const toggleListening = () => {
@@ -375,6 +431,24 @@ export default function MemoryEnhancedTherapyPage() {
 
     if (!currentMessage || isTyping) return;
 
+    if (!isPremium) {
+      const remaining = getRemainingFreeMessages();
+      if (remaining <= 0) {
+        toast.error("Free plan limit reached (150 messages/month). Upgrade to continue.");
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: "You've reached the free monthly message limit. Upgrade to Premium for unlimited chats.",
+            timestamp: new Date(),
+          },
+        ]);
+        setIsTyping(false);
+        setTimeout(() => router.push('/pricing'), 600);
+        return;
+      }
+    }
+
     setMessage("");
     setIsTyping(true);
     
@@ -435,6 +509,9 @@ export default function MemoryEnhancedTherapyPage() {
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
+      if (!isPremium) {
+        incrementUsage();
+      }
       setIsTyping(false);
       scrollToBottom();
 
@@ -612,6 +689,9 @@ export default function MemoryEnhancedTherapyPage() {
       </Button>
 
       <div className="flex w-full h-full">
+        <div className="absolute left-0 right-0 top-12 z-[60]">
+          {renderTrialBanner()}
+        </div>
         {/* Main chat area - full width, no sidebar */}
         <div className="flex-1 flex flex-col overflow-hidden bg-background w-full h-full">
 

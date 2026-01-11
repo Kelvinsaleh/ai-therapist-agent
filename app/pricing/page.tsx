@@ -18,6 +18,7 @@ export default function PricingPage() {
   const searchParams = useSearchParams();
   const { isAuthenticated, user, refreshUserTier } = useSession();
   const [isLoading, setIsLoading] = useState<null | "monthly" | "annually">(null);
+  const [isStartingTrial, setIsStartingTrial] = useState(false);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [paymentUrl, setPaymentUrl] = useState<string>("");
   const [paymentReference, setPaymentReference] = useState<string>("");
@@ -99,6 +100,29 @@ export default function PricingPage() {
     toast.info("Payment cancelled");
   };
 
+  const handleStartTrial = async () => {
+    if (!isAuthenticated || !user) {
+      toast.error("Please log in to start your free trial.");
+      router.push("/login");
+      return;
+    }
+
+    try {
+      setIsStartingTrial(true);
+      const res = await paystackService.startFreeTrial();
+      if (res.success) {
+        toast.success("✅ Trial started — premium unlocked for 7 days. Billing begins after unless you cancel.");
+        await refreshUserTier?.();
+      } else {
+        toast.error(res.error || "Unable to start trial");
+      }
+    } catch (e) {
+      toast.error("Something went wrong starting the trial");
+    } finally {
+      setIsStartingTrial(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-muted/5 py-20">
       <div className="max-w-5xl mx-auto px-6">
@@ -106,6 +130,12 @@ export default function PricingPage() {
           <div className="text-center mb-10">
             <h1 className="text-3xl md:text-4xl font-extrabold">Simple plans. No surprises.</h1>
             <p className="mt-3 text-muted-foreground max-w-2xl mx-auto">FREE — Support without pressure. PREMIUM — Depth, clarity, continuity.</p>
+            <div className="mt-4 flex flex-col items-center gap-2">
+              <Button onClick={handleStartTrial} disabled={isStartingTrial} variant={"secondary" as any} className="max-w-xs w-full">
+                {isStartingTrial ? "Starting trial..." : "Start free trial"}
+              </Button>
+              <p className="text-xs text-muted-foreground">7 days of premium. Cancel before billing from your pricing page.</p>
+            </div>
           </div>
 
           <div className="grid md:grid-cols-2 gap-6 items-start mb-10">
@@ -163,6 +193,9 @@ export default function PricingPage() {
                 <div className="mt-6 grid grid-cols-1 gap-3">
                   <Button onClick={() => handleSubscribe('monthly')} disabled={isLoading === 'monthly'} className="w-full bg-primary">{isLoading === 'monthly' ? 'Processing...' : `Subscribe — $${monthlyPlan?.price?.toFixed(2) ?? '3.99'} / month`}</Button>
                   <Button onClick={() => handleSubscribe('annually')} disabled={isLoading === 'annually'} className="w-full" variant={"outline" as any}>{isLoading === 'annually' ? 'Processing...' : `Subscribe annually — $${annualPlan?.price?.toFixed(2) ?? '39.90'} / year`}</Button>
+                  <Button onClick={handleStartTrial} disabled={isStartingTrial} variant={"secondary" as any} className="w-full">
+                    {isStartingTrial ? "Starting trial..." : "Start free trial"}
+                  </Button>
                 </div>
 
                 {annualPlan?.savings && (

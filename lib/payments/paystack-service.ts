@@ -28,6 +28,10 @@ export interface SubscriptionStatus {
   expiresAt: Date | null;
   autoRenew: boolean;
   nextBillingDate: Date | null;
+  isTrialActive?: boolean;
+  trialEndsAt?: Date | null;
+  trialStartedAt?: Date | null;
+  willAutoBill?: boolean;
 }
 
 class PaystackService {
@@ -287,8 +291,12 @@ class PaystackService {
           isActive: data.isPremium,
           plan: plan || null,
           expiresAt: subscription?.expiresAt ? new Date(subscription.expiresAt) : null,
-          autoRenew: subscription.autoRenew,
-          nextBillingDate: subscription.nextBillingDate ? new Date(subscription.nextBillingDate) : null
+          autoRenew: subscription?.autoRenew ?? true,
+          nextBillingDate: subscription?.nextBillingDate ? new Date(subscription.nextBillingDate) : (subscription?.expiresAt ? new Date(subscription.expiresAt) : null),
+          isTrialActive: data.trial?.isActive || subscription?.status === 'trialing',
+          trialEndsAt: data.trial?.trialEndsAt ? new Date(data.trial.trialEndsAt) : (subscription?.trialEndsAt ? new Date(subscription.trialEndsAt) : null),
+          trialStartedAt: data.trial?.trialStartedAt ? new Date(data.trial.trialStartedAt) : (subscription?.trialStartsAt ? new Date(subscription.trialStartsAt) : null),
+          willAutoBill: data.trial?.willAutoBill ?? subscription?.autoRenew ?? true
         };
       } else {
         return {
@@ -296,7 +304,11 @@ class PaystackService {
           plan: null,
           expiresAt: null,
           autoRenew: false,
-          nextBillingDate: null
+          nextBillingDate: null,
+          isTrialActive: false,
+          trialEndsAt: null,
+          trialStartedAt: null,
+          willAutoBill: false
         };
       }
     } catch (error) {
@@ -306,8 +318,44 @@ class PaystackService {
         plan: null,
         expiresAt: null,
         autoRenew: false,
-        nextBillingDate: null
+        nextBillingDate: null,
+        isTrialActive: false,
+        trialEndsAt: null,
+        trialStartedAt: null,
+        willAutoBill: false
       };
+    }
+  }
+
+  // Start a 7-day free trial
+  async startFreeTrial(): Promise<PaymentResponse> {
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      if (!token) {
+        return { success: false, error: 'Authentication required' };
+      }
+
+      const response = await fetch(`${this.backendUrl}/payments/subscription/start-trial`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        return {
+          success: true,
+          message: data.message || 'Trial started',
+          reference: data.trial?.status
+        };
+      }
+
+      return { success: false, error: data.error || 'Failed to start trial' };
+    } catch (error) {
+      console.error('Start trial error:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Failed to start trial' };
     }
   }
 

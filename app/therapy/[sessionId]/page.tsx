@@ -10,6 +10,7 @@ declare global {
   }
 }
 import { useParams, useRouter } from "next/navigation";
+import { computeIsPremium } from "@/hooks/usePremium";
 import { Button } from "@/components/ui/button";
 import {
   Send,
@@ -98,6 +99,8 @@ const SUGGESTED_QUESTIONS = [
   { text: "I need help with work-life balance" },
 ];
 
+const FREE_MESSAGES_PER_MONTH = 150;
+
 const glowAnimation = {
   initial: { opacity: 0.5, scale: 1 },
   animate: {
@@ -141,9 +144,30 @@ export default function TherapyPage() {
   );
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [isPremium, setIsPremium] = useState<boolean>(false);
+  const [trialEndsAt, setTrialEndsAt] = useState<string | null>(null);
+  const [trialWillAutoBill, setTrialWillAutoBill] = useState<boolean>(true);
   const [isVoiceMode, setIsVoiceMode] = useState<boolean>(false);
   const [isPopupOpen, setIsPopupOpen] = useState<boolean>(false);
   const [hideFooter, setHideFooter] = useState<boolean>(false);
+
+  const getUsageKey = () => {
+    const now = new Date();
+    return `chat-usage-${now.getFullYear()}-${now.getMonth() + 1}`;
+  };
+
+  const getRemainingFreeMessages = () => {
+    if (typeof window === "undefined") return FREE_MESSAGES_PER_MONTH;
+    const key = getUsageKey();
+    const used = Number(localStorage.getItem(key) || "0");
+    return Math.max(0, FREE_MESSAGES_PER_MONTH - used);
+  };
+
+  const incrementUsage = () => {
+    if (typeof window === "undefined") return;
+    const key = getUsageKey();
+    const used = Number(localStorage.getItem(key) || "0");
+    localStorage.setItem(key, String(used + 1));
+  };
 
   const handleNewSession = async () => {
     // Check if user is authenticated before creating a new session
@@ -237,7 +261,7 @@ export default function TherapyPage() {
     initChat();
   }, [sessionId, router]);
 
-  // Load subscription status to gate premium features
+  // Load subscription status to gate premium features (includes trial)
   useEffect(() => {
     const loadSubscription = async () => {
       try {
@@ -245,12 +269,30 @@ export default function TherapyPage() {
         const res = await backendService.getSubscriptionStatus(user._id as unknown as string);
         if (res?.success) {
           const data = res.data;
-          // Expecting shape like { plan: 'premium' | 'free' }
-          setIsPremium(Boolean(data?.isActive || data?.plan === 'premium'));
+          const trialEnds = (data as any)?.trial?.trialEndsAt as string | undefined || (user as any)?.trialEndsAt as string | undefined;
+          setTrialEndsAt(trialEnds || null);
+          setTrialWillAutoBill((data as any)?.trial?.willAutoBill ?? true);
+          const premium = computeIsPremium({
+            userTier: user?.tier as string | undefined,
+            trialEndsAt: trialEnds,
+            subscriptionActive: Boolean(data?.isActive || data?.plan === "premium"),
+          });
+          setIsPremium(premium);
+        } else {
+          const premium = computeIsPremium({
+            userTier: user?.tier as string | undefined,
+            trialEndsAt: (user as any)?.trialEndsAt as string | undefined,
+            subscriptionActive: false,
+          });
+          setIsPremium(premium);
         }
       } catch (e) {
-        // Default to non-premium on error
-        setIsPremium(false);
+        const premium = computeIsPremium({
+          userTier: user?.tier as string | undefined,
+          trialEndsAt: (user as any)?.trialEndsAt as string | undefined,
+          subscriptionActive: false,
+        });
+        setIsPremium(premium);
       }
     };
     loadSubscription();
@@ -435,6 +477,24 @@ export default function TherapyPage() {
       return;
     }
 
+    if (!isPremium) {
+      const remaining = getRemainingFreeMessages();
+      if (remaining <= 0) {
+        toast.error("Free plan limit reached (150 messages/month). Upgrade to continue.");
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: "You've reached the free monthly message limit. Upgrade to Premium for unlimited chats.",
+            timestamp: new Date(),
+          },
+        ]);
+        setIsTyping(false);
+        setTimeout(() => router.push('/pricing'), 600);
+        return;
+      }
+    }
+
     setMessage("");
     setIsTyping(true);
 
@@ -495,6 +555,9 @@ export default function TherapyPage() {
 
       // Add the message immediately
       setMessages((prev) => [...prev, assistantMessage]);
+      if (!isPremium) {
+        incrementUsage();
+      }
       setIsTyping(false);
       scrollToBottom();
 
@@ -652,6 +715,27 @@ export default function TherapyPage() {
     }
   };
 
+  const renderTrialBanner = () => {
+    if (!trialEndsAt) return null;
+    const ends = new Date(trialEndsAt);
+    if (Number.isNaN(ends.getTime())) return null;
+    const daysLeft = Math.max(0, Math.ceil((ends.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+    return (
+      <div className="mx-4 mt-4 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-primary shadow-sm">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="font-semibold">Free trial active</div>
+            <div className="text-primary/80">Ends in {daysLeft} day{daysLeft === 1 ? '' : 's'} ({ends.toLocaleDateString()}). Billing continues after the trial unless you cancel before billing.</div>
+          </div>
+          <Button size="sm" variant={"outline" as any} onClick={() => router.push('/pricing')}>
+            Cancel before billing
+          </Button>
+        </div>
+        <div className="mt-1 text-xs text-primary/70">Auto-billing: {trialWillAutoBill ? 'On' : 'Off'}</div>
+      </div>
+    );
+  };
+
   // Single page - just the chat interface
   // This page takes full viewport and doesn't use the default layout padding
   return (
@@ -682,6 +766,9 @@ export default function TherapyPage() {
       </Button>
       
       <div className="flex h-full w-full">
+        <div className="absolute left-0 right-0 top-12 z-[60]">
+          {renderTrialBanner()}
+        </div>
         {/* Main chat area - full width, no sidebar */}
         <div className="flex-1 flex flex-col overflow-hidden bg-background w-full h-full">
 
