@@ -5,7 +5,7 @@ import { Download, Smartphone } from "lucide-react";
 
 export function MobileDownloadButton({ variant = "default", className = "" }: { variant?: "default" | "outline" | "ghost"; className?: string }) {
   // Get APK URL - now hardcoded instead of using env variable
-  const apkUrl = "https://jum4pw3ribx7b8ps.public.blob.vercel-storage.com/App%20Download/app-release.apk";
+  const apkUrl = "https://jum4pw3ribx7b8ps.public.blob.vercel-storage.com/app-release-apk-v1";
 
   // If no URL is set, don't show the button
   if (!apkUrl) {
@@ -20,7 +20,6 @@ export function MobileDownloadButton({ variant = "default", className = "" }: { 
     >
       <a
         href={apkUrl}
-        download
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Download Android App"
