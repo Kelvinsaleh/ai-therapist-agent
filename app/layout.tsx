@@ -131,11 +131,6 @@ export default function RootLayout({
                 "AI chat for mental support, empathy, and motivation",
                 "mental health community for shared healing and encouragement"
               ],
-              "aggregateRating": {
-                "@type": "AggregateRating",
-                "ratingValue": "4.9",
-                "ratingCount": "312"
-              },
               "offers": {
                 "@type": "Offer",
                 "price": "0.00",
