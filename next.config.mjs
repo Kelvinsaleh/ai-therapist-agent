@@ -3,6 +3,14 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  async rewrites() {
+    return [
+      {
+        source: "/favicon.ico",
+        destination: "/app-icon.png",
+      },
+    ];
+  },
   typescript: {
     ignoreBuildErrors: true,
   },
