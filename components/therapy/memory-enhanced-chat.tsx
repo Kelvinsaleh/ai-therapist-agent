@@ -171,7 +171,8 @@ export function MemoryEnhancedChat({ sessionId, userId }: MemoryEnhancedChatProp
           moodPatterns: userMemory.moodPatterns.slice(-7),
           insights: userMemory.insights.slice(-3),
           profile: userMemory.profile
-        }
+        },
+        conversation: messages.map(msg => ({ role: msg.role, content: msg.content }))
       };
 
       const response = await backendService.sendMemoryEnhancedMessage(memoryRequest);
@@ -293,7 +294,8 @@ export function MemoryEnhancedChat({ sessionId, userId }: MemoryEnhancedChatProp
           moodPatterns: userMemoryReal.moodPatterns.slice(-7),
           insights: userMemoryReal.insights.slice(-3),
           profile: userMemoryReal.profile,
-        }
+        },
+        conversation: messages.map(msg => ({ role: msg.role, content: msg.content }))
       };
       const response = await backendService.sendMemoryEnhancedMessage(memoryRequest);
       if (!response.success) throw new Error(response.error || "Unknown error");

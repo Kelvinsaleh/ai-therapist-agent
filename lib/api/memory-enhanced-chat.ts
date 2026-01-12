@@ -43,6 +43,7 @@ export interface MemoryEnhancedChatRequest {
   context: string;
   suggestions: string[];
   userMemory: any;
+  conversation?: Array<{ role: 'user' | 'assistant'; content: string }>;
 }
 
 export interface MemoryEnhancedChatResponse {
@@ -62,13 +63,24 @@ export interface MemoryEnhancedChatResponse {
 export async function sendMemoryEnhancedMessage(
   message: string,
   sessionId: string,
-  userId: string
+  userId: string,
+  conversation?: Array<{ role: 'user' | 'assistant'; content: string }>
 ): Promise<MemoryEnhancedChatResponse> {
   try {
     // Get user memory context
     const userMemory = await userMemoryManager.loadUserMemory(userId);
+    // Capture key facts from the live message so they persist across chats
+    userMemoryManager.captureFactsFromMessage(message);
+    await userMemoryManager.saveUserMemory();
     const context = userMemoryManager.getTherapyContext();
     const suggestions = userMemoryManager.getTherapySuggestions();
+
+    const compactMemory = {
+      facts: userMemory.facts?.slice(-30) ?? [],
+      summaries: userMemory.summaries?.slice(-6) ?? [],
+      profile: userMemory.profile,
+      recentMood: userMemory.moodPatterns.slice(-3)
+    };
 
     // Prepare request payload
     const requestPayload: MemoryEnhancedChatRequest = {
@@ -77,13 +89,8 @@ export async function sendMemoryEnhancedMessage(
       userId,
       context,
       suggestions,
-      userMemory: {
-        journalEntries: userMemory.journalEntries.slice(-5),
-        meditationHistory: userMemory.meditationHistory.slice(-3),
-        moodPatterns: userMemory.moodPatterns.slice(-7),
-        insights: userMemory.insights.slice(-3),
-        profile: userMemory.profile
-      }
+      userMemory: compactMemory,
+      ...(conversation && conversation.length > 0 && { conversation })
     };
 
     // Send to your backend
@@ -133,6 +140,8 @@ async function generateLocalResponse(
   userId: string
 ): Promise<MemoryEnhancedChatResponse> {
   const userMemory = await userMemoryManager.loadUserMemory(userId);
+  userMemoryManager.captureFactsFromMessage(message);
+  await userMemoryManager.saveUserMemory();
   const context = userMemoryManager.getTherapyContext();
   const suggestions = userMemoryManager.getTherapySuggestions();
 

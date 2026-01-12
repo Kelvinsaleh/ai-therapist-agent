@@ -1,6 +1,30 @@
 // User Memory System for AI Therapist
 // This system stores and retrieves user context from journals, meditations, and therapy sessions
 
+export interface UserMemoryFact {
+  id: string;
+  content: string;
+  category:
+    | 'person'
+    | 'relationship'
+    | 'goal'
+    | 'preference'
+    | 'trigger'
+    | 'event'
+    | 'boundary'
+    | 'other';
+  source: 'journal' | 'chat' | 'profile' | 'meditation' | 'therapy';
+  lastUpdated: Date;
+}
+
+export interface UserMemorySummary {
+  id: string;
+  summary: string;
+  mood?: number;
+  date: Date;
+  type: 'journal' | 'therapy' | 'meditation';
+}
+
 export interface UserMemory {
   userId: string;
   profile: {
@@ -19,6 +43,8 @@ export interface UserMemory {
   therapySessions: TherapyMemory[];
   moodPatterns: MoodPattern[];
   insights: UserInsight[];
+  facts: UserMemoryFact[];
+  summaries: UserMemorySummary[];
   lastUpdated: Date;
 }
 
@@ -79,6 +105,10 @@ export interface UserInsight {
 
 class UserMemoryManager {
   private memory: UserMemory | null = null;
+  private static readonly MAX_FACTS = 30;
+  private static readonly MAX_SUMMARIES = 10;
+  private static readonly MAX_SUMMARY_LENGTH = 220;
+  private static readonly MAX_FACT_LENGTH = 200;
 
   // Load user memory (with backend sync)
   async loadUserMemory(userId: string): Promise<UserMemory> {
@@ -114,7 +144,7 @@ class UserMemoryManager {
               id: entry._id,
               date: new Date(entry.createdAt),
               mood: entry.mood,
-              content: entry.content,
+              content: this.trimSummary(entry.content),
               tags: entry.tags || [],
               keyThemes: this.extractKeyThemes(entry.content),
               emotionalState: this.analyzeEmotionalState(entry.content, entry.mood),
@@ -126,9 +156,23 @@ class UserMemoryManager {
             therapySessions: [],
             moodPatterns: [],
             insights: [],
+            facts: [],
+            summaries: [],
             lastUpdated: new Date(),
           };
           
+          // Seed compact facts/summaries from loaded journals
+          this.memory.journalEntries.forEach(j => {
+            this.captureFactsFromJournal(j);
+            this.addSummary({
+              id: j.id,
+              summary: this.buildJournalSummary(j),
+              mood: j.mood,
+              date: j.date,
+              type: 'journal'
+            });
+          });
+
           console.log("✅ Loaded user profile from MongoDB:", {
             communicationStyle: this.memory.profile.preferences.communicationStyle,
             goals: this.memory.profile.goals,
@@ -148,6 +192,17 @@ class UserMemoryManager {
     if (stored) {
       this.memory = JSON.parse(stored);
       this.memory!.lastUpdated = new Date(this.memory!.lastUpdated);
+      // Backfill new fields if missing
+      this.memory!.facts = this.memory!.facts || [];
+      this.memory!.summaries = this.memory!.summaries || [];
+      this.memory!.facts = this.memory!.facts.map(f => ({
+        ...f,
+        lastUpdated: new Date(f.lastUpdated)
+      }));
+      this.memory!.summaries = this.memory!.summaries.map(s => ({
+        ...s,
+        date: new Date(s.date)
+      }));
       return this.memory!;
     }
 
@@ -170,6 +225,8 @@ class UserMemoryManager {
       therapySessions: [],
       moodPatterns: [],
       insights: [],
+      facts: [],
+      summaries: [],
       lastUpdated: new Date(),
     };
 
@@ -230,6 +287,7 @@ class UserMemoryManager {
     const journalMemory: JournalMemory = {
       ...entry,
       id: Date.now().toString(),
+      content: this.trimSummary(entry.content),
       keyThemes: this.extractKeyThemes(entry.content),
       emotionalState: this.analyzeEmotionalState(entry.content, entry.mood),
       concerns: this.extractConcerns(entry.content),
@@ -239,6 +297,16 @@ class UserMemoryManager {
 
     this.memory.journalEntries.push(journalMemory);
     
+    // Capture compact facts/summaries instead of keeping full text in context
+    this.captureFactsFromJournal(journalMemory);
+    this.addSummary({
+      id: journalMemory.id,
+      summary: this.buildJournalSummary(journalMemory),
+      mood: journalMemory.mood,
+      date: journalMemory.date,
+      type: 'journal'
+    });
+
     // Update mood patterns
     this.updateMoodPattern(entry.date, entry.mood, entry.tags);
     
@@ -279,6 +347,12 @@ class UserMemoryManager {
     };
 
     this.memory.meditationHistory.push(meditationMemory);
+    this.addSummary({
+      id: meditationMemory.id,
+      summary: this.buildMeditationSummary(meditationMemory),
+      date: meditationMemory.date,
+      type: 'meditation'
+    });
     await this.saveUserMemory();
   }
 
@@ -293,6 +367,13 @@ class UserMemoryManager {
 
     this.memory.therapySessions.push(therapyMemory);
     await this.generateUserInsights();
+    this.addSummary({
+      id: therapyMemory.sessionId,
+      summary: this.buildTherapySummary(therapyMemory),
+      mood: therapyMemory.mood,
+      date: therapyMemory.date,
+      type: 'therapy'
+    });
     await this.saveUserMemory();
   }
 
@@ -300,9 +381,9 @@ class UserMemoryManager {
   getTherapyContext(): string {
     if (!this.memory) return '';
 
-    const recentEntries = this.memory.journalEntries
-      .slice(-5)
-      .map(entry => `Journal (${entry.date instanceof Date ? entry.date.toLocaleDateString() : new Date(entry.date).toLocaleDateString()}): Mood ${entry.mood}/6 - ${entry.content.substring(0, 200)}...`)
+    const recentSummaries = this.memory.summaries
+      .slice(-UserMemoryManager.MAX_SUMMARIES)
+      .map(s => `${s.type} (${this.formatDate(s.date)}): ${s.summary}${s.mood != null ? ` (mood: ${s.mood}/6)` : ''}`)
       .join('\n');
 
     const recentMeditations = this.memory.meditationHistory
@@ -311,25 +392,25 @@ class UserMemoryManager {
       .join('\n');
 
     const moodTrend = this.getMoodTrend();
-    const keyInsights = this.memory.insights
-      .slice(-3)
-      .map(insight => `Insight: ${insight.content}`)
+    const facts = this.memory.facts
+      .slice(-UserMemoryManager.MAX_FACTS)
+      .map(f => `- (${f.category}) ${f.content}`)
       .join('\n');
 
     return `
 USER CONTEXT FOR THERAPY SESSION:
 
-RECENT JOURNAL ENTRIES:
-${recentEntries}
+FACTS (compact):
+${facts}
+
+RECENT SUMMARIES:
+${recentSummaries}
 
 RECENT MEDITATIONS:
 ${recentMeditations}
 
 MOOD TREND:
 ${moodTrend}
-
-KEY INSIGHTS:
-${keyInsights}
 
 USER PROFILE & PREFERENCES:
 - Name: ${this.memory.profile.name}
@@ -577,6 +658,95 @@ IMPORTANT INSTRUCTIONS:
     return Object.entries(themeCount)
       .filter(([_, count]) => count > 1)
       .map(([theme, _]) => theme);
+  }
+
+  private formatDate(date: Date | string): string {
+    const d = date instanceof Date ? date : new Date(date);
+    return d.toLocaleDateString();
+  }
+
+  private trimSummary(text: string, maxLen: number = UserMemoryManager.MAX_SUMMARY_LENGTH): string {
+    if (!text) return '';
+    const trimmed = text.trim();
+    return trimmed.length > maxLen ? `${trimmed.substring(0, maxLen)}…` : trimmed;
+  }
+
+  private buildJournalSummary(entry: JournalMemory): string {
+    const snippet = this.trimSummary(entry.content);
+    return `Mood ${entry.mood}/6, tags: ${entry.tags.join(', ') || 'none'}, notes: ${snippet}`;
+  }
+
+  private buildMeditationSummary(entry: MeditationMemory): string {
+    return `${entry.type} ${entry.duration}min, mood ${entry.moodBefore} → ${entry.moodAfter}, effectiveness ${Math.round(entry.effectiveness * 100)}%`;
+  }
+
+  private buildTherapySummary(entry: TherapyMemory): string {
+    const topics = entry.topics.join(', ') || 'general';
+    const key = this.trimSummary(entry.summary);
+    return `Session on ${topics}; mood ${entry.mood}/6; ${key}`;
+  }
+
+  private addSummary(summary: UserMemorySummary): void {
+    if (!this.memory) return;
+    this.memory.summaries = [
+      ...this.memory.summaries.filter(s => s.id !== summary.id),
+      { ...summary, summary: this.trimSummary(summary.summary) }
+    ].slice(-UserMemoryManager.MAX_SUMMARIES);
+  }
+
+  private captureFactsFromJournal(entry: JournalMemory): void {
+    const dateStr = this.formatDate(entry.date);
+    if (entry.tags.length > 0) {
+      entry.tags.slice(0, 3).forEach(tag =>
+        this.addFact(`Tag "${tag}" mentioned on ${dateStr}`, 'trigger', 'journal'));
+    }
+    this.extractNamedEntities(entry.content).forEach(name =>
+      this.addFact(`${name} mentioned in journal (${dateStr})`, 'person', 'journal'));
+    this.addFact(`Reported mood ${entry.mood}/6 on ${dateStr}`, 'event', 'journal');
+  }
+
+  captureFactsFromMessage(message: string): void {
+    this.captureFactsFromText(message, 'chat');
+  }
+
+  private captureFactsFromText(text: string, source: UserMemoryFact['source']): void {
+    this.extractNamedEntities(text).forEach(name =>
+      this.addFact(`${name} mentioned in chat`, 'person', source));
+    if (/anxiety|anxious|worried/i.test(text)) {
+      this.addFact('User experiences anxiety', 'trigger', source);
+    }
+    if (/relationship|partner|girlfriend|boyfriend|spouse/i.test(text)) {
+      this.addFact('Relationship is an active topic', 'relationship', source);
+    }
+  }
+
+  captureConversationFacts(messages: string[]): void {
+    messages.forEach(msg => this.captureFactsFromText(msg, 'chat'));
+  }
+
+  private extractNamedEntities(text: string): string[] {
+    const matches = text.match(/\b[A-Z][a-z]{2,}\b/g) || [];
+    const unique = Array.from(new Set(matches)).slice(0, 5);
+    return unique;
+  }
+
+  private addFact(content: string, category: UserMemoryFact['category'], source: UserMemoryFact['source']): void {
+    if (!this.memory) return;
+    const normalized = content.toLowerCase();
+    const existingIndex = this.memory.facts.findIndex(f => f.content.toLowerCase() === normalized);
+    const fact: UserMemoryFact = {
+      id: existingIndex >= 0 ? this.memory.facts[existingIndex].id : Date.now().toString(),
+      content: this.trimSummary(content, UserMemoryManager.MAX_FACT_LENGTH),
+      category,
+      source,
+      lastUpdated: new Date(),
+    };
+    if (existingIndex >= 0) {
+      this.memory.facts[existingIndex] = fact;
+    } else {
+      this.memory.facts.push(fact);
+    }
+    this.memory.facts = this.memory.facts.slice(-UserMemoryManager.MAX_FACTS);
   }
 }
 
