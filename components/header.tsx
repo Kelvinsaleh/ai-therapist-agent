@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -35,30 +35,30 @@ export function Header() {
   ];
 
   return (
-    <div className="w-full fixed top-0 z-[100] bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <div className="w-full fixed top-0 z-[100] bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
       <div className="absolute inset-0 border-b border-primary/10" />
       <header 
         id="main-navigation"
-        className="relative max-w-6xl mx-auto px-4"
+        className="relative max-w-6xl mx-auto px-3 sm:px-4"
         role="banner"
       >
-        <div className="flex h-16 items-center justify-between">
+        <div className="flex h-14 sm:h-16 items-center justify-between gap-2">
           <Link
             href="/"
-            className="flex items-center space-x-2 transition-opacity hover:opacity-80"
+            className="flex items-center space-x-1.5 sm:space-x-2 transition-opacity hover:opacity-80 min-w-0 flex-shrink"
           >
-            <AudioWaveform className="h-7 w-7 text-primary animate-pulse-gentle" />
-            <div className="flex flex-col">
-              <span className="font-semibold text-lg bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+            <AudioWaveform className="h-6 w-6 sm:h-7 sm:w-7 text-primary animate-pulse-gentle flex-shrink-0" />
+            <div className="flex flex-col min-w-0">
+              <span className="font-semibold text-base sm:text-lg bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent truncate">
                 HOPE AI
               </span>
-              <span className="text-xs dark:text-muted-foreground">
-                Your mental health Companion{" "}
+              <span className="text-[10px] sm:text-xs dark:text-muted-foreground hidden sm:block truncate">
+                Your mental health Companion
               </span>
             </div>
           </Link>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
             <nav 
               className="hidden md:flex items-center space-x-1"
               role="navigation"
@@ -68,7 +68,7 @@ export function Header() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors relative group focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-md"
+                  className="px-3 sm:px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors relative group focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-md"
                   aria-label={`Navigate to ${item.label}`}
                 >
                   {item.label}
@@ -77,7 +77,7 @@ export function Header() {
               ))}
             </nav>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-3">
               <MobileDownloadButton variant="outline" className="hidden md:flex" />
               <ThemeToggle />
 
@@ -85,7 +85,7 @@ export function Header() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="md:hidden focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                className="md:hidden h-9 w-9 p-0 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 flex-shrink-0"
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 aria-label={isMenuOpen ? "Close navigation menu" : "Open navigation menu"}
                 aria-expanded={isMenuOpen}
@@ -97,14 +97,18 @@ export function Header() {
               {isAuthenticated ? (
                 <>
                   {user?.email === "knsalee@gmail.com" && (
-                    <Button asChild variant="outline" className="hidden md:flex">
+                    <Button asChild variant="outline" className="hidden md:flex text-xs sm:text-sm">
                       <Link href="/admin/meditations">Admin</Link>
                     </Button>
                   )}
-                  <ProfileDropdown />
+                  <div className="scale-90 sm:scale-100">
+                    <ProfileDropdown />
+                  </div>
                 </>
               ) : (
-                <SignInButton />
+                <div className="scale-90 sm:scale-100">
+                  <SignInButton />
+                </div>
               )}
             </div>
           </div>
@@ -115,8 +119,10 @@ export function Header() {
           <>
             {/* Overlay */}
             <div 
-              className="fixed inset-0 top-16 bg-black/20 backdrop-blur-sm md:hidden z-[90]"
+              className="fixed inset-0 bg-black/20 backdrop-blur-sm md:hidden z-[90]"
+              style={{ top: 'calc(env(safe-area-inset-top, 0px) + 3.5rem)' }}
               onClick={() => setIsMenuOpen(false)}
+              aria-hidden="true"
             />
             
             {/* Menu content */}
@@ -126,12 +132,12 @@ export function Header() {
               role="navigation"
               aria-label="Mobile navigation"
             >
-              <nav className="flex flex-col space-y-1 py-4">
+              <nav className="flex flex-col space-y-0.5 py-2">
                 {navItems.map((item) => (
                   <Link
                     key={item.href}
                     href={item.href}
-                    className="px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-primary/5 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                    className="px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-primary/5 active:bg-primary/10 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 mx-2"
                     onClick={() => setIsMenuOpen(false)}
                     aria-label={`Navigate to ${item.label}`}
                   >
@@ -143,23 +149,23 @@ export function Header() {
                     {user?.email === "knsalee@gmail.com" && (
                       <Link
                         href="/admin/meditations"
-                        className="px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-primary/5 rounded-md transition-colors"
+                        className="px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-primary/5 active:bg-primary/10 rounded-md transition-colors mx-2"
                         onClick={() => setIsMenuOpen(false)}
                       >
                         Admin
                       </Link>
                     )}
-                    <div className="px-4 py-2">
+                    <div className="px-4 py-2 mx-2">
                       <ProfileDropdown />
                     </div>
                   </>
                 )}
                 {!isAuthenticated && (
-                  <div className="px-4 py-2">
+                  <div className="px-4 py-2 mx-2">
                     <SignInButton />
                   </div>
                 )}
-                <div className="px-4 py-2">
+                <div className="px-4 py-2 mx-2 border-t border-primary/10 mt-2 pt-2">
                   <MobileDownloadButton variant="outline" className="w-full" />
                 </div>
               </nav>

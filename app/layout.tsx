@@ -174,7 +174,7 @@ export default function RootLayout({
           <SessionProvider>
             <AudioPlayerProvider>
               <Header />
-              <main id="main-content" className="min-h-screen pt-16 pb-20" role="main">
+              <main id="main-content" className="min-h-screen pt-[calc(env(safe-area-inset-top,0px)+3.5rem)] sm:pt-[calc(env(safe-area-inset-top,0px)+4rem)] pb-20" role="main">
                 {children}
               </main>
               <Footer />
