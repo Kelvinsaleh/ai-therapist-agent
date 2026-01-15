@@ -72,8 +72,8 @@ const nextConfig = {
         ],
       },
       {
-        // Cache static assets aggressively - images
-        source: '/:file(.*\\.(jpg|jpeg|gif|png|svg|ico|webp|avif))',
+        // Cache static assets aggressively - jpg
+        source: '/:file(.*\\.jpg)',
         headers: [
           {
             key: 'Cache-Control',
@@ -82,8 +82,108 @@ const nextConfig = {
         ],
       },
       {
-        // Cache static assets aggressively - fonts
-        source: '/:file(.*\\.(woff|woff2|ttf|eot))',
+        // Cache static assets aggressively - jpeg
+        source: '/:file(.*\\.jpeg)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        // Cache static assets aggressively - gif
+        source: '/:file(.*\\.gif)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        // Cache static assets aggressively - png
+        source: '/:file(.*\\.png)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        // Cache static assets aggressively - svg
+        source: '/:file(.*\\.svg)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        // Cache static assets aggressively - ico
+        source: '/:file(.*\\.ico)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        // Cache static assets aggressively - webp
+        source: '/:file(.*\\.webp)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        // Cache static assets aggressively - avif
+        source: '/:file(.*\\.avif)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        // Cache static assets aggressively - woff
+        source: '/:file(.*\\.woff)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        // Cache static assets aggressively - woff2
+        source: '/:file(.*\\.woff2)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        // Cache static assets aggressively - ttf
+        source: '/:file(.*\\.ttf)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        // Cache static assets aggressively - eot
+        source: '/:file(.*\\.eot)',
         headers: [
           {
             key: 'Cache-Control',
