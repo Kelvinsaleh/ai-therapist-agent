@@ -72,8 +72,18 @@ const nextConfig = {
         ],
       },
       {
-        // Cache static assets aggressively
-        source: '/:path*\\.(?:jpg|jpeg|gif|png|svg|ico|webp|avif|woff|woff2|ttf|eot)',
+        // Cache static assets aggressively - images
+        source: '/:file(.*\\.(jpg|jpeg|gif|png|svg|ico|webp|avif))',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        // Cache static assets aggressively - fonts
+        source: '/:file(.*\\.(woff|woff2|ttf|eot))',
         headers: [
           {
             key: 'Cache-Control',
