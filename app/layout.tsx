@@ -10,7 +10,12 @@ import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { SkipToMainContent, SkipToNavigation } from "@/components/ui/skip-link";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ 
+  subsets: ["latin"],
+  display: 'swap', // Better font loading performance
+  preload: true,
+  variable: '--font-inter',
+});
 
 export const metadata: Metadata = {
   title: "Hope – AI Mental Health App | Journaling, Meditation, AI Chat & Community",
@@ -142,6 +147,14 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.className}>
+        {/* Preload critical fonts */}
+        <link
+          rel="preload"
+          href="/fonts/inter-var.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
         {/* Google tag (gtag.js) */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-6JJDGJTFDJ"
