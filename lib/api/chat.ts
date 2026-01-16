@@ -126,8 +126,8 @@ export const createChatSession = async (): Promise<string> => {
 export const sendChatMessageStream = async (
   sessionId: string,
   message: string,
-  onChunk: (chunk: string) => void
-): Promise<ApiResponse> {
+  onChunk: (chunk: string) => void,
+): Promise<ApiResponse> => {
   try {
     const BACKEND_API_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.BACKEND_API_URL || "https://hope-backend-2.onrender.com";
     const headers = getAuthHeaders();
