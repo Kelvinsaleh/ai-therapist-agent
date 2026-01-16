@@ -27,6 +27,7 @@ import {
   MessageSquare,
   Mic,
   MicOff,
+  Keyboard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -956,32 +957,71 @@ export default function TherapyPage() {
           } catch {}
         }}
         rightAccessories={(
+          <div className="flex items-center gap-1">
+            {/* Toggle between typing and voice mode */}
             <Button
               type="button"
               size="icon"
-              variant={isListening ? "destructive" : "outline"}
-              onClick={toggleListening}
+              variant={isVoiceMode ? "default" : "ghost"}
+              onClick={() => {
+                setIsVoiceMode(!isVoiceMode);
+                // If switching to voice mode and voice is supported, start listening
+                if (!isVoiceMode && voiceSupported && !isListening) {
+                  toggleListening();
+                } else if (isVoiceMode && isListening) {
+                  // If switching away from voice mode, stop listening
+                  toggleListening();
+                }
+              }}
               disabled={isTyping || isChatPaused || !voiceSupported}
               className={cn(
-              "h-[32px] w-[32px] shrink-0",
+                "h-[32px] w-[32px] shrink-0",
                 "rounded-lg transition-all duration-200",
-              "bg-background border",
-                isListening && "animate-pulse"
+                isVoiceMode && "bg-primary text-primary-foreground"
               )}
               title={
                 !voiceSupported
                   ? "Voice input not supported on this device"
-                  : isListening
-                    ? "Stop listening"
-                    : "Start voice input"
+                  : isVoiceMode
+                    ? "Switch to typing mode"
+                    : "Switch to voice mode"
               }
             >
-              {isListening ? (
-                <MicOff className="w-3.5 h-3.5" />
-              ) : (
+              {isVoiceMode ? (
                 <Mic className="w-3.5 h-3.5" />
+              ) : (
+                <Keyboard className="w-3.5 h-3.5" />
               )}
             </Button>
+            
+            {/* Voice input button (only show in voice mode or when listening) */}
+            {(isVoiceMode || isListening) && (
+              <Button
+                type="button"
+                size="icon"
+                variant={isListening ? "destructive" : "outline"}
+                onClick={toggleListening}
+                disabled={isTyping || isChatPaused || !voiceSupported}
+                className={cn(
+                  "h-[32px] w-[32px] shrink-0",
+                  "rounded-lg transition-all duration-200",
+                  "bg-background border",
+                  isListening && "animate-pulse"
+                )}
+                title={
+                  isListening
+                    ? "Stop listening"
+                    : "Start voice input"
+                }
+              >
+                {isListening ? (
+                  <MicOff className="w-3.5 h-3.5" />
+                ) : (
+                  <Mic className="w-3.5 h-3.5" />
+                )}
+              </Button>
+            )}
+          </div>
         )}
       />
     </div>

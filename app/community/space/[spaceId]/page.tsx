@@ -196,7 +196,7 @@ export default function SpacePage() {
     try {
       return await Promise.all(uploadPromises);
     } catch (error) {
-      toast.error('Failed to upload images');
+      toast.error('We couldn’t upload those images. Please try again or use smaller files.');
       return [];
     }
   };
@@ -243,10 +243,10 @@ export default function SpacePage() {
         setShowCreatePost(false);
         loadSpacePosts();
       } else {
-        toast.error(data.error || 'Failed to create post');
+        toast.error(data.error || 'We couldn’t create the post. Please try again.');
       }
     } catch (error) {
-      toast.error('Failed to create post');
+      toast.error('We couldn’t create the post. Please try again in a moment.');
     }
   };
 
@@ -360,11 +360,11 @@ export default function SpacePage() {
         toast.success('Post deleted');
         loadSpacePosts(); // Reload posts
       } else {
-        toast.error(data.error || 'Failed to delete post');
+        toast.error(data.error || 'We couldn’t delete this post. Please try again.');
       }
     } catch (error) {
       console.error('Error deleting post:', error);
-      toast.error('Failed to delete post');
+      toast.error('We couldn’t delete this post. Please try again.');
     }
   };
 

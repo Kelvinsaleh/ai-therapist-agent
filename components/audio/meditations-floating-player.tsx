@@ -14,7 +14,12 @@ import {
   SkipBack,
   List,
   Shuffle,
-  Loader2
+  Loader2,
+  Gauge,
+  Repeat,
+  Repeat1,
+  Moon,
+  Timer
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
@@ -30,12 +35,18 @@ export function MeditationsFloatingPlayer() {
     currentTime, 
     duration, 
     volume,
+    playbackSpeed,
+    repeatMode,
+    sleepTimer,
     playlist,
     currentIndex,
     togglePlayPause, 
     stop, 
     seek,
     setVolume,
+    setPlaybackSpeed,
+    setRepeatMode,
+    setSleepTimer,
     playNext,
     playPrevious,
     removeFromPlaylist,
@@ -46,8 +57,60 @@ export function MeditationsFloatingPlayer() {
 
   const [showVolume, setShowVolume] = useState(false);
   const [showPlaylist, setShowPlaylist] = useState(false);
+  const [showSpeed, setShowSpeed] = useState(false);
+  const [showSleepTimer, setShowSleepTimer] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const pathname = usePathname();
+  
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Only handle if not typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      
+      switch (e.key) {
+        case ' ': // Spacebar - play/pause
+          e.preventDefault();
+          if (currentTrack) togglePlayPause();
+          break;
+        case 'ArrowLeft': // Left arrow - rewind 10s
+          e.preventDefault();
+          if (currentTrack) seek(Math.max(0, currentTime - 10));
+          break;
+        case 'ArrowRight': // Right arrow - forward 10s
+          e.preventDefault();
+          if (currentTrack) seek(Math.min(duration, currentTime + 10));
+          break;
+        case 'ArrowUp': // Up arrow - volume up
+          e.preventDefault();
+          setVolume(Math.min(1, volume + 0.1));
+          break;
+        case 'ArrowDown': // Down arrow - volume down
+          e.preventDefault();
+          setVolume(Math.max(0, volume - 0.1));
+          break;
+        case 'n': // N - next track
+          e.preventDefault();
+          if (playlist.length > 0) playNext();
+          break;
+        case 'p': // P - previous track
+          e.preventDefault();
+          if (playlist.length > 0) playPrevious();
+          break;
+        case 'r': // R - toggle repeat
+          e.preventDefault();
+          const modes: ('none' | 'single' | 'all')[] = ['none', 'single', 'all'];
+          const currentModeIndex = modes.indexOf(repeatMode);
+          setRepeatMode(modes[(currentModeIndex + 1) % modes.length]);
+          break;
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [currentTrack, togglePlayPause, seek, currentTime, duration, volume, setVolume, playlist, playNext, playPrevious, repeatMode, setRepeatMode]);
 
   // Hide player when navigating away from meditations page
   useEffect(() => {
@@ -88,6 +151,14 @@ export function MeditationsFloatingPlayer() {
       >
         <Card className="bg-background/95 backdrop-blur-lg border-primary/20 shadow-2xl">
           <div className="p-4 space-y-3">
+            {/* Keyboard Shortcuts Hint (only show once) */}
+            {currentTrack && (
+              <div className="text-[10px] text-muted-foreground text-center opacity-60">
+                Press <kbd className="px-1 py-0.5 bg-muted rounded text-[9px]">Space</kbd> to play/pause • 
+                <kbd className="px-1 py-0.5 bg-muted rounded text-[9px] ml-1">←</kbd>/<kbd className="px-1 py-0.5 bg-muted rounded text-[9px]">→</kbd> to seek • 
+                <kbd className="px-1 py-0.5 bg-muted rounded text-[9px] ml-1">R</kbd> to repeat
+              </div>
+            )}
             {/* Main Player */}
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -147,6 +218,114 @@ export function MeditationsFloatingPlayer() {
                   </Button>
                 )}
 
+                {/* Playback Speed */}
+                <div className="relative hidden sm:block">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => setShowSpeed(!showSpeed)}
+                    className="h-10 w-10"
+                    title={`Speed: ${playbackSpeed}x`}
+                  >
+                    <Gauge className="w-5 h-5" />
+                  </Button>
+
+                  {showSpeed && (
+                    <div className="absolute bottom-full right-0 mb-2 p-3 bg-popover border rounded-lg shadow-lg z-50">
+                      <div className="text-xs font-semibold mb-2">Playback Speed</div>
+                      <div className="flex flex-col gap-1">
+                        {[0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((speed) => (
+                          <Button
+                            key={speed}
+                            size="sm"
+                            variant={playbackSpeed === speed ? "default" : "ghost"}
+                            onClick={() => {
+                              setPlaybackSpeed(speed);
+                              setShowSpeed(false);
+                            }}
+                            className="w-full justify-start text-xs"
+                          >
+                            {speed}x
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Repeat Mode */}
+                <div className="relative hidden sm:block">
+                  <Button
+                    size="icon"
+                    variant={repeatMode !== 'none' ? "default" : "ghost"}
+                    onClick={() => {
+                      const modes: ('none' | 'single' | 'all')[] = ['none', 'single', 'all'];
+                      const currentModeIndex = modes.indexOf(repeatMode);
+                      setRepeatMode(modes[(currentModeIndex + 1) % modes.length]);
+                    }}
+                    className="h-10 w-10"
+                    title={`Repeat: ${repeatMode === 'none' ? 'Off' : repeatMode === 'single' ? 'One' : 'All'}`}
+                  >
+                    {repeatMode === 'single' ? (
+                      <Repeat1 className="w-5 h-5" />
+                    ) : (
+                      <Repeat className={`w-5 h-5 ${repeatMode === 'all' ? 'text-primary' : ''}`} />
+                    )}
+                  </Button>
+                </div>
+
+                {/* Sleep Timer */}
+                <div className="relative hidden sm:block">
+                  <Button
+                    size="icon"
+                    variant={sleepTimer !== null ? "default" : "ghost"}
+                    onClick={() => setShowSleepTimer(!showSleepTimer)}
+                    className="h-10 w-10"
+                    title={sleepTimer !== null ? `Sleep timer: ${sleepTimer} min` : 'Sleep timer'}
+                  >
+                    {sleepTimer !== null ? (
+                      <Timer className="w-5 h-5" />
+                    ) : (
+                      <Moon className="w-5 h-5" />
+                    )}
+                  </Button>
+
+                  {showSleepTimer && (
+                    <div className="absolute bottom-full right-0 mb-2 p-3 bg-popover border rounded-lg shadow-lg z-50 min-w-[140px]">
+                      <div className="text-xs font-semibold mb-2">Sleep Timer</div>
+                      <div className="flex flex-col gap-1">
+                        {sleepTimer !== null && (
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => {
+                              setSleepTimer(null);
+                              setShowSleepTimer(false);
+                            }}
+                            className="w-full justify-start text-xs"
+                          >
+                            Disable
+                          </Button>
+                        )}
+                        {[5, 10, 15, 30, 60].map((minutes) => (
+                          <Button
+                            key={minutes}
+                            size="sm"
+                            variant={sleepTimer === minutes ? "default" : "ghost"}
+                            onClick={() => {
+                              setSleepTimer(minutes);
+                              setShowSleepTimer(false);
+                            }}
+                            className="w-full justify-start text-xs"
+                          >
+                            {minutes} min
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 {/* Volume */}
                 <div className="relative hidden sm:block">
                   <Button
@@ -159,7 +338,8 @@ export function MeditationsFloatingPlayer() {
                   </Button>
 
                   {showVolume && (
-                    <div className="absolute bottom-full right-0 mb-2 p-3 bg-popover border rounded-lg shadow-lg">
+                    <div className="absolute bottom-full right-0 mb-2 p-3 bg-popover border rounded-lg shadow-lg z-50">
+                      <div className="text-xs font-semibold mb-2">Volume</div>
                       <Slider
                         value={[volume * 100]}
                         onValueChange={(value) => setVolume(value[0] / 100)}
@@ -167,6 +347,9 @@ export function MeditationsFloatingPlayer() {
                         step={1}
                         className="w-24"
                       />
+                      <div className="text-xs text-muted-foreground mt-1 text-center">
+                        {Math.round(volume * 100)}%
+                      </div>
                     </div>
                   )}
                 </div>
@@ -202,8 +385,26 @@ export function MeditationsFloatingPlayer() {
                 step={0.1}
                 className="cursor-pointer"
               />
-              <div className="flex justify-between text-xs text-muted-foreground">
+              <div className="flex justify-between items-center text-xs text-muted-foreground">
                 <span>{formatTime(currentTime)}</span>
+                <div className="flex items-center gap-2">
+                  {playbackSpeed !== 1.0 && (
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                      {playbackSpeed}x
+                    </Badge>
+                  )}
+                  {sleepTimer !== null && (
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 flex items-center gap-1">
+                      <Moon className="w-2.5 h-2.5" />
+                      {sleepTimer}m
+                    </Badge>
+                  )}
+                  {repeatMode !== 'none' && (
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                      {repeatMode === 'single' ? '🔁' : '🔂'}
+                    </Badge>
+                  )}
+                </div>
                 <span>{formatTime(duration)}</span>
               </div>
             </div>

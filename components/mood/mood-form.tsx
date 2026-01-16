@@ -11,6 +11,7 @@ import { Loader2, Brain, Target, Crown, Zap } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useSession } from "@/lib/contexts/session-context";
 import { useRouter } from "next/navigation";
+import { QuoteDialog } from "./quote-dialog";
 
 interface MoodFormProps {
   onSuccess?: () => void;
@@ -19,6 +20,7 @@ interface MoodFormProps {
 export function MoodForm({ onSuccess }: MoodFormProps) {
   const [moodScore, setMoodScore] = useState(50);
   const [isLoading, setIsLoading] = useState(false);
+  const [showQuote, setShowQuote] = useState(false);
   const { toast } = useToast();
   const { user, isAuthenticated, loading, userTier } = useSession();
   const router = useRouter();
@@ -143,8 +145,8 @@ export function MoodForm({ onSuccess }: MoodFormProps) {
         description: "Your mood has been recorded.",
       });
 
-      // Call onSuccess to close the modal
-      onSuccess?.();
+      // Show inspirational quote instead of immediately closing
+      setShowQuote(true);
     } catch (error) {
       console.error("MoodForm: Error:", error);
       toast({
@@ -403,6 +405,18 @@ export function MoodForm({ onSuccess }: MoodFormProps) {
           "Save Mood"
         )}
       </Button>
+
+      {/* Quote Dialog - shown after successful mood submission */}
+      <QuoteDialog
+        open={showQuote}
+        onOpenChange={(open) => {
+          setShowQuote(open);
+          if (!open) {
+            // When quote dialog closes, close the parent modal
+            onSuccess?.();
+          }
+        }}
+      />
     </div>
   );
 }

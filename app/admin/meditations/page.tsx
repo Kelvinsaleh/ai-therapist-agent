@@ -101,9 +101,9 @@ export default function AdminMeditationsPage() {
     if (user?.email === 'knsalee@gmail.com') {
       loadMeditations();
     }
-  }, [user]);
+  }, [user, loadMeditations]);
 
-  const loadMeditations = async () => {
+  const loadMeditations = useCallback(async () => {
     try {
       setIsLoading(true);
       const response = await backendService.getMeditations({
@@ -123,7 +123,7 @@ export default function AdminMeditationsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [searchTerm, selectedCategory]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

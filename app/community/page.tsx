@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -108,12 +108,33 @@ export default function CommunityPageEnhanced() {
   const [allPosts, setAllPosts] = useState<CommunityPost[]>([]);
   const [stats, setStats] = useState<CommunityStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMorePosts, setHasMorePosts] = useState(true);
+  const [postsSkip, setPostsSkip] = useState(0);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxImages, setLightboxImages] = useState<string[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [planToday, setPlanToday] = useState<{ goal: string; action: string; day: string } | null>(null);
+  const [planReminderShown, setPlanReminderShown] = useState(false);
+
+  // Simple trending posts (by reactions + comments)
+  const trendingPosts = useMemo(() => {
+    if (!allPosts || allPosts.length === 0) return [];
+    return [...allPosts]
+      .map((p: any) => {
+        const reactionCount = Object.values(p.reactions || {}).reduce(
+          (acc: number, arr: any) => acc + (Array.isArray(arr) ? arr.length : 0),
+          0
+        );
+        const comments = commentCounts[p._id] || p.commentCount || (p.comments?.length ?? 0);
+        return { ...p, score: reactionCount + comments };
+      })
+      .sort((a, b) => (b.score || 0) - (a.score || 0))
+      .slice(0, 5);
+  }, [allPosts, commentCounts]);
 
   useEffect(() => {
     loadCommunityData();
@@ -124,6 +145,52 @@ export default function CommunityPageEnhanced() {
       loadAllPosts();
     }
   }, [activeTab]);
+
+  // Pull local 7-day plan info for "continue today's step" CTA + gentle reminder
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    try {
+      const active = localStorage.getItem('hope_plan_active') === 'true';
+      const stepsRaw = localStorage.getItem('hope_plan_steps');
+      const startedAt = localStorage.getItem('hope_plan_started_at');
+      const reminderOptIn = localStorage.getItem('hope_reminder_opt_in') === 'true';
+      const lastReminder = localStorage.getItem('hope_plan_last_reminder');
+
+      if (!active || !stepsRaw || !startedAt) {
+        setPlanToday(null);
+        return;
+      }
+
+      const steps = JSON.parse(stepsRaw) as Array<{ day: string; action: string }>;
+      const startDate = new Date(startedAt);
+      const now = new Date();
+      const dayDiff = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+      const clampedIndex = Math.min(Math.max(dayDiff, 0), steps.length - 1);
+      const todayStep = steps[clampedIndex];
+
+      if (todayStep) {
+        setPlanToday({
+          goal: localStorage.getItem('hope_plan_goal') || 'your plan',
+          day: todayStep.day || `Day ${clampedIndex + 1}`,
+          action: todayStep.action || 'One small action today',
+        });
+      }
+
+      // Gentle daily reminder (only if opted in and >20h since last)
+      if (reminderOptIn && todayStep && !planReminderShown) {
+        const twentyHoursAgo = now.getTime() - 20 * 60 * 60 * 1000;
+        const last = lastReminder ? new Date(lastReminder).getTime() : 0;
+        if (last < twentyHoursAgo) {
+          toast.info(`Today: ${todayStep.day} - ${todayStep.action}`);
+          localStorage.setItem('hope_plan_last_reminder', now.toISOString());
+          setPlanReminderShown(true);
+        }
+      }
+    } catch {
+      setPlanToday(null);
+    }
+  }, [planReminderShown]);
 
   const loadCommunityData = async () => {
     try {
@@ -189,23 +256,44 @@ export default function CommunityPageEnhanced() {
     }
   };
 
-  const loadAllPosts = async () => {
+  const loadAllPosts = async (append = false) => {
+    if (append && (isLoadingMore || !hasMorePosts)) return;
+    
     try {
+      if (append) {
+        setIsLoadingMore(true);
+      }
+      
+      const skip = append ? postsSkip : 0;
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000);
-      const res = await fetch(`/api/community/feed?limit=30`, { cache: 'no-store', signal: controller.signal });
+      const res = await fetch(`/api/community/feed?limit=20&skip=${skip}`, { cache: 'no-store', signal: controller.signal });
       clearTimeout(timeoutId);
       if (!res.ok) throw new Error('Failed to load feed');
       const data = await res.json();
-      const posts = Array.isArray(data.posts) ? shuffle(data.posts) : [];
-      setAllPosts(posts);
-      const counts: Record<string, number> = {};
-      posts.forEach((post: any) => {
+      const newPosts = Array.isArray(data.posts) ? shuffle(data.posts) : [];
+      
+      if (append) {
+        // Append new posts, avoiding duplicates
+        const existingIds = new Set(allPosts.map((p: any) => p._id));
+        const uniqueNewPosts = newPosts.filter((p: any) => !existingIds.has(p._id));
+        setAllPosts([...allPosts, ...uniqueNewPosts]);
+        setPostsSkip(skip + newPosts.length);
+        setHasMorePosts(newPosts.length >= 20); // If we got less than requested, no more posts
+      } else {
+        setAllPosts(newPosts);
+        setPostsSkip(newPosts.length);
+        setHasMorePosts(newPosts.length >= 20);
+      }
+      
+      const counts: Record<string, number> = { ...commentCounts };
+      newPosts.forEach((post: any) => {
         counts[post._id] = post.commentCount || post.comments?.length || 0;
       });
       setCommentCounts(counts);
     } catch (error) {
       console.error('Error loading feed:', error);
+      toast.error('We couldn’t load the community feed. Pull to refresh or try again.');
       // Fallback: fetch first few spaces and grab recent posts from each
       try {
         const token = typeof window !== 'undefined' ? (localStorage.getItem('token') || localStorage.getItem('authToken')) : null;
@@ -222,6 +310,8 @@ export default function CommunityPageEnhanced() {
           // Shuffle merged posts
           const shuffled = shuffle(merged);
           setAllPosts(shuffled);
+          setPostsSkip(shuffled.length);
+          setHasMorePosts(false); // Fallback doesn't support pagination
           const counts: Record<string, number> = {};
           shuffled.forEach((post: any) => {
             counts[post._id] = post.comments?.length || 0;
@@ -230,9 +320,31 @@ export default function CommunityPageEnhanced() {
         }
       } catch (fallbackError) {
         console.error('Feed fallback failed:', fallbackError);
+        toast.error('Still having trouble loading posts. Please try again in a moment.');
       }
+    } finally {
+      setIsLoadingMore(false);
     }
   };
+
+  // Infinite scroll handler
+  useEffect(() => {
+    if (typeof window === 'undefined' || activeTab !== 'feed') return;
+
+    const handleScroll = () => {
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const windowHeight = window.innerHeight;
+      const docHeight = document.documentElement.scrollHeight;
+      
+      // Load more when user is 500px from bottom
+      if (docHeight - (scrollTop + windowHeight) < 500 && hasMorePosts && !isLoadingMore) {
+        loadAllPosts(true);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [activeTab, hasMorePosts, isLoadingMore, allPosts, postsSkip, commentCounts]);
 
   const getSpaceInfo = (spaceId: string) => {
     return spaces.find(space => space._id === spaceId);
@@ -413,6 +525,24 @@ export default function CommunityPageEnhanced() {
 
           <TabsContent value="feed" className="mt-4">
             <div className="max-w-4xl mx-auto space-y-4">
+                {planToday && (
+                  <Card className="border-primary/30 bg-primary/5">
+                    <CardContent className="pt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-primary">Continue today’s step</p>
+                        <p className="text-sm text-muted-foreground">
+                          {planToday.day}: {planToday.action}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="default" onClick={() => (window.location.href = '/onboarding')}>
+                          View plan
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
                 {/* Create Post Button */}
                 <Card>
                   <CardContent className="pt-4">
@@ -630,6 +760,65 @@ export default function CommunityPageEnhanced() {
                     );
                   })
                 )}
+                
+                {/* Loading indicator for infinite scroll */}
+                {isLoadingMore && (
+                  <Card>
+                    <CardContent className="pt-6 text-center py-8">
+                      <div className="flex items-center justify-center gap-3">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                        <span className="text-sm text-muted-foreground">Loading more posts...</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+                
+                {/* End of feed message */}
+                {!hasMorePosts && allPosts.length > 0 && !isLoadingMore && (
+                  <Card>
+                    <CardContent className="pt-6 text-center py-8">
+                      <p className="text-sm text-muted-foreground">You've seen all posts for now. Check back later for more! 💫</p>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {trendingPosts.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4" /> Trending today
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {trendingPosts.map((post: any) => (
+                        <div key={post._id} className="p-3 rounded-lg border border-border/60 bg-muted/40">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-sm font-semibold line-clamp-2">{post.content || 'Post'}</span>
+                            <Badge variant="secondary" className="text-xs gap-1">
+                              <Heart className="w-3 h-3" />
+                              {(Object.values(post.reactions || {}).reduce(
+                                (acc: number, arr: any) => acc + (Array.isArray(arr) ? arr.length : 0),
+                                0
+                              )) || 0}
+                            </Badge>
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
+                            <MessageSquare className="w-3 h-3" />
+                            {commentCounts[post._id] || post.commentCount || (post.comments?.length ?? 0)} comments
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="mt-2 px-2"
+                            onClick={() => window.location.href = `/community/post/${post._id}`}
+                          >
+                            View post
+                          </Button>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
             </div>
           </TabsContent>
 
@@ -642,8 +831,8 @@ export default function CommunityPageEnhanced() {
                   animate={{ opacity: 1, y: 0 }}
                   className="h-full"
                 >
-                  <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-primary">
-                    <CardHeader>
+                  <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer border border-border/40 hover:border-primary/50">
+                    <CardHeader className="pb-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <span className="text-4xl">{space?.icon || '💭'}</span>
@@ -654,8 +843,8 @@ export default function CommunityPageEnhanced() {
                         </div>
                       </div>
                     </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center gap-4 text-sm mb-4">
+                    <CardContent className="pt-0">
+                      <div className="flex items-center gap-4 text-sm mb-4 flex-wrap">
                         <Badge variant="secondary" className="flex items-center gap-1">
                           <Users className="w-3 h-3" />
                           {space?.memberCount || 0} members
@@ -674,6 +863,7 @@ export default function CommunityPageEnhanced() {
                       <Button 
                         className="w-full mt-4" 
                         onClick={() => window.location.href = `/community/space/${space._id}`}
+                        variant="secondary"
                       >
                         Visit Space
                       </Button>

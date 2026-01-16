@@ -294,6 +294,145 @@ class BackendService {
     });
   }
 
+  /**
+   * Send memory-enhanced message with streaming support
+   * @param messageData - Message data to send
+   * @param onChunk - Callback for each chunk received
+   * @returns Promise that resolves when streaming is complete
+   */
+  async sendMemoryEnhancedMessageStream(
+    messageData: any,
+    onChunk: (chunk: string) => void
+  ): Promise<ApiResponse> {
+    return new Promise((resolve, reject) => {
+      try {
+        const url = `${this.baseURL}/memory-enhanced-chat?stream=true`;
+        const token = this.authToken || 
+          (typeof window !== 'undefined' ? 
+            (localStorage.getItem('token') || localStorage.getItem('authToken')) : null);
+
+        const headers: HeadersInit = {
+          'Content-Type': 'application/json',
+          'Accept': 'text/event-stream',
+        };
+
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        fetch(url, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(messageData),
+        })
+          .then(async (response) => {
+            if (!response.ok) {
+              // Try to read error message
+              try {
+                const errorText = await response.text();
+                const error = errorText ? JSON.parse(errorText) : { error: 'Request failed' };
+                reject(new Error(error.error || 'Request failed'));
+              } catch {
+                reject(new Error(`Request failed with status ${response.status}`));
+              }
+              return;
+            }
+
+            const reader = response.body?.getReader();
+            if (!reader) {
+              reject(new Error('No response body'));
+              return;
+            }
+
+            const decoder = new TextDecoder();
+            let buffer = '';
+            let fullResponse = '';
+
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+
+              buffer += decoder.decode(value, { stream: true });
+              const lines = buffer.split('\n');
+              buffer = lines.pop() || '';
+
+              for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                  try {
+                    const data = JSON.parse(line.slice(6));
+                    if (data.type === 'chunk' && data.content) {
+                      fullResponse += data.content;
+                      onChunk(data.content);
+                    } else if (data.type === 'complete') {
+                      resolve({
+                        success: true,
+                        data: {
+                          response: data.content || fullResponse,
+                          isFailover: data.isFailover || false,
+                        },
+                      });
+                      return;
+                    }
+                  } catch (e) {
+                    // Skip invalid JSON
+                  }
+                }
+              }
+            }
+
+            // If we get here without a complete signal, resolve with what we have
+            resolve({
+              success: true,
+              data: {
+                response: fullResponse,
+                isFailover: false,
+              },
+            });
+          })
+          .catch((error) => {
+            reject(error);
+          });
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  // Memory management methods
+  async getUserMemories(): Promise<ApiResponse<Array<{
+    id: string;
+    type: string;
+    content: string;
+    importance: number;
+    tags: string[];
+    context?: string;
+    timestamp: string;
+    createdAt: string;
+  }>>> {
+    return this.makeRequest('/memory-enhanced-chat/memories', {
+      method: 'GET',
+    });
+  }
+
+  async updateMemory(memoryId: string, updates: {
+    content?: string;
+    type?: string;
+    importance?: number;
+    tags?: string[];
+    context?: string;
+  }): Promise<ApiResponse> {
+    return this.makeRequest(`/memory-enhanced-chat/memories/${memoryId}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    });
+  }
+
+  async deleteMemory(memoryId: string): Promise<ApiResponse> {
+    return this.makeRequest(`/memory-enhanced-chat/memories/${memoryId}`, {
+      method: 'DELETE',
+    });
+  }
+
   // User Profile methods (needed for rescue pair matching)
   async createUserProfile(profileData: any): Promise<ApiResponse> {
     return this.makeRequest('/user/profile', {

@@ -13,7 +13,8 @@ import {
   User,
   Sparkles,
   Mic,
-  MicOff
+  MicOff,
+  Keyboard
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
@@ -35,7 +36,6 @@ import {
 import { backendService } from "@/lib/api/backend-service";
 import { logger } from "@/lib/utils/logger";
 import { LoadingDots } from "@/components/ui/loading-dots";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Skeleton, SkeletonChat } from "@/components/ui/skeleton";
 import { useKeyboardOffset } from "@/hooks/useKeyboardOffset";
 
@@ -482,33 +482,88 @@ export default function MemoryEnhancedTherapyPage() {
       };
       setMessages((prev) => [...prev, userMessage]);
 
-      // Use the unified session-based endpoint so the backend has full context
-      const response = await sendChatMessage(sessionId, currentMessage);
-
+      // Create placeholder message for streaming
+      const placeholderIndex = messages.length;
+      let streamingContent = '';
       const assistantMessage: ChatMessage = {
         role: "assistant",
-        content:
-          (response as any).response || (response as any).message ||
-          "I'm here to support you. Could you tell me more about what's on your mind?",
+        content: "",
         timestamp: new Date(),
         metadata: {
-          analysis: (response as any).analysis || {
-            emotionalState: "neutral",
-            riskLevel: 0,
-            themes: [],
-            recommendedApproach: "supportive",
-            progressIndicators: [],
-          },
-          technique: (response as any).metadata?.technique || "supportive",
-          goal: (response as any).metadata?.currentGoal || "Provide support",
-          progress: (response as any).metadata?.progress || {
-            emotionalState: "neutral",
-            riskLevel: 0,
-          },
+          technique: "supportive",
+          goal: "Provide support",
+          progress: [],
         },
       };
-
       setMessages((prev) => [...prev, assistantMessage]);
+
+      // Use memory-enhanced streaming API
+      const { backendService } = await import("@/lib/api/backend-service");
+      const userMemory = await userMemoryManager.loadUserMemory(userId || '');
+      const therapyContext = userMemoryManager.getTherapyContext();
+      const therapySuggestions = userMemoryManager.getTherapySuggestions();
+
+      const memoryRequest = {
+        message: currentMessage,
+        sessionId,
+        userId,
+        context: therapyContext,
+        suggestions: therapySuggestions,
+        userMemory: {
+          journalEntries: userMemory.journalEntries.slice(-5),
+          meditationHistory: userMemory.meditationHistory.slice(-3),
+          moodPatterns: userMemory.moodPatterns.slice(-7),
+          insights: userMemory.insights.slice(-3),
+          profile: userMemory.profile
+        },
+        conversation: messages.map(msg => ({ role: msg.role, content: msg.content }))
+      };
+
+      const response = await backendService.sendMemoryEnhancedMessageStream(
+        memoryRequest,
+        (chunk: string) => {
+          // Update message as chunks arrive
+          streamingContent += chunk;
+          setMessages((prev) => {
+            const updated = [...prev];
+            updated[placeholderIndex + 1] = {
+              ...updated[placeholderIndex + 1],
+              content: streamingContent,
+            };
+            return updated;
+          });
+          scrollToBottom();
+        }
+      );
+
+      // Update final message with complete response and metadata
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to get AI response');
+      }
+
+      const aiResponse = response.data!;
+      setMessages((prev) => {
+        const updated = [...prev];
+        updated[placeholderIndex + 1] = {
+          role: "assistant",
+          content: aiResponse.response || streamingContent ||
+            "I'm here to support you. Could you tell me more about what's on your mind?",
+          timestamp: new Date(),
+          metadata: {
+            analysis: {
+              emotionalState: "neutral",
+              riskLevel: 0,
+              themes: [],
+              recommendedApproach: "supportive",
+              progressIndicators: [],
+            },
+            technique: "supportive",
+            goal: "Provide support",
+            progress: [],
+          },
+        };
+        return updated;
+      });
       if (!isPremium) {
         incrementUsage();
       }
@@ -521,7 +576,11 @@ export default function MemoryEnhancedTherapyPage() {
       }, 100);
 
       if (isVoiceMode) {
-        speakText(assistantMessage.content);
+        // Get final content from messages array
+        const finalMessage = messages[messages.length - 1];
+        if (finalMessage && finalMessage.role === "assistant") {
+          speakText(finalMessage.content);
+        }
       }
 
       // Optional: keep memory updates; safe to leave as-is without blocking UX
@@ -809,12 +868,8 @@ export default function MemoryEnhancedTherapyPage() {
             {isTyping && (
               <div className="px-4 py-2 border-b bg-muted/30">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <div className="flex gap-1">
-                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                  </div>
-                  <span>AI is thinking...</span>
+                  <LoadingDots size="sm" color="primary" />
+                  <span>Hope is thinking...</span>
                 </div>
               </div>
             )}
@@ -872,22 +927,63 @@ export default function MemoryEnhancedTherapyPage() {
 
                     {/* Action buttons with enhanced styling */}
                     <div className="absolute right-1.5 bottom-1.5 flex items-center gap-1">
-                      {/* Voice button */}
+                      {/* Toggle between typing and voice mode */}
                       <Button
                         type="button"
                         size="icon"
-                        variant={isListening ? "destructive" : "ghost"}
-                        onClick={toggleListening}
+                        variant={isVoiceMode ? "default" : "ghost"}
+                        onClick={() => {
+                          setIsVoiceMode(!isVoiceMode);
+                          // If switching to voice mode and voice is supported, start listening
+                          if (!isVoiceMode && voiceSupported && !isListening) {
+                            toggleListening();
+                          } else if (isVoiceMode && isListening) {
+                            // If switching away from voice mode, stop listening
+                            toggleListening();
+                          }
+                        }}
                         disabled={isTyping || !voiceSupported}
                         className={cn(
                           "h-7 w-7 rounded-lg transition-all duration-200",
-                          "hover:bg-muted/80",
-                          isListening && "animate-pulse bg-red-500 hover:bg-red-600"
+                          isVoiceMode && "bg-primary text-primary-foreground"
                         )}
-                        title={!voiceSupported ? "Voice input not supported" : isListening ? "Stop listening" : "Start voice input"}
+                        title={
+                          !voiceSupported
+                            ? "Voice input not supported on this device"
+                            : isVoiceMode
+                              ? "Switch to typing mode"
+                              : "Switch to voice mode"
+                        }
                       >
-                        {isListening ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
+                        {isVoiceMode ? (
+                          <Mic className="w-3.5 h-3.5" />
+                        ) : (
+                          <Keyboard className="w-3.5 h-3.5" />
+                        )}
                       </Button>
+                      
+                      {/* Voice input button (only show in voice mode or when listening) */}
+                      {(isVoiceMode || isListening) && (
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant={isListening ? "destructive" : "ghost"}
+                          onClick={toggleListening}
+                          disabled={isTyping || !voiceSupported}
+                          className={cn(
+                            "h-7 w-7 rounded-lg transition-all duration-200",
+                            "hover:bg-muted/80",
+                            isListening && "animate-pulse bg-red-500 hover:bg-red-600"
+                          )}
+                          title={
+                            isListening
+                              ? "Stop listening"
+                              : "Start voice input"
+                          }
+                        >
+                          {isListening ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
+                        </Button>
+                      )}
 
                       {/* Send button with enhanced states */}
                       <Button
@@ -898,14 +994,15 @@ export default function MemoryEnhancedTherapyPage() {
                           "bg-primary hover:bg-primary/90 text-primary-foreground",
                           "shadow-sm hover:shadow-md",
                           (isTyping || !message.trim()) && "opacity-50 cursor-not-allowed",
-                          message.trim() && "hover:scale-105 active:scale-95"
+                          message.trim() && !isTyping && "hover:scale-105 active:scale-95",
+                          isTyping && "h-6 w-6" // Smaller box when waiting
                         )}
                         disabled={isTyping || !message.trim()}
                         onClick={(e) => { e.preventDefault(); handleSubmit(e); }}
                         title="Send message"
                       >
                         {isTyping ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <div className="w-3 h-3 bg-primary-foreground/60 rounded-sm" />
                         ) : (
                           <Send className="w-3.5 h-3.5" />
                         )}

@@ -63,7 +63,7 @@ export default function PricingPage() {
       );
 
       if (!res.success) {
-        toast.error?.(res.error || "Failed to initialize payment");
+        toast.error?.(res.error || "We couldn’t start the payment. Please try again.");
         setIsLoading(null);
         return;
       }
@@ -75,12 +75,12 @@ export default function PricingPage() {
         setPaymentModalOpen(true);
         setIsLoading(null);
       } else {
-        toast.error?.("Failed to get payment URL");
+        toast.error?.("We couldn’t open the payment page. Please try again.");
         setIsLoading(null);
       }
     } catch (err) {
       console.error("Subscribe error:", err);
-      toast.error?.("Something went wrong while starting payment");
+      toast.error?.("We hit a snag starting payment. Please try again in a moment.");
       setIsLoading(null);
     }
   };
@@ -117,7 +117,7 @@ export default function PricingPage() {
         toast.error(res.error || "Unable to start trial");
       }
     } catch (e) {
-      toast.error("Something went wrong starting the trial");
+      toast.error("We hit a snag starting the trial. Please try again in a moment.");
     } finally {
       setIsStartingTrial(false);
     }
@@ -227,6 +227,23 @@ export default function PricingPage() {
                 <strong>Better support</strong>
                 <p>AI journal insights, weekly emotional reports, and priority features.</p>
               </div>
+            </div>
+          </div>
+
+          <div className="mt-8 p-5 rounded-xl border border-primary/20 bg-primary/5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-primary">Premium keeps your progress connected</p>
+              <p className="text-sm text-muted-foreground">
+                Unlimited AI, conversation memory, deeper insights, and faster responses. Try it free for 7 days.
+              </p>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <Button onClick={handleStartTrial} disabled={isStartingTrial} variant={"secondary" as any}>
+                {isStartingTrial ? "Starting trial..." : "Start free trial"}
+              </Button>
+              <Button onClick={() => handleSubscribe('monthly')} disabled={isLoading === 'monthly'}>
+                {isLoading === 'monthly' ? 'Processing...' : 'Upgrade now'}
+              </Button>
             </div>
           </div>
 

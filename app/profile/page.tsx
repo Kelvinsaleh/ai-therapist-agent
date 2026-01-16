@@ -3,11 +3,14 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/contexts/session-context";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Slider } from "@/components/ui/slider";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { backendService } from "@/lib/api/backend-service";
 import { paystackService } from "@/lib/payments/paystack-service";
@@ -87,12 +90,89 @@ export default function ProfilePage() {
   
   // Error tracking
   const [apiErrors, setApiErrors] = useState<string[]>([]);
+  
+  // Memory data
+  const [memories, setMemories] = useState<Array<{
+    id: string;
+    type: string;
+    content: string;
+    importance: number;
+    tags: string[];
+    context?: string;
+    timestamp: string;
+    createdAt: string;
+  }>>([]);
+  const [loadingMemories, setLoadingMemories] = useState(false);
+  const [editingMemory, setEditingMemory] = useState<string | null>(null);
+  const [editMemoryContent, setEditMemoryContent] = useState("");
+  const [editMemoryType, setEditMemoryType] = useState("");
+  const [editMemoryImportance, setEditMemoryImportance] = useState(5);
 
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
       loadProfileData();
+      loadMemories();
     }
   }, [isAuthenticated, isLoading]);
+  
+  const loadMemories = async () => {
+    try {
+      setLoadingMemories(true);
+      const response = await backendService.getUserMemories();
+      if (response.success && response.data) {
+        setMemories(response.data);
+      }
+    } catch (error) {
+      console.error("Failed to load memories:", error);
+    } finally {
+      setLoadingMemories(false);
+    }
+  };
+  
+  const handleEditMemory = (memory: any) => {
+    setEditingMemory(memory.id);
+    setEditMemoryContent(memory.content);
+    setEditMemoryType(memory.type);
+    setEditMemoryImportance(memory.importance);
+  };
+  
+  const handleSaveMemory = async (memoryId: string) => {
+    try {
+      const response = await backendService.updateMemory(memoryId, {
+        content: editMemoryContent,
+        type: editMemoryType,
+        importance: editMemoryImportance,
+      });
+      if (response.success) {
+        toast.success("Memory updated successfully");
+        setEditingMemory(null);
+        await loadMemories();
+      } else {
+        toast.error(response.error || "Failed to update memory");
+      }
+    } catch (error) {
+      console.error("Failed to update memory:", error);
+      toast.error("Failed to update memory");
+    }
+  };
+  
+  const handleDeleteMemory = async (memoryId: string) => {
+    if (!confirm("Are you sure you want to delete this memory? This action cannot be undone.")) {
+      return;
+    }
+    try {
+      const response = await backendService.deleteMemory(memoryId);
+      if (response.success) {
+        toast.success("Memory deleted successfully");
+        await loadMemories();
+      } else {
+        toast.error(response.error || "Failed to delete memory");
+      }
+    } catch (error) {
+      console.error("Failed to delete memory:", error);
+      toast.error("Failed to delete memory");
+    }
+  };
 
   // Keep edited fields in sync with user object when not editing
   useEffect(() => {
@@ -484,6 +564,229 @@ export default function ProfilePage() {
             {/* Weekly Report Section */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
               <WeeklyReport />
+            </motion.div>
+
+            {/* AI Stored Memories Section */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <Brain className="w-5 h-5" />
+                        AI Stored Memories
+                      </CardTitle>
+                      <CardDescription>
+                        Important details the AI remembers from your conversations. You can edit or delete these.
+                      </CardDescription>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={loadMemories} disabled={loadingMemories}>
+                      {loadingMemories ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Loading...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                          Refresh
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {loadingMemories ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : memories.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Brain className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                      <p>No stored memories yet.</p>
+                      <p className="text-sm mt-1">The AI will remember important details from your conversations.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* User Summary (if exists) - Show first and prominently */}
+                      {(() => {
+                        const summary = memories.find(m => m.type === 'user_summary');
+                        if (!summary) return null;
+                        
+                        return (
+                          <Card className="border-primary/20 bg-primary/5">
+                            <CardContent className="p-6">
+                              <div className="flex items-start justify-between gap-4 mb-4">
+                                <div className="flex items-center gap-2">
+                                  <Brain className="w-5 h-5 text-primary" />
+                                  <CardTitle className="text-lg">AI Summary About You</CardTitle>
+                                </div>
+                                <div className="flex gap-1">
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8"
+                                    onClick={() => {
+                                      setEditingMemory(summary.id);
+                                      setEditMemoryContent(summary.content);
+                                      setEditMemoryType('user_summary');
+                                      setEditMemoryImportance(10);
+                                    }}
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8 text-destructive hover:text-destructive"
+                                    onClick={() => handleDeleteMemory(summary.id)}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                              {editingMemory === summary.id ? (
+                                <div className="space-y-3">
+                                  <div>
+                                    <Label>Summary</Label>
+                                    <p className="text-xs text-muted-foreground mb-2">
+                                      This is an AI-generated summary about you. You can edit it to better reflect your situation.
+                                    </p>
+                                    <Textarea
+                                      value={editMemoryContent}
+                                      onChange={(e) => setEditMemoryContent(e.target.value)}
+                                      className="mt-1"
+                                      rows={8}
+                                    />
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Button size="sm" onClick={() => handleSaveMemory(summary.id)}>
+                                      <Save className="w-4 h-4 mr-2" />
+                                      Save
+                                    </Button>
+                                    <Button size="sm" variant="outline" onClick={() => setEditingMemory(null)}>
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <>
+                                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{summary.content}</p>
+                                  {summary.timestamp && (
+                                    <p className="text-xs text-muted-foreground mt-3 italic">
+                                      Last updated: {new Date(summary.timestamp).toLocaleDateString()}
+                                    </p>
+                                  )}
+                                </>
+                              )}
+                            </CardContent>
+                          </Card>
+                        );
+                      })()}
+                      
+                      {/* Other memories (excluding summary) */}
+                      {memories.filter(m => m.type !== 'user_summary').map((memory) => (
+                        <div
+                          key={memory.id}
+                          className="p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                        >
+                          {editingMemory === memory.id ? (
+                            <div className="space-y-3">
+                              <div>
+                                <Label>Content</Label>
+                                <Textarea
+                                  value={editMemoryContent}
+                                  onChange={(e) => setEditMemoryContent(e.target.value)}
+                                  className="mt-1"
+                                  rows={3}
+                                />
+                              </div>
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <Label>Type</Label>
+                                  <Select value={editMemoryType} onValueChange={setEditMemoryType}>
+                                    <SelectTrigger className="mt-1">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="user_summary">User Summary</SelectItem>
+                                      <SelectItem value="emotional_theme">Emotional Theme</SelectItem>
+                                      <SelectItem value="coping_pattern">Coping Pattern</SelectItem>
+                                      <SelectItem value="goal">Goal</SelectItem>
+                                      <SelectItem value="trigger">Trigger</SelectItem>
+                                      <SelectItem value="insight">Insight</SelectItem>
+                                      <SelectItem value="preference">Preference</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div>
+                                  <Label>Importance: {editMemoryImportance}</Label>
+                                  <Slider
+                                    value={[editMemoryImportance]}
+                                    onValueChange={(vals) => setEditMemoryImportance(vals[0])}
+                                    min={1}
+                                    max={10}
+                                    step={1}
+                                    className="mt-2"
+                                  />
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button size="sm" onClick={() => handleSaveMemory(memory.id)}>
+                                  <Save className="w-4 h-4 mr-2" />
+                                  Save
+                                </Button>
+                                <Button size="sm" variant="outline" onClick={() => setEditingMemory(null)}>
+                                  Cancel
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div>
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <Badge variant="secondary" className="text-xs">
+                                      {memory.type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                    </Badge>
+                                    <Badge variant="outline" className="text-xs">
+                                      Importance: {memory.importance}/10
+                                    </Badge>
+                                    {memory.timestamp && (
+                                      <span className="text-xs text-muted-foreground">
+                                        {new Date(memory.timestamp).toLocaleDateString()}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-sm">{memory.content}</p>
+                                </div>
+                                <div className="flex gap-1">
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8"
+                                    onClick={() => handleEditMemory(memory)}
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8 text-destructive hover:text-destructive"
+                                    onClick={() => handleDeleteMemory(memory.id)}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </motion.div>
           </TabsContent>
 

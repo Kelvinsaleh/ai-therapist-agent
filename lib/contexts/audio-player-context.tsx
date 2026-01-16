@@ -20,6 +20,8 @@ interface Meditation {
   category: string;
 }
 
+type RepeatMode = 'none' | 'single' | 'all';
+
 interface AudioPlayerContextType {
   currentTrack: Meditation | null;
   isPlaying: boolean;
@@ -27,6 +29,9 @@ interface AudioPlayerContextType {
   currentTime: number;
   duration: number;
   volume: number;
+  playbackSpeed: number;
+  repeatMode: RepeatMode;
+  sleepTimer: number | null; // minutes remaining, null if disabled
   playlist: Meditation[];
   currentIndex: number;
   play: (meditation: Meditation) => void;
@@ -35,6 +40,9 @@ interface AudioPlayerContextType {
   stop: () => void;
   seek: (time: number) => void;
   setVolume: (volume: number) => void;
+  setPlaybackSpeed: (speed: number) => void;
+  setRepeatMode: (mode: RepeatMode) => void;
+  setSleepTimer: (minutes: number | null) => void;
   togglePlayPause: () => void;
   // Playlist functions
   addToPlaylist: (meditation: Meditation) => void;
@@ -60,10 +68,14 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolumeState] = useState(0.7);
+  const [playbackSpeed, setPlaybackSpeedState] = useState(1.0);
+  const [repeatMode, setRepeatModeState] = useState<RepeatMode>('none');
+  const [sleepTimer, setSleepTimerState] = useState<number | null>(null);
   const [playlist, setPlaylist] = useState<Meditation[]>([]);
   const [currentIndex, setCurrentIndex] = useState(-1);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const sleepTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Add state for saved playlists
   const [savedPlaylists, setSavedPlaylists] = useState<any[]>([]);
@@ -312,6 +324,51 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     setVolumeState(clampedVolume);
   };
 
+  const setPlaybackSpeed = (speed: number) => {
+    const validSpeeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+    const clampedSpeed = validSpeeds.reduce((prev, curr) => 
+      Math.abs(curr - speed) < Math.abs(prev - speed) ? curr : prev
+    );
+    
+    if (audioRef.current) {
+      audioRef.current.playbackRate = clampedSpeed;
+    }
+    setPlaybackSpeedState(clampedSpeed);
+    toast.info(`Playback speed: ${clampedSpeed}x`);
+  };
+
+  const setRepeatMode = (mode: RepeatMode) => {
+    setRepeatModeState(mode);
+    const modeLabels = { none: 'Off', single: 'One', all: 'All' };
+    toast.info(`Repeat: ${modeLabels[mode]}`);
+  };
+
+  const setSleepTimer = (minutes: number | null) => {
+    // Clear existing timer
+    if (sleepTimerRef.current) {
+      clearTimeout(sleepTimerRef.current);
+      sleepTimerRef.current = null;
+    }
+    
+    setSleepTimerState(minutes);
+    
+    if (minutes !== null && minutes > 0) {
+      const milliseconds = minutes * 60 * 1000;
+      sleepTimerRef.current = setTimeout(() => {
+        if (audioRef.current) {
+          audioRef.current.pause();
+          setIsPlaying(false);
+        }
+        setSleepTimerState(null);
+        toast.success('Sleep timer ended - meditation paused');
+      }, milliseconds);
+      
+      toast.success(`Sleep timer set for ${minutes} minutes`);
+    } else {
+      toast.info('Sleep timer disabled');
+    }
+  };
+
   const togglePlayPause = () => {
     if (isPlaying) {
       pause();
@@ -447,8 +504,20 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     const handleEnded = () => {
       setIsPlaying(false);
       setCurrentTime(0);
-      // Auto-play next track in playlist
-      if (playlist.length > 0 && currentIndex < playlist.length - 1) {
+      
+      // Handle repeat mode
+      if (repeatMode === 'single' && currentTrack) {
+        // Repeat current track
+        audio.currentTime = 0;
+        audio.play().catch(console.error);
+        setIsPlaying(true);
+      } else if (repeatMode === 'all' && playlist.length > 0) {
+        // Play next or loop to first
+        const nextIndex = (currentIndex + 1) % playlist.length;
+        setCurrentIndex(nextIndex);
+        play(playlist[nextIndex]);
+      } else if (playlist.length > 0 && currentIndex < playlist.length - 1) {
+        // Auto-play next in playlist if available
         playNext();
       }
     };
@@ -481,6 +550,9 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       toast.error(errorMessage);
     };
 
+    // Set playback speed
+    audio.playbackRate = playbackSpeed;
+    
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('durationchange', handleDurationChange);
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
@@ -495,7 +567,16 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       audio.removeEventListener('error', handleError);
       // Don't pause audio on cleanup - let it continue playing
     };
-  }, [playlist, currentIndex, playNext]);
+  }, [playlist, currentIndex, playNext, repeatMode, currentTrack, play, playbackSpeed]);
+  
+  // Cleanup sleep timer on unmount
+  useEffect(() => {
+    return () => {
+      if (sleepTimerRef.current) {
+        clearTimeout(sleepTimerRef.current);
+      }
+    };
+  }, []);
 
   return (
     <AudioPlayerContext.Provider
@@ -506,6 +587,9 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
         currentTime,
         duration,
         volume,
+        playbackSpeed,
+        repeatMode,
+        sleepTimer,
         playlist,
         currentIndex,
         play,
@@ -514,6 +598,9 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
         stop,
         seek,
         setVolume,
+        setPlaybackSpeed,
+        setRepeatMode,
+        setSleepTimer,
         togglePlayPause,
         addToPlaylist,
         removeFromPlaylist,

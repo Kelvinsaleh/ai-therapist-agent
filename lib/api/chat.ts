@@ -119,6 +119,87 @@ export const createChatSession = async (): Promise<string> => {
   }
 };
 
+/**
+ * Send chat message with streaming support for memory-enhanced chat
+ * Calls the backend directly for streaming (bypasses Next.js API route)
+ */
+export const sendChatMessageStream = async (
+  sessionId: string,
+  message: string,
+  onChunk: (chunk: string) => void
+): Promise<ApiResponse> {
+  try {
+    const BACKEND_API_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.BACKEND_API_URL || "https://hope-backend-2.onrender.com";
+    const headers = getAuthHeaders();
+    headers['Accept'] = 'text/event-stream';
+
+    // Use memory-enhanced endpoint which supports streaming
+    const response = await fetch(
+      `${BACKEND_API_URL}/memory-enhanced-chat?stream=true`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ 
+          message,
+          sessionId,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Request failed' }));
+      throw new Error(error.error || 'Failed to send message');
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error('No response body');
+    }
+
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let fullResponse = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(line.slice(6));
+            if (data.type === 'chunk' && data.content) {
+              fullResponse += data.content;
+              onChunk(data.content);
+            } else if (data.type === 'complete') {
+              return {
+                message: data.content || fullResponse,
+                response: data.content || fullResponse,
+                analysis: data.analysis,
+                metadata: data.metadata,
+              };
+            }
+          } catch (e) {
+            // Skip invalid JSON
+          }
+        }
+      }
+    }
+
+    return {
+      message: fullResponse,
+      response: fullResponse,
+    };
+  } catch (error: any) {
+    logger.error('Error sending streaming message', error);
+    throw error;
+  }
+};
+
 export const sendChatMessage = async (
   sessionId: string,
   message: string

@@ -150,6 +150,17 @@ export function MemoryEnhancedChat({ sessionId, userId }: MemoryEnhancedChatProp
     setInputMessage("");
     setIsTyping(true);
 
+    // Create placeholder message for streaming
+    const placeholderIndex = messages.length;
+    let streamingContent = '';
+    const assistantMessage: ChatMessage = {
+      role: "assistant",
+      content: "",
+      timestamp: new Date(),
+      context: {}
+    };
+    setMessages(prev => [...prev, assistantMessage]);
+
     try {
       // Get therapy context from memory
       const therapyContext = userMemoryManager.getTherapyContext();
@@ -175,20 +186,40 @@ export function MemoryEnhancedChat({ sessionId, userId }: MemoryEnhancedChatProp
         conversation: messages.map(msg => ({ role: msg.role, content: msg.content }))
       };
 
-      const response = await backendService.sendMemoryEnhancedMessage(memoryRequest);
+      // Use streaming API
+      const response = await backendService.sendMemoryEnhancedMessageStream(
+        memoryRequest,
+        (chunk: string) => {
+          // Update message as chunks arrive
+          streamingContent += chunk;
+          setMessages(prev => {
+            const updated = [...prev];
+            updated[placeholderIndex + 1] = {
+              ...updated[placeholderIndex + 1],
+              content: streamingContent,
+            };
+            return updated;
+          });
+          scrollToBottom();
+        }
+      );
       
       if (!response.success) {
         // Handle rate limiting specifically
         if (response.error?.includes('Rate limit exceeded')) {
-          const assistantMessage: ChatMessage = {
-            role: "assistant",
-            content: "I understand you'd like to continue our conversation. To ensure quality responses, please wait a moment before sending your next message. In the meantime, take a deep breath and know that I'm here to support you.",
-            timestamp: new Date(),
-            context: {
-              isRateLimit: true
-            }
-          };
-          setMessages(prev => [...prev, assistantMessage]);
+          setMessages(prev => {
+            const updated = [...prev];
+            updated[placeholderIndex + 1] = {
+              role: "assistant",
+              content: "I understand you'd like to continue our conversation. To ensure quality responses, please wait a moment before sending your next message. In the meantime, take a deep breath and know that I'm here to support you.",
+              timestamp: new Date(),
+              context: {
+                isRateLimit: true
+              }
+            };
+            return updated;
+          });
+          setIsTyping(false);
           return;
         }
         throw new Error(response.error || 'Failed to get AI response');
@@ -196,17 +227,20 @@ export function MemoryEnhancedChat({ sessionId, userId }: MemoryEnhancedChatProp
 
       const aiResponse = response.data!;
 
-      const assistantMessage: ChatMessage = {
-        role: "assistant",
-        content: aiResponse.response,
-        timestamp: new Date(),
-        context: {
-          insights: aiResponse.insights,
-          isFailover: aiResponse.isFailover || false
-        }
-      };
-
-      setMessages(prev => [...prev, assistantMessage]);
+      // Update final message with complete response and metadata
+      setMessages(prev => {
+        const updated = [...prev];
+        updated[placeholderIndex + 1] = {
+          role: "assistant",
+          content: aiResponse.response || streamingContent,
+          timestamp: new Date(),
+          context: {
+            insights: aiResponse.insights,
+            isFailover: aiResponse.isFailover || false
+          }
+        };
+        return updated;
+      });
 
       // Update user memory with this therapy session (only if not a failover response)
       if (!aiResponse.isFailover) {
@@ -277,6 +311,16 @@ export function MemoryEnhancedChat({ sessionId, userId }: MemoryEnhancedChatProp
     setInputMessage("");
     setIsTyping(true);
 
+    // Create placeholder message for streaming
+    const placeholderIndex = messages.length;
+    let streamingContent = '';
+    const assistantMsg: ChatMessage = {
+      role: "assistant",
+      content: "",
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, assistantMsg]);
+
     try {
       const therapyContext = userMemoryManager.getTherapyContext();
       const therapySuggestions = userMemoryManager.getTherapySuggestions();
@@ -297,14 +341,37 @@ export function MemoryEnhancedChat({ sessionId, userId }: MemoryEnhancedChatProp
         },
         conversation: messages.map(msg => ({ role: msg.role, content: msg.content }))
       };
-      const response = await backendService.sendMemoryEnhancedMessage(memoryRequest);
+      
+      // Use streaming API
+      const response = await backendService.sendMemoryEnhancedMessageStream(
+        memoryRequest,
+        (chunk: string) => {
+          // Update message as chunks arrive
+          streamingContent += chunk;
+          setMessages(prev => {
+            const updated = [...prev];
+            updated[placeholderIndex + 1] = {
+              ...updated[placeholderIndex + 1],
+              content: streamingContent,
+            };
+            return updated;
+          });
+          scrollToBottom();
+        }
+      );
+      
       if (!response.success) throw new Error(response.error || "Unknown error");
-      const assistantMsg: ChatMessage = {
-        role: "assistant",
-        content: response.response,
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, assistantMsg]);
+      
+      // Update final message with complete response
+      setMessages(prev => {
+        const updated = [...prev];
+        updated[placeholderIndex + 1] = {
+          role: "assistant",
+          content: response.data?.response || streamingContent,
+          timestamp: new Date(),
+        };
+        return updated;
+      });
     } catch (error) {
       setMessages(prev => [...prev, { role: "assistant", content: "Sorry, I ran into a problem answering that.", timestamp: new Date() }]);
       console.error("Failed to get AI response:", error);
@@ -562,9 +629,16 @@ export function MemoryEnhancedChat({ sessionId, userId }: MemoryEnhancedChatProp
           <Button
             onClick={handleSendMessage}
             disabled={!inputMessage.trim() || isTyping}
-            className="px-6"
+            className={cn(
+              "px-6 transition-all duration-200",
+              isTyping && "h-8 w-8 p-0" // Smaller box when waiting
+            )}
           >
-            <Send className="w-4 h-4" />
+            {isTyping ? (
+              <div className="w-3 h-3 bg-primary-foreground/60 rounded-sm" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
           </Button>
         </div>
         
