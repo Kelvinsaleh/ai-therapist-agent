@@ -147,14 +147,7 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.className}>
-        {/* Preload critical fonts */}
-        <link
-          rel="preload"
-          href="/fonts/inter-var.woff2"
-          as="font"
-          type="font/woff2"
-          crossOrigin="anonymous"
-        />
+        {/* Fonts are handled by next/font/google automatically */}
         {/* Google tag (gtag.js) */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-6JJDGJTFDJ"

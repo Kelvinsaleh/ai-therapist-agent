@@ -97,8 +97,15 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
             clearTimeout(timeoutId);
             return response;
           } catch (error: any) {
+            // Don't log AbortError as error if we have cached data to fall back on
+            const isAbortError = error.name === 'AbortError' || error.message?.includes('aborted');
             if (i === retries) {
-              logger.error("Session check failed after retries:", error);
+              if (isAbortError && cachedUser) {
+                // This is expected when backend is slow/sleeping and we have cached data
+                logger.debug("Session check timed out, will use cached user data");
+              } else {
+                logger.error("Session check failed after retries:", error);
+              }
               return null;
             }
             // Exponential backoff
@@ -136,7 +143,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
             const userData = JSON.parse(cachedUser);
             setUser(userData);
             setIsAuthenticated(true);
-            logger.warn("Using cached user data due to session check failure");
+            // Only log as debug - this is expected when backend is slow/sleeping
+            logger.debug("Using cached user data due to session check failure");
           } catch (e) {
             setIsAuthenticated(false);
             setUser(null);
