@@ -97,12 +97,6 @@ export default function AdminMeditationsPage() {
     "nature"
   ];
 
-  useEffect(() => {
-    if (user?.email === 'knsalee@gmail.com') {
-      loadMeditations();
-    }
-  }, [user, loadMeditations]);
-
   const loadMeditations = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -124,6 +118,12 @@ export default function AdminMeditationsPage() {
       setIsLoading(false);
     }
   }, [searchTerm, selectedCategory]);
+
+  useEffect(() => {
+    if (user?.email === 'knsalee@gmail.com') {
+      loadMeditations();
+    }
+  }, [user, loadMeditations]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

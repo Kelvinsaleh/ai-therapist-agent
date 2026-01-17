@@ -767,11 +767,9 @@ export default function TherapyPage() {
       </Button>
       
       <div className="flex h-full w-full">
-        <div className="absolute left-0 right-0 top-12 z-[60]">
-          {renderTrialBanner()}
-        </div>
         {/* Main chat area - full width, no sidebar */}
         <div className="flex-1 flex flex-col overflow-hidden bg-background w-full h-full">
+          {renderTrialBanner()}
 
           {messages.length === 0 ? (
             // Welcome screen with suggested questions
