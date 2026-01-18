@@ -417,7 +417,7 @@ export default function CommunityPageEnhanced() {
 
   const handleShare = async (postId: string) => {
     try {
-      const shareUrl = `${window.location.origin}/community/space/${getSpaceInfo(postId)?._id || ''}`;
+      const shareUrl = `${window.location.origin}/community/post/${postId}`;
       if ((navigator as any).share) {
         await (navigator as any).share({ title: 'Hope Community Post', url: shareUrl });
       } else {
